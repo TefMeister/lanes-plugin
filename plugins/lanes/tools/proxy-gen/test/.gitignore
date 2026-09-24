@@ -1,0 +1,2 @@
+# test binaries, generated proxy sources and logs are rebuilt by run_tests.sh
+build/

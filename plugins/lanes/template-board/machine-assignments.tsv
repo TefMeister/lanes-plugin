@@ -1,0 +1,9 @@
+# Which machine owns which project. Read by tools/gate-scan.sh (--mine / --next).
+# Two tab-separated columns: role, project. '*' is the catch-all.
+# Roles are labels you choose; this machine's role comes from $GATE_ROLE, then
+# `role = <name>` in ~/.claude/lanes.conf, then DEV.
+#
+# [VR] rows always go to the role that has the hardware, whoever owns the project.
+#
+# role	project
+DEV	*
