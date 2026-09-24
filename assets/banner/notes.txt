@@ -1,0 +1,54 @@
+version: 0.22.0
+
+[top-left] WHAT'S NEW
+# NOW PUBLIC - EARLY VERSION
+in daily use since 2026-09-09
+.. still being built, expect changes
+# NOBODY'S NAME IS WRITTEN DOWN
+notes, commits and READMEs call you
+.. "User", unless you choose a name
+/lanes:setup asks, first thing
+# ALSO
+no word list ships in the plugin
+.. private words stay on your machine
+check it yourself first: AUDIT.md
+
+[top-right] THE LANES
+/lm | live: drives the app
+/pd | static: nothing running
+/gr | research, one project
+/sr | research, all projects
+/gs | hygiene check
+/gates | the work board
+/gate-watch | news from other lanes
+/setup | install optional tools
+/update | get the newest version
+/pt | test the plugin itself
+.. type them as /lanes:<name>
+
+[bottom-left] GET STARTED
+# INSTALL
+/plugin marketplace add
+.. TefMeister/lanes-plugin
+/plugin install
+.. lanes@lanes-plugin
+# FIRST RUN
+/lanes:setup offers the optional tools
+.. debuggers, Blender, build tools, VR
+.. say no once and it never asks again
+# NEEDS
+Claude Code, Git, Python 3
+
+[bottom-right] HOW IT WORKS
+every file has one owning lane
+hand-offs are new inbox files, never edits
+one session per lane, one session per job
+a claim holds the job, and /pd skips it
+# THE BOARD: WHAT A STEP NEEDS
+[PD] | nothing running
+[USER] | a person
+[FLAT] | the app running
+[VR CLAUDE] | hardware, no one there
+[VR USER] | hardware, in your hands
+# EVERY CLAIM IS TAGGED
+how well it is known, not just what it says

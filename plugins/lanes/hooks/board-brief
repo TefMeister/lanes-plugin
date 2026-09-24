@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# SessionStart hook: put the board summary in front of the session.
+#
+# SILENT BY DESIGN when no board is configured, when the scan fails, or when it
+# produces nothing. A hook that runs at every session start must never be the
+# reason a session opens with an error, so every failure path exits 0 quietly.
+
+set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+SCAN="${PLUGIN_ROOT}/tools/gate-scan.sh"
+EMIT="${SCRIPT_DIR}/emit_context.py"
+
+[ -f "$SCAN" ] && [ -f "$EMIT" ] || exit 0
+
+# Pick an interpreter that actually RUNS, not merely one that is on PATH.
+# On Windows, python3 and python resolve to Microsoft Store "app execution
+# alias" stubs that exist, print an advert to stdout and exit non-zero -- which
+# would put that advert into the session instead of the board.
+PY=""
+for cand in python3 python py; do
+  command -v "$cand" >/dev/null 2>&1 || continue
+  "$cand" -c "" >/dev/null 2>&1 || continue
+  PY="$cand"; break
+done
+[ -n "$PY" ] || exit 0
+
+bash "$SCAN" --brief 2>/dev/null | "$PY" "$EMIT"
+exit 0

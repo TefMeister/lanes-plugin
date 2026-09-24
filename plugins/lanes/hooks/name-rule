@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# SessionStart hook: put the naming rule in front of EVERY session - the person at the keyboard is
+# "User" (or the display name they chose in /lanes:setup) in anything that gets saved or published.
+#
+# Deliberately has no off switch: it is the one rule that replaces the per-word guard lists, and a
+# privacy rule you can switch off is a suggestion. Silent on every failure path, like every hook.
+set -uo pipefail
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+PY=""
+for cand in python3 python py; do
+  command -v "$cand" >/dev/null 2>&1 || continue
+  "$cand" -c "" >/dev/null 2>&1 || continue
+  PY="$cand"; break
+done
+
+if [ -n "$PY" ]; then
+  "$PY" "${PLUGIN_ROOT}/tools/display-name.py" rule 2>/dev/null | "$PY" "${SCRIPT_DIR}/emit_context.py"
+else
+  # No working Python: the rule still goes out, with the default name.
+  MSG='NAMING RULE (lanes plugin) - applies to everything you SAVE or PUBLISH: notes, boards, commit messages, READMEs, issues, file and folder names. Refer to the person using this machine only as \"User\". Never write their real name, login or account name, e-mail address, machine or host names, or home-folder paths, even if you can see them. Talking to the person in this chat is not affected.'
+  printf '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"%s"}}' "$MSG"
+fi
+exit 0

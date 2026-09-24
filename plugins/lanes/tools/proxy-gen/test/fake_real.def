@@ -1,0 +1,8 @@
+LIBRARY fake.dll
+EXPORTS
+    fake_ints @3
+    fake_floats @5
+    fake_mixed @6
+    fake_fastcall @8
+    fake_lasterror @9
+    fake_hidden = fake_ints @12 NONAME

@@ -1,0 +1,57 @@
+# lanes.conf - copy to ~/.claude/lanes.conf and edit.
+#
+# Everything here is optional. Anything you leave out falls back to an
+# environment variable, then to a sensible default. Values may be quoted;
+# trailing whitespace and CRLF line endings are tolerated.
+
+# WHAT SESSIONS CALL YOU.
+# In anything a session saves or publishes - notes, boards, commit messages,
+# READMEs - you are "User" unless you set a name here. Your real name, login,
+# e-mail, machine names and home-folder paths are never written, whatever you
+# set. /lanes:setup asks for this; tools/display-name.py sets it too.
+# Letters, digits, spaces and . _ - only, up to 40 characters.
+# display_name = User
+
+# WHERE THE BOARD IS.
+# The board is an ordinary git repo with a status/ folder holding one
+# <project>.md per project. Make it PRIVATE: it is your working notes.
+# Overridden by $LANES_BOARD, and by a path passed on the command line.
+board = /path/to/your/board-repo
+
+# WHAT THIS MACHINE IS.
+# Any label you like, as long as it matches the first column of
+# machine-assignments.tsv in the board repo. The shipped example uses
+# HOME (the one with the special hardware) and DEV (everything else).
+# Overridden by $GATE_ROLE. Defaults to DEV.
+role = DEV
+
+# WHERE YOUR CLONES LIVE - used by /gs, which sweeps all of them, and by
+# root-sync.sh, which keeps every lane's clone root holding every repo.
+# One folder holding every repo as a subfolder. Overridden by $LANES_ROOT,
+# and by a path passed to gs-scan.sh. If unset, gs-scan uses the current
+# directory when that directory actually holds clones.
+# root = /path/to/folder-holding-your-clones
+
+# THE LANE ROOTS, if they are not simply <root>-pd, <root>-gr, <root>-sr and
+# <root>-gs next to it (those are found automatically). Comma- or space-separated.
+# lane_roots = /path/to/clones-pd, /path/to/clones-gr
+
+# THE BOARD'S FOLDER NAME inside that root. Defaults to the basename of
+# `board` above, so you normally do not need this.
+# board_dir = board-repo
+
+# YOUR PUBLIC FRONT PAGE, if you have one.
+# The file people land on - a profile README, a landing page. Every session is
+# expected to add a dated line to it, whether or not anything advanced: a dead
+# end or a correction keeps the page honest, and a page that only moves on good
+# news reads as a press release. frontpage-scan.sh warns when it falls behind
+# the boards; it never writes the entry for you.
+# Overridden by $LANES_FRONTPAGE. Unset means the check stays quiet.
+# frontpage = /path/to/profile-repo/README.md
+
+# HOW MANY REPOS THAT ROOT SHOULD HOLD.
+# /gs prints a loud PARTIAL ESTATE banner when it finds fewer, because a
+# hygiene tool that silently understates is worse than no hygiene tool.
+# Unset means the banner never fires - set it once your estate has a
+# stable size.
+# expected_repos = 22

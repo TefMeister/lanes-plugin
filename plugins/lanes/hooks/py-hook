@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Run one of this folder's python hooks with an interpreter that actually works.
+#
+# Usage (via run-hook.cmd, which supplies bash on Windows):
+#   run-hook.cmd py-hook <script.py> [args...]
+#
+# Two things this is careful about:
+#
+#  * It tests each candidate by RUNNING it, not by finding it on PATH. On Windows,
+#    python3 and python resolve to Microsoft Store "app execution alias" stubs that
+#    exist, print an advert and exit non-zero. A hook that piped that advert into a
+#    session would be worse than no hook.
+#
+#  * With no usable interpreter it exits 0, silently. These hooks are guards: a
+#    guard that cannot run must let work through, never block it.
+
+set -uo pipefail
+
+DIR="$(cd "$(dirname "$0")" && pwd)"
+
+if [ "$#" -lt 1 ]; then
+  echo "py-hook: missing script name" >&2
+  exit 0
+fi
+
+SCRIPT="$1"
+shift
+
+[ -f "$DIR/$SCRIPT" ] || exit 0
+
+PY=""
+for cand in python3 python py; do
+  command -v "$cand" >/dev/null 2>&1 || continue
+  "$cand" -c "" >/dev/null 2>&1 || continue
+  PY="$cand"
+  break
+done
+[ -n "$PY" ] || exit 0
+
+exec "$PY" "$DIR/$SCRIPT" "$@"

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "lanes-plugin",
+  "description": "Workflow tooling for Claude Code, built and proven on a long-running multi-session reverse-engineering estate.",
+  "owner": {
+    "name": "TefMeister"
+  },
+  "plugins": [
+    {
+      "name": "lanes",
+      "description": "Run several Claude Code sessions at once without them treading on each other: named lanes, a shared work board, and the guards that keep two sessions off the same job.",
+      "version": "0.22.0",
+      "source": "./plugins/lanes",
+      "author": {
+        "name": "TefMeister"
+      },
+      "category": "workflow"
+    }
+  ]
+}

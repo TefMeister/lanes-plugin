@@ -1,0 +1,9 @@
+# Bash and Python must stay LF on every checkout: a CRLF copy of a hook or tool
+# script is rejected by bash on Windows. The hook scripts are extensionless on
+# purpose, so they are matched by folder rather than by extension.
+# (Before 0.22.0 these patterns were root-relative and matched nothing under
+# plugins/lanes/hooks/ - found on the second machine, 2026-09-10.)
+*.sh text eol=lf
+*.py text eol=lf
+*.tsv text eol=lf
+plugins/lanes/hooks/** text eol=lf

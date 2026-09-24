@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# SessionStart hook: when a newer version of this plugin is published than the one installed here,
+# put a short note in front of the session - what changed, and an offer to update it on the user's
+# say-so. The check fetches at most every few hours and is silent on any failure (offline, no git).
+# LANES_UPDATE_NUDGE=0 turns it off.
+set -uo pipefail
+[ "${LANES_UPDATE_NUDGE:-1}" = "0" ] && exit 0
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+PY=""
+for cand in python3 python py; do
+  command -v "$cand" >/dev/null 2>&1 || continue
+  "$cand" -c "" >/dev/null 2>&1 || continue
+  PY="$cand"; break
+done
+[ -n "$PY" ] || exit 0
+"$PY" "$PLUGIN_ROOT/tools/update-check.py" 2>/dev/null | "$PY" "$SCRIPT_DIR/emit_context.py"
+exit 0

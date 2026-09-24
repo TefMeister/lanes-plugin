@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# SessionStart hook: the FIRST time the lanes plugin runs on a machine, put a one-line offer in
+# front of the session to walk the user through the optional tools (/lanes:setup).
+#
+# Silent once the offer has been made here (the state file exists), when LANES_SETUP_NUDGE=0,
+# and on every failure path - a session-start hook must never be the reason a session opens
+# with an error.
+set -uo pipefail
+[ "${LANES_SETUP_NUDGE:-1}" = "0" ] && exit 0
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+STATE_DIR="${LANES_STATE_DIR:-$HOME/.claude/lanes}"
+[ -f "$STATE_DIR/setup-state.json" ] && exit 0
+
+PY=""
+for cand in python3 python py; do
+  command -v "$cand" >/dev/null 2>&1 || continue
+  "$cand" -c "" >/dev/null 2>&1 || continue
+  PY="$cand"; break
+done
+
+MSG="FIRST RUN of the lanes plugin on this machine. Before other work, offer the user - in one short plain sentence - a guided setup: it first asks what name sessions should use for them in notes and on GitHub (until they choose, it is \"User\"), then walks through the optional tools these lanes use (Git, Python, build tools, x64dbg and Ghidrust with their MCP servers, Blender + Blender MCP, gamepad and VR runtimes): they can type /lanes:setup, where each missing tool can be installed by Claude or downloaded by them from its official link, or skipped. If they decline, record it so this offer is not repeated: python \"\${CLAUDE_PLUGIN_ROOT}/tools/setup-scan.py\" --mark-done"
+if [ -n "$PY" ]; then
+  printf '%s\n' "$MSG" | "$PY" "$SCRIPT_DIR/emit_context.py"
+else
+  # No working Python: emit the plain payload by hand (the message has no characters needing escapes beyond quotes).
+  esc=${MSG//\/\\}; esc=${esc//\"/\\\"}
+  printf '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"%s"}}' "$esc"
+fi
+exit 0
