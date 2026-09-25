@@ -659,6 +659,11 @@ checks the shapes a leak takes (home paths, e-mails, session ids, this machine's
 words a maintainer wants it to refuse go in a **private** file on their own machine
 (`~/.claude/lanes/never-publish.txt`), which is never part of the plugin.
 
+**PCs have plain names too (0.24.0).** A claim or reminder has to say which PC wrote it, and it says
+so with a name like PC1 or one chosen in `/lanes:setup`, never the computer's own name.
+`tools/machine-name.py` keeps it, and the board's `machines.txt` stops two PCs sharing one. Until
+0.24.0 the computer's name was written; an outside audit caught it.
+
 ## 13. Ideas are filed first, and never lost (0.23.0, 2026-09-26)
 
 **What it is for.** People have ideas away from the keyboard. They write them into their ideas repo's

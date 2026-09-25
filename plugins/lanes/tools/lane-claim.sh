@@ -18,8 +18,11 @@
 # THE CLAIM
 #   One line in <board>/status/<project>.md, directly above the "OPEN (date):" line:
 #
-#       LIVE: /lm 2026-09-06 14:02 WORKSTATION
-#       LIVE: <lane> <YYYY-MM-DD> <HH:MM> <host>
+#       LIVE: /lm 2026-09-06 14:02 PC1
+#       LIVE: <lane> <YYYY-MM-DD> <HH:MM> <machine label>
+#
+#   The machine label is this PC's plain name (see machine_label below), never the
+#   computer's real name. Older claims may still carry a real name; they parse the same.
 #
 #   Taken by the session at its start (one commit, one push - the push IS the claim, and a
 #   rejected push means someone else got there first). Released by the same session in its
@@ -83,7 +86,45 @@ if [ -z "$REPO" ] || [ ! -d "$REPO/status" ]; then
   exit 2
 fi
 
-HOST="$(hostname 2>/dev/null || echo unknown-host)"
+detect_role() {
+  if [ -n "${GATE_ROLE:-}" ]; then echo "$GATE_ROLE"; return; fi
+  local r="" conf
+  for conf in "${LANES_CONFIG:-}" "$HOME/.claude/lanes.conf" "$HOME/.config/lanes/lanes.conf"; do
+    [ -n "$conf" ] && [ -f "$conf" ] || continue
+    r=$(sed -n 's/^[[:space:]]*role[[:space:]]*=[[:space:]]*//p' "$conf" | head -1 |
+        sed 's/[[:space:]]*$//; s/^"//; s/"$//')
+    [ -n "$r" ] && break
+  done
+  echo "${r:-DEV}"
+}
+
+# ---- what this PC is CALLED in anything written down (0.24.0) -------------------------------
+# Never the computer's real name: that breaks the naming rule (PROTOCOL.md section 12), and an
+# outside audit of 0.22.0 found claims and reminders were writing it into the board and commits.
+# The name comes from machine-name.py: chosen in /lanes:setup, or PC1, PC2 ... taken automatically.
+# Kept inline, not in a shared file, because copies of these scripts are run on their own.
+machine_label() {
+  local conf v py here confs
+  if [ -n "${LANES_CONFIG:-}" ]; then confs=("$LANES_CONFIG")   # a test's scratch file is the ONLY one
+  else confs=("$HOME/.claude/lanes.conf" "$HOME/.config/lanes/lanes.conf"); fi
+  for conf in "${confs[@]}"; do
+    [ -f "$conf" ] || continue
+    v=$(sed -n 's/^[[:space:]]*machine_name[[:space:]]*=[[:space:]]*//p' "$conf" | head -1 |
+        sed 's/[[:space:]]*$//; s/^"//; s/"$//' | tr -cd 'A-Za-z0-9._-')
+    [ -n "$v" ] && { echo "$v"; return; }
+  done
+  here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  if [ -f "$here/machine-name.py" ]; then
+    for py in python3 python py; do
+      command -v "$py" >/dev/null 2>&1 && "$py" -c "" >/dev/null 2>&1 || continue
+      v=$(LANES_BOARD="${REPO:-${BOARD:-${LANES_BOARD:-}}}" "$py" "$here/machine-name.py" 2>/dev/null | tr -cd 'A-Za-z0-9._-')
+      [ -n "$v" ] && { echo "$v"; return; }
+    done
+  fi
+  echo "$1"   # last resort: the role (HOME, DEV ...), still never the computer's name
+}
+
+HOST=""   # worked out only by take/release: working it out can save a name and push machines.txt
 MARK="LIVE"
 NOW=$(date +%s)
 MAX_AGE_S=$(( MAX_AGE_H * 3600 ))
@@ -100,7 +141,7 @@ fetch_ref() {
 classify_line() {
   local line="$1" lane d t host when
   C_STATE=MALFORMED; C_LANE=""; C_WHEN=""; C_HOST=""; C_AGE_H=""
-  # LIVE: /lm 2026-09-06 14:02 WORKSTATION
+  # LIVE: /lm 2026-09-06 14:02 PC1
   if [[ "$line" =~ ^(LIVE):[[:space:]]+(/[a-z]+)[[:space:]]+([0-9]{4}-[0-9]{2}-[0-9]{2})[[:space:]]+([0-9]{2}:[0-9]{2})[[:space:]]+([^[:space:]]+)[[:space:]]*$ ]]; then
     lane="${BASH_REMATCH[2]}"; d="${BASH_REMATCH[3]}"; t="${BASH_REMATCH[4]}"; host="${BASH_REMATCH[5]}"
     when=$(date -d "$d $t" +%s 2>/dev/null) || return 0
@@ -125,7 +166,7 @@ report_one() {
   case "$C_STATE" in
     FRESH) printf '%-28s FRESH  %s since %s on %s (%sh ago) - the same lane is on this job NOW\n' "$prefix" "$C_LANE" "$C_WHEN" "$C_HOST" "$C_AGE_H"; return 1 ;;
     STALE) printf '%-28s STALE  %s since %s on %s (%sh ago, >%sh) - that session most likely died; the next take replaces it\n' "$prefix" "$C_LANE" "$C_WHEN" "$C_HOST" "$C_AGE_H" "$MAX_AGE_H"; return 0 ;;
-    *)     printf '%-28s MALFORMED  "%s" - expected "LIVE: /lane YYYY-MM-DD HH:MM host"; treated as live until fixed\n' "$prefix" "$line"; return 1 ;;
+    *)     printf '%-28s MALFORMED  "%s" - expected "LIVE: /lane YYYY-MM-DD HH:MM machine"; treated as live until fixed\n' "$prefix" "$line"; return 1 ;;
   esac
 }
 
@@ -159,6 +200,7 @@ case "$CMD" in
     ;;
 
   take|release)
+    HOST="$(machine_label "$(detect_role)")"
     lane="${1:-}"; prefix="${2:-}"
     [[ "$lane" =~ ^/[a-z]+$ ]] && [ -n "$prefix" ] || { echo "usage: lane-claim.sh $CMD </lane> <prefix> [--force]" >&2; exit 2; }
     file="status/$prefix.md"

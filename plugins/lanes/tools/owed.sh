@@ -113,7 +113,33 @@ detect_role() {
 
 BOARD="$(find_board)"
 ROLE="$(detect_role)"
-HOST="${COMPUTERNAME:-$(hostname 2>/dev/null || echo unknown)}"
+# ---- what this PC is CALLED in anything written down (0.24.0) -------------------------------
+# Never the computer's real name: that breaks the naming rule (PROTOCOL.md section 12), and an
+# outside audit of 0.22.0 found claims and reminders were writing it into the board and commits.
+# The name comes from machine-name.py: chosen in /lanes:setup, or PC1, PC2 ... taken automatically.
+# Kept inline, not in a shared file, because copies of these scripts are run on their own.
+machine_label() {
+  local conf v py here confs
+  if [ -n "${LANES_CONFIG:-}" ]; then confs=("$LANES_CONFIG")   # a test's scratch file is the ONLY one
+  else confs=("$HOME/.claude/lanes.conf" "$HOME/.config/lanes/lanes.conf"); fi
+  for conf in "${confs[@]}"; do
+    [ -f "$conf" ] || continue
+    v=$(sed -n 's/^[[:space:]]*machine_name[[:space:]]*=[[:space:]]*//p' "$conf" | head -1 |
+        sed 's/[[:space:]]*$//; s/^"//; s/"$//' | tr -cd 'A-Za-z0-9._-')
+    [ -n "$v" ] && { echo "$v"; return; }
+  done
+  here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  if [ -f "$here/machine-name.py" ]; then
+    for py in python3 python py; do
+      command -v "$py" >/dev/null 2>&1 && "$py" -c "" >/dev/null 2>&1 || continue
+      v=$(LANES_BOARD="${REPO:-${BOARD:-${LANES_BOARD:-}}}" "$py" "$here/machine-name.py" 2>/dev/null | tr -cd 'A-Za-z0-9._-')
+      [ -n "$v" ] && { echo "$v"; return; }
+    done
+  fi
+  echo "$1"   # last resort: the role (HOME, DEV ...), still never the computer's name
+}
+
+HOST=""   # worked out only by add: working it out can save a name and push machines.txt
 MODE="${1:-check}"
 OWED="$BOARD/owed"
 
@@ -165,7 +191,7 @@ case "$MODE" in
     # ASCII only, deliberately: this goes through a SessionStart hook, and on Windows the
     # Python that wraps it reads stdin in the locale encoding -- a UTF-8 emoji arrives as
     # mojibake in the session. gate-scan --brief keeps to ASCII for the same reason.
-    echo "!! $count THING(S) ARE WAITING FOR **THIS** MACHINE ($ROLE / $HOST) - and only this one can do them."
+    echo "!! $count THING(S) ARE WAITING FOR **THIS** MACHINE ($ROLE) - and only this one can do them."
     echo
     n=0
     while IFS= read -r name; do
@@ -211,7 +237,7 @@ case "$MODE" in
       echo "# $title"
       echo
       echo "Machine: $role"
-      echo "Raised: $(date +%F) on $HOST ($ROLE)${LANE:+, $LANE lane}"
+      echo "Raised: $(date +%F) on $(machine_label "$ROLE")${LANE:+, $LANE lane}"
       if [ -n "$body" ]; then echo; printf '%s\n' "$body"; fi
     } > "$file" || exit 2
     echo "$file"

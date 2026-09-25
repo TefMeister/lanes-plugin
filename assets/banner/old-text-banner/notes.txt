@@ -1,4 +1,4 @@
-version: 0.23.1
+version: 0.24.0
 
 [top-left] WHAT'S NEW
 # IDEAS FILE THEMSELVES
@@ -10,7 +10,8 @@ the next session files them first
 its next session lists them, numbered
 .. keep the numbers you want
 # ALSO
-early version, expect changes
+PCs are PC1, PC2 ... or a name you pick
+.. never the computer's own name
 check it yourself first: AUDIT.md
 
 [top-right] THE LANES

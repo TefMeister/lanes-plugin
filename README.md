@@ -1,49 +1,91 @@
-# lanes-plugin
+# lanes
 
 ![lanes plugin banner](assets/banner/banner.png)
 
-**Run several Claude Code sessions at once without them treading on each other.**
+**A Claude Code plugin for running several Claude sessions at once, on the same projects, without
+them undoing each other's work.**
 
-This repository is a Claude Code **plugin marketplace** holding one plugin, `lanes`. Add it with:
+## What it is
+
+**The problem.** Two Claude sessions working on one set of files quietly overwrite each other.
+Nothing crashes. The work just disappears.
+
+**The fix.** Every session works in a **lane**, and each lane owns its own files. When one lane has
+something for another, it leaves a new file in that lane's inbox instead of editing its files. New
+files never clash, so git can always merge them.
+
+**A shared board.** One list of every job, each tagged with what it needs. It answers the question
+you have at the start of every session: *what can I actually do right now?*
+
+## The lanes
+
+| Command | What it does |
+| --- | --- |
+| `/lm` | **Live.** Claude runs the app itself: starts it, uses it, closes it, and tests its own changes. |
+| `/pd` | **Parallel development.** Picks the next job that needs nothing running, so it can work beside anything else. |
+| `/gr` | Web research for each project, kept in that project's notes. |
+| `/sr` | Research across all projects, kept in one shared library. |
+| `/gs` | Hygiene check: are notes tagged, and are hand-offs being picked up? |
+| `/gates` | Shows the work board. |
+| `/gate-watch` | Tells you when another session finishes something. |
+| `/ideas` | Files the ideas you jotted down, onto the right project. |
+| `/setup` | First-run setup: your name, this PC's name, and optional tools. |
+| `/update` | Gets the newest version of the plugin, after asking you. |
+| `/pt` | Tests the plugin itself. |
+| *(none)* | **Manual.** You do the hands-on work; Claude gives you the steps and writes the code. |
+
+Type them as `/lanes:<name>`, for example `/lanes:pd`.
+
+## How it works
+
+- **One session per lane, one session per job.** A session claims its job, and the others skip it.
+- **The board says what each step needs:**
+
+  | Tag | Needs |
+  | --- | --- |
+  | `[PD]` | nothing running |
+  | `[USER]` | a person |
+  | `[FLAT]` | the app running |
+  | `[VR CLAUDE]` | special hardware plugged in, nobody needed |
+  | `[VR USER]` | a person using the special hardware |
+
+- **Every finding says how well it is known,** not just what it says.
+- **Two PCs?** A job only one PC can do is queued for that PC, and greets it at its next session.
+- **Nobody's name is written down.** You are "User" unless you choose a name. Each PC is PC1, PC2
+  and so on unless you name it. Your real name, login and computer name are never written.
+- **Ideas get filed for you.** Jot them into your ideas repo, even from a phone. The next session
+  files them, and each project's next session lists them for you to pick from.
+
+## Get started
 
 ```
 /plugin marketplace add TefMeister/lanes-plugin
 /plugin install lanes@lanes-plugin
 ```
 
-## 🚧 Early version, still being built
+Then run `/lanes:setup`. It asks what to call you and this PC, then offers the optional tools:
+debuggers, Blender, build tools, VR. Say no once and it never asks again.
 
-It has been in daily use since 2026-09-09, on two machines, through twenty-odd versions, and it is
-made public now so others can use it and find what breaks. It is one person's working tool and it
-shows: it was built for flat-to-VR game modding, so many examples and optional tools lean that way.
-Expect changes. `/lanes:update` tells you when a new version is out and what changed, and never
-installs anything without asking. How well each part is proven, with numbers, is in
+**Needs:** Claude Code, Git, Python 3.
+
+**Check it first.** Don't take our word that it is safe. [`AUDIT.md`](AUDIT.md) is a request you
+paste into your own Claude Code, which then reviews every file before you install.
+
+## Early version
+
+In daily use since 2026-09-09, on two PCs. It was built for turning flat games into VR, so many
+examples and optional tools lean that way. The lanes themselves work for any project. Expect changes: `/lanes:update` tells you
+what is new and never installs without asking. The full manual is in
 [`plugins/lanes/README.md`](plugins/lanes/README.md).
-
-## 🔒 Nobody's name is written down
-
-In everything a session saves or publishes (notes, boards, commit messages, READMEs), the person at
-the machine is **"User"**. Your real name, login, e-mail, machine names and home-folder paths are
-never written. If you would rather be called something else, `/lanes:setup` asks first thing, and
-that one name is then used everywhere.
-
-## 🔍 Check it yourself before you install
-
-**Don't take our word that this is safe.** Ask your own Claude Code to audit every file and link
-first. [`AUDIT.md`](AUDIT.md) has a request you can copy and paste. We can't do that check for you;
-it only counts when someone else's Claude does it.
-
-## Plugins
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Run several Claude Code sessions at once without them treading on each other. | `0.23.1`, early public release |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.24.0`, early public release |
 
 ## Modding games?
 
-The author's games in progress, and the shared research library behind them, are indexed on the
-author's [GitHub profile](https://github.com/TefMeister). The plugin itself stays neutral; that pointer
-lives here.
+The author's games in progress, and the research behind them, are listed on the author's
+[GitHub profile](https://github.com/TefMeister).
 
 ## Licence
 

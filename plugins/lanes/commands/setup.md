@@ -1,5 +1,5 @@
 ---
-description: (Setup) First-run walk-through - first asks what name sessions should call you in notes and on GitHub (default "User"), then the optional tools the lanes use - Git, Python, build tools, debuggers and decompilers with their MCP servers, Blender + Blender MCP, gamepad and VR runtimes. For each missing tool it offers to install it for you, or gives you the official link to do it yourself, or skips it. Safe to re-run any time; it only ever adds what you say yes to.
+description: (Setup) First-run walk-through - first asks what name sessions should call you in notes and on GitHub (default "User") and what to call this PC (default PC1, PC2 ...), then the optional tools the lanes use - Git, Python, build tools, debuggers and decompilers with their MCP servers, Blender + Blender MCP, gamepad and VR runtimes. For each missing tool it offers to install it for you, or gives you the official link to do it yourself, or skips it. Safe to re-run any time; it only ever adds what you say yes to.
 ---
 
 `/lanes:setup` walks the user through **optional** tools, one group at a time. The catalog, with
@@ -39,6 +39,23 @@ appear wherever your work is described, including public READMEs."* Options: **"
 - ⚠️ **Never suggest their real name, login or account name** as the display name, even if you can
   see it. The whole point is that they choose what is published.
 - The rule applies from the next session start; for the rest of this session, follow it already.
+
+## 0.6 What should this PC be called? (asked second, every first run)
+
+Claims and reminders say which PC wrote them, because two sessions on one PC share one keyboard.
+They never use the computer's real name; they use a plain name for the PC.
+
+Check what is set now: `python "${CLAUDE_PLUGIN_ROOT}/tools/machine-name.py" suggest`. If
+`machine_name` is already in `lanes.conf`, say the name in one line and move on. Otherwise ask **one
+question** (AskUserQuestion), for example: *"What should this PC be called in your notes? If you
+don't mind, it will just be PC2."* Use the suggested name in the question. Options: **"Use <PCn>"**
+and **"Choose a name"** (they type it through "Other").
+
+- Save it with `python "${CLAUDE_PLUGIN_ROOT}/tools/machine-name.py" set "<name>"`, the suggested one
+  too. It adds the name to the board's `machines.txt` so no other PC takes it. It refuses spaces, a
+  name another PC already has, and the computer's real name; if refused, say why and ask again.
+- ⚠️ **Never suggest the computer's real name.**
+- Nobody set one? The first claim or reminder takes the next free PC number by itself.
 
 ## 1. Scan
 
@@ -119,3 +136,4 @@ repeating every session. Then report:
 
 Re-running `/lanes:setup` later is always safe: it only asks about what is still missing. To change
 the display name later: `display-name.py set "<name>"`, or `display-name.py clear` to go back to "User".
+To rename this PC: `machine-name.py set "<name>"`.

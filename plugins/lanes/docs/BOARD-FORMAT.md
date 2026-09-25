@@ -88,15 +88,20 @@ One line, directly above the `OPEN` block, written and pushed by whichever sessi
 project:
 
 ```
-LIVE: /lm 2026-09-06 14:02 WORKSTATION
+LIVE: /lm 2026-09-06 14:02 PC1
 ```
 
-`<lane> <date> <time> <host>`. Written and removed by `lane-claim.sh`; never by hand.
+`<lane> <date> <time> <machine>`. Written and removed by `lane-claim.sh`; never by hand.
+
+The machine is the PC's **plain name, never the computer's real name** (0.24.0): the one chosen in
+`/lanes:setup`, or PC1, PC2 and so on if nothing was chosen. The board's `machines.txt` lists the
+names in use, so no two PCs get the same one. Claims written before 0.24.0 may still carry a real
+name; they are read the same way.
 
 - **`FRESH`** — under 12 hours old. That project is taken. Another same-lane session must not start
   on it.
 - **`STALE`** — older than 12 hours. That session most likely died; the next `take` replaces it.
-- The **host** matters as much as the lane: two sessions on *different* projects but the *same*
+- The **machine** matters as much as the lane: two sessions on *different* projects but the *same*
   machine still share one keyboard. See "one running app per machine" in `/lm`.
 
 *(0.3.0 allowed a second `TANDEM:` line above it for a reader session. Retired in 0.4.0 — the

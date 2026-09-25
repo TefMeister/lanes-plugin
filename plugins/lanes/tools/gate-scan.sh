@@ -197,7 +197,7 @@ fi
 if [ -f "$CLAIM_TOOL" ]; then   # always true past the guard above; kept so this stays a
                                 # minimal diff from the original the lanes depend on
   bash "$CLAIM_TOOL" list --no-fetch --repo "$MEM" 2>/dev/null | grep -E ' (FRESH|STALE|MALFORMED) ' > "$CLAIMS" || true
-  grep -E ' MALFORMED ' "$CLAIMS" | awk '{printf "  %-28s malformed LIVE line - expected \"LIVE: /lane YYYY-MM-DD HH:MM host\"\n", $1}' >> "$VIOL"
+  grep -E ' MALFORMED ' "$CLAIMS" | awk '{printf "  %-28s malformed LIVE line - expected \"LIVE: /lane YYYY-MM-DD HH:MM machine\"\n", $1}' >> "$VIOL"
 fi
 claims_brief() {
   # "game-one   FRESH  /lm since 2026-09-06 14:02 on WORKSTATION (0h ago) - ..." -> one short phrase each
