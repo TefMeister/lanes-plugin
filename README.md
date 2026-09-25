@@ -2,7 +2,7 @@
 
 ![lanes plugin banner](assets/banner/banner.png)
 
-**A Claude Code plugin for running several Claude sessions at once, on the same projects, without
+**A Claude Code plugin for running several Claude sessions at once, across your projects, without
 them undoing each other's work.**
 
 ## What it is
@@ -39,6 +39,10 @@ Type them as `/lanes:<name>`, for example `/lanes:pd`.
 ## How it works
 
 - **One session per lane, one session per job.** A session claims its job, and the others skip it.
+- **`/lm` and `/pd` never work on the same project at once.** While `/lm` holds a project, `/pd` is
+  stopped from starting on it and picks another. Two sessions on one project was tried and worked
+  once in fifty runs, so it was removed. Instead, `/lm` runs its own helper in the background for
+  the no-app-needed work on that project.
 - **The board says what each step needs:**
 
   | Tag | Needs |
