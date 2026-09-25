@@ -32,7 +32,7 @@ you have at the start of every session: *what can I actually do right now?*
 | `/setup` | First-run setup: your name, this PC's name, and optional tools. |
 | `/update` | Gets the newest version of the plugin, after asking you. |
 | `/pt` | Tests the plugin itself. |
-| *(none)* | **Manual.** You do the hands-on work; Claude gives you the steps and writes the code. |
+| `/ms` | **Manual session.** You do the hands-on work; Claude gives you the steps and writes the code. |
 
 Type them as `/lanes:<name>`, for example `/lanes:pd`.
 
@@ -84,7 +84,7 @@ what is new and never installs without asking. The full manual is in
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.24.0`, early public release |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.25.0`, early public release |
 
 ## Modding games?
 
