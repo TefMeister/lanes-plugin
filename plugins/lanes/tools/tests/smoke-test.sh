@@ -516,14 +516,19 @@ else
   printf '  skip  %s\n' "no root README here (an installed copy does not carry it)"
 fi
 
-echo "the banner matches this version (every version bump must regenerate it)"
-BANNER_DIR="$HERE/../../../../assets/banner"
-if [ -f "$BANNER_DIR/banner.png" ] && [ -f "$BANNER_DIR/notes.txt" ]; then
-  out=$("$PY" "$BANNER_DIR/check_banner.py" "$pv" 2>&1)
-  [ "$out" = "ok" ] && ok "banner.png and notes.txt are both at $pv" || fail "banner is stale ($out) - edit assets/banner/notes.txt, then run python assets/banner/make_banner.py"
+echo "the front page lists every command (it is where a visitor learns what each one does)"
+# Until 0.24.0 the banner carried the command list and this check read it. The banner is now plain
+# artwork, so the list lives on the front page and is checked there instead.
+if [ -f "$RROOT" ]; then
+  missing=""
+  for c in "$HERE"/../../commands/*.md; do
+    n=$(basename "$c" .md)
+    grep -q "\`/$n\`" "$RROOT" || missing="$missing /$n"
+  done
+  [ -z "$missing" ] && ok "every command is on the front page" || fail "the front page does not list:$missing"
 else
   printf '  skip  %s
-' "no banner here (an installed copy does not carry it)"
+' "no root README here (an installed copy does not carry it)"
 fi
 
 echo "proxy-gen self-test (an export called before DllMain must not crash the app)"
@@ -623,6 +628,14 @@ owed_same "$got" "$OWED_OTHER" && ok "\$LANES_BOARD still overrides everything" 
                                || fail "LANES_BOARD no longer wins (got '$got')"
 
 rm -rf "$OWED_MINE" "$OWED_OTHER" "$OWED_ELSEWHERE" "$OWED_NEUTRAL"; rm -f "$OWED_CONF"
+
+echo "machine names - never the computer's real name (0.24.0)"
+if out=$(bash "$HERE/machine-label-fixture.sh" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "machine-label-fixture.sh failed"
+fi
 
 echo "ideas.py - the ideas inbox (0.23.0)"
 if out=$(bash "$HERE/ideas-fixture.sh" 2>&1); then

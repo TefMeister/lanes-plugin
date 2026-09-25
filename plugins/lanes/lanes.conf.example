@@ -25,6 +25,12 @@ board = /path/to/your/board-repo
 # Overridden by $GATE_ROLE. Defaults to DEV.
 role = DEV
 
+# WHAT THIS PC IS CALLED in claims and reminders (0.24.0).
+# Never the computer's real name. /lanes:setup asks; if you pick nothing it is
+# PC1, PC2 and so on, whichever is free on the board. Letters, digits and
+# . _ - only. Change it with tools/machine-name.py set <name>.
+# machine_name = PC1
+
 # WHERE YOUR CLONES LIVE - used by /gs, which sweeps all of them, and by
 # root-sync.sh, which keeps every lane's clone root holding every repo.
 # One folder holding every repo as a subfolder. Overridden by $LANES_ROOT,

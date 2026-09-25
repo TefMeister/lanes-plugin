@@ -139,6 +139,8 @@ disk's past instead of the project's present, which is the one failure the board
 messages, READMEs - you are **"User"**. Your real name, login, e-mail, machine names and
 home-folder paths are never written. If you would rather be called something else (a handle you
 use publicly, say), `/lanes:setup` asks first thing, and that one name is then used everywhere.
+The same goes for your computers: each PC is PC1, PC2 and so on, or a name you pick in setup,
+never the computer's own name.
 
 **Optional tools.** The first session after installing offers a guided setup, `/lanes:setup`: for
 every tool the lanes have used (Git, Python and its packages, llvm-mingw, CMake, MSVC build tools,

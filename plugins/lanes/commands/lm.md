@@ -198,7 +198,7 @@ sharing one **keyboard** — two `/lm` on different projects both read `NONE` an
 bash "${CLAUDE_PLUGIN_ROOT}/tools/lane-claim.sh" list
 ```
 
-The claim line carries the **host**. If another `/lm` claim shows the **same host**, **do not
+The claim line carries the **machine label**. If another `/lm` claim shows the **same machine**, **do not
 launch.** Name the job holding the machine and since when, then take static work instead or put it
 to the user.
 
