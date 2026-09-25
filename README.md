@@ -86,7 +86,8 @@ paste into your own Claude Code, which then reviews every file before you instal
 
 ## Early version
 
-In daily use since 2026-09-09, on two PCs. It was built for turning flat games into VR, so many
+The way of working behind it has been in development since early August 2026. It became this
+plugin on 2026-09-09, and has been in daily use on two PCs since then. It was built for turning flat games into VR, so many
 examples and optional tools lean that way. The lanes themselves work for any project. Expect changes: `/lanes:update` tells you
 what is new and never installs without asking. The full manual is in
 [`plugins/lanes/README.md`](plugins/lanes/README.md).
