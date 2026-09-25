@@ -81,6 +81,9 @@ def main():
     if event != "UserPromptSubmit":
         return 0
     prompt = (data.get("prompt") or "").strip()
+    # "/lanes:pd" is the same command as "/pd"; until 0.25.1 the long form skipped this lock.
+    if prompt.startswith("/lanes:pd"):
+        prompt = "/" + prompt[len("/lanes:"):]
     if not (prompt == "/pd" or prompt.startswith("/pd ")):
         return 0
 
