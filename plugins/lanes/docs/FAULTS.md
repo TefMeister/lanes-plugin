@@ -494,4 +494,13 @@ that if it *does* arrive later, there is a dated baseline saying when it did not
 
 ## Still open
 
-_Nothing. Faults 9 and 10 were closed on 2026-09-15 (0.6.2) and moved to **Fixed** above._
+### Two PCs copying the same ideas leave a project repo stuck mid-rebase (found 2026-09-26)
+
+**What happened.** `ideas.py sync --commit` ran on both PCs for the same ideas. Each wrote the same idea file with a
+different `copied <date>` line, so the second PC's `pull --rebase` hit an add/add conflict and stopped. 24 project
+repos on one PC were left mid-rebase, unnoticed for days. Every clashing copy was identical apart from that line;
+they were resolved by keeping one copy. Nothing was lost `[verified-live 2026-09-26, n=24 repos]`.
+
+**Fix to make.** Write nothing machine- or date-specific into the idea file, so two PCs produce byte-identical
+files and git merges them silently. And have `git_commit` in `ideas.py` abort the rebase and say so when it fails,
+instead of leaving the repo stuck.
