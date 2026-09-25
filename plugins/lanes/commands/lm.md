@@ -219,6 +219,9 @@ machines.**
 2. **Take the claim.**
 3. **Drain this project's `inbox/`** — by explicit filename list, never by glob.
 4. **Read the status file and the project's own notes**, including the recorded dead ends.
+4a. **Show the project's fresh ideas first**, if an ideas repo is set up: `/lanes:ideas` → "When a
+   session starts work on a project". Print the numbered list and carry on; drop nothing until the
+   person answers with numbers.
 5. **⚠️ Verify what is actually deployed, by hash.** "Deployed" written on a board is prose, not
    evidence. Check the installed artifact against the source you are about to reason from, and
    **regenerate rather than reuse** a staged build you cannot account for. A session that measures

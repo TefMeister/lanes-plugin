@@ -151,6 +151,9 @@ nothing to do. Name anything it `SKIPPED` or `FAILED` in the write-up.
    returned *before* folding anything in, and delete only those names. A concurrent session can drop
    a file inside that window, and a glob deletes it unread with nothing in git to show it existed.
 4. **Claim each job** before touching it.
+4a. **Show the project's fresh ideas first**, if an ideas repo is set up: `/lanes:ideas` → "When a
+   session starts work on a project". Print the numbered list, carry on, and drop nothing until the
+   person answers with numbers.
 4b. **Name the model THIS job needs — before doing any of it** (0.12.0). One plain line: the tier
    the row in front of you needs, and whether it matches the model actually running. ⚠️ It cannot
    come before the command is typed, because the pick needs a board read — say so rather than

@@ -76,6 +76,12 @@ names came from VR game modding; read them as *needs nothing* / *needs a person*
 
 ---
 
+### A paused project
+
+A project nobody should pick up for now gets `OPEN (<date>): none` and one line starting with
+`⏸️ **PAUSED`, saying why. `tools/ideas.py` reads that line: a paused project is left out when an
+idea is meant for every project (0.23.0).
+
 ## 2. The `LIVE` claim
 
 One line, directly above the `OPEN` block, written and pushed by whichever session is working that

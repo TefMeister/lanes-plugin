@@ -36,6 +36,7 @@ matters at the start of a session: *what can I actually do right now?*
 | Live | `/lm` | The one lane allowed to drive the running app. | **yes** |
 | Setup | `/setup` | First-run walk-through of the **optional tools** (debuggers, decompilers, Blender MCP, build tools, VR runtimes): installs what you say yes to, or gives you the official link. | no |
 | Update | `/update` | Checks GitHub for a newer version of this plugin, says what changed, and updates it **after you say yes**. Also checked by itself at session start. | no |
+| Ideas | `/ideas` | Files ideas you wrote down in your ideas repo, word for word, onto each project's page, and hands them to that project's next session as a numbered list. Runs by itself when ideas are waiting. | no |
 | Test | `/pt` | Tests **this plugin** against real work; writes only to the plugin's own repo. | no |
 | — | *(no command)* | Manual mode: you drive, the session tells you what to do and reads the logs after. | you do |
 
@@ -165,6 +166,8 @@ configured the hook stays completely silent — it never makes a session start w
 | `docs/TOOLS.md` | every optional tool: what it is for, official link, install command, check |
 | `docs/PROTOCOL.md` | lane ownership, create-only hand-offs, clone roots, confidence tags |
 | `template-board/` | copy this into a new **private** repo to start a board |
+| `template-ideas/` | copy this into a new **private** repo to keep ideas in (`ideas = ...` in `lanes.conf`) |
+| `tools/ideas.py` | the ideas inbox: `check`, `waiting`, `clear`, `sync`, `list`, `pick`, `done` |
 | `skills/lanes/` | the short form, loaded on demand when a session needs the rules |
 | `tools/root-sync.sh` | keeps every lane's clone root holding every repo (`--check` lists gaps, `--fix` fills them) |
 | `tools/owed.sh` | work only one named machine can do, queued for that machine (`add` / `list` / `show` / `done`) |
@@ -191,13 +194,14 @@ pattern — in `docs/PROTOCOL.md` §7.
 
 ### What installs itself
 
-Five hooks come with the plugin. All five **fail open**: if anything about them cannot run,
+Six hooks come with the plugin. All six **fail open**: if anything about them cannot run,
 work is allowed through rather than blocked.
 
 | Hook | What it does |
 | --- | --- |
 | board summary | puts the one-line board in front of every new session |
 | owed check | greets this machine with work queued for it, and stays silent when there is none |
+| ideas check | when ideas are waiting in your ideas repo, has the session file them first; silent otherwise, and off until `ideas = ...` is set |
 | `/pd` lock | stops a second `/pd` starting on this machine while one is live |
 | live-claim guard | blocks `/pd` or `/lm` naming a job another same-lane session holds |
 | reader guard | refuses the `/lm` session's background reader any write to the board's status files |

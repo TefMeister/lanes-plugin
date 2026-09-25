@@ -658,3 +658,31 @@ secret to protect because nothing personal is written in the first place. `tools
 checks the shapes a leak takes (home paths, e-mails, session ids, this machine's name); any extra
 words a maintainer wants it to refuse go in a **private** file on their own machine
 (`~/.claude/lanes/never-publish.txt`), which is never part of the plugin.
+
+## 13. Ideas are filed first, and never lost (0.23.0, 2026-09-26)
+
+**What it is for.** People have ideas away from the keyboard. They write them into their ideas repo's
+`DUMP.md`, often from a phone, as `[project; part] the idea`. Until someone files them they help nobody,
+and asking the person to do the filing is asking them to be a clerk.
+
+**How it runs by itself.** A session-start hook (`hooks/ideas-brief`, running `tools/ideas.py check`)
+looks at the dump and the repo's open issues. When anything waits, it tells the session to file it
+**first**, with `/lanes:ideas`, before its other work, unless the person asked for something
+time-critical. Silent when nothing waits, and off until `ideas = ...` is set in `lanes.conf`.
+
+**The rules that keep the person's words safe.**
+
+- **Capture is lossless; filing is a separate pass.** Every waiting line is copied verbatim into a
+  new file in the ideas repo's `inbox/`. That folder is append-only. Filing can be wrong and fixed
+  later, because the original words are always there.
+- **A line leaves the dump only if it is already in an inbox file.** `ideas.py clear --from
+  inbox/<file>` enforces it, so a line typed while a session is filing survives. It is the same reason
+  inboxes are drained by explicit list (§2).
+- **Only the person settles or drops an idea.** Sessions file, describe and judge feasibility, and say
+  out loud when a verdict was not checked against the real project.
+
+**How ideas reach the work.** `repos.tsv` in the ideas repo maps each page to project repos (`*` for
+every active one, `-` for none yet). `ideas.py sync` copies undecided ideas into `<repo>/ideas/fresh/`;
+`/pd` and `/lm` show them as a numbered list at the start; `ideas.py pick` keeps the chosen numbers and
+drops the rest from that project, logging both. Silence is not an answer: nothing is dropped until the
+person replies. Checked by `tools/tests/ideas-fixture.sh`.

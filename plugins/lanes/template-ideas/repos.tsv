@@ -1,0 +1,3 @@
+# Which project repos each page feeds. Read by the lanes plugin (tools/ideas.py).
+# page (pages/<page>.md)	repos (space-separated; * = every active project; - = none yet)
+example	-

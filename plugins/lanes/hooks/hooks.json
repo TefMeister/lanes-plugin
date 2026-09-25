@@ -41,6 +41,18 @@
         "hooks": [
           {
             "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" ideas-brief",
+            "shell": "bash",
+            "timeout": 30,
+            "statusMessage": "Checking for waiting ideas",
+            "async": false
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" setup-nudge",
             "shell": "bash",
             "timeout": 10,
