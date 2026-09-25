@@ -29,6 +29,7 @@ printf 'display_name = Tester\nideas_skip = proj-frozen\n' > "$T/lanes.conf"
 export LANES_CONFIG="$T/lanes.conf" LANES_IDEAS="$I" LANES_ROOT="$R" LANES_BOARD="$B"
 for p in proj-a proj-b proj-frozen; do printf '# %s\n\nOPEN (2026-01-01): none\n' "$p" > "$B/status/$p.md"; done
 printf '# proj-c\n\n\xe2\x8f\xb8\xef\xb8\x8f **PAUSED 2026-01-01:** someone else is making it\n' > "$B/status/proj-c.md"
+printf -- '- **\xe2\x8f\xb8\xef\xb8\x8f PAUSED once, long ago** - resumed since\n' >> "$B/status/proj-b.md"
 printf '# DUMP\n\nWrite below.\n\n<!-- write below this line -->\n' > "$I/DUMP.md"
 run() { "$PY" "$TOOL" "$@" 2>&1; }
 
@@ -72,7 +73,7 @@ P
 printf 'a\tproj-a\nall\t*\nnone\t-\n' > "$I/repos.tsv"
 out=$(run sync)
 has "proj-a: 2 new" "$out" "a project gets its own raw idea plus the shared one"
-has "proj-b: 1 new" "$out" "* reaches another active project"
+has "proj-b: 1 new" "$out" "* reaches another active project, even one whose history mentions a pause"
 hasnt "proj-c" "$out" "* skips a PAUSED project"
 hasnt "proj-frozen" "$out" "* skips a project in ideas_skip"
 [ -f "$R/proj-a/ideas/fresh/a--wanted-thing.md" ] && ok "the idea file is written" || fail "the idea file is written"
