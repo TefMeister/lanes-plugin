@@ -19,22 +19,26 @@ you have at the start of every session: *what can I actually do right now?*
 
 ## The lanes
 
-| Command | What it does |
-| --- | --- |
-| `/lm` | **Live.** Claude runs the app itself: starts it, uses it, closes it, and tests its own changes. |
-| `/pd` | **Parallel development.** Picks the next job that needs nothing running, so it can work beside anything else. |
-| `/gr` | Web research for each project, kept in that project's notes. |
-| `/sr` | Research across all projects, kept in one shared library. |
-| `/gs` | Hygiene check: are notes tagged, and are hand-offs being picked up? |
-| `/gates` | Shows the work board. |
-| `/gate-watch` | Tells you when another session finishes something. |
-| `/ideas` | Files the ideas you jotted down, onto the right project. |
-| `/setup` | First-run setup: your name, this PC's name, and optional tools. |
-| `/update` | Gets the newest version of the plugin, after asking you. |
-| `/pt` | Tests the plugin itself. |
-| `/ms` | **Manual session.** You do the hands-on work; Claude gives you the steps and writes the code. |
+| Command | Name | What it does |
+| --- | --- | --- |
+| `/lm` | Live Modding | Claude runs the app itself: starts it, uses it, closes it, and tests its own changes. |
+| `/pd` | Parallel Development | Picks the next job that needs nothing running, so it can work beside anything else. |
+| `/ms` | Manual Session | You do the hands-on work; Claude gives you the steps and writes the code. |
+| `/gr` | Guided Research | Web research for each project, kept in that project's notes. |
+| `/sr` | Sweep Research | Research across all projects, kept in one shared library. |
+| `/gs` | Good-standing Sweep | Hygiene check: are notes tagged, and are hand-offs being picked up? |
+| `/gates` | Gate Board | Shows the work board. |
+| `/gate-watch` | Gate Watch | Tells you when another session finishes something. |
+| `/ideas` | Ideas | Files the ideas you jotted down, onto the right project. |
+| `/setup` | Setup | First-run setup: your name, this PC's name, and optional tools. |
+| `/update` | Update | Gets the newest version of the plugin, after asking you. |
+| `/pt` | Plugin Test | Tests the plugin itself. |
 
 Type them as `/lanes:<name>`, for example `/lanes:pd`.
+
+**Prefer other names?** Just ask Claude Code, for example: *"make /research run /lanes:gr"*. Any
+command can be given a name you like, except `/pd` and `/lm`: their safety checks look for those
+two names, so keep them as they are.
 
 ## How it works
 
@@ -89,7 +93,7 @@ what is new and never installs without asking. The full manual is in
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.25.0`, early public release |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.25.1`, early public release |
 
 ## Modding games?
 

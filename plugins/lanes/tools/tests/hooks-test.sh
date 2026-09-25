@@ -44,6 +44,10 @@ run_hook lane-claim-guard.py '{"prompt":"/lm demo-alpha","session_id":"s1"}'
 case "$OUT" in *BLOCKED*) ok "and says why" ;; *) fail "the block must explain itself" ;; esac
 case "$OUT" in *force*) ok "and names the override" ;; *) fail "the block must name the override" ;; esac
 
+run_hook lane-claim-guard.py '{"prompt":"/lanes:lm demo-alpha","session_id":"s1"}'
+[ "$RC" = "2" ] && ok "the long form /lanes:lm is blocked too" \
+                || fail "/lanes:lm slipped past the claim guard (rc=$RC)"
+
 run_hook lane-claim-guard.py '{"prompt":"/pd demo-alpha","session_id":"s1"}'
 [ "$RC" = "2" ] && ok "blocks /pd on the same claimed job" \
                 || fail "should block /pd too (rc=$RC)"
@@ -82,6 +86,9 @@ run_hook pd-guard.py '{"hook_event_name":"UserPromptSubmit","prompt":"/pd beta",
 [ "$RC" = "2" ] && ok "a second /pd from another session is blocked" \
                 || fail "second /pd must be blocked (rc=$RC)"
 case "$OUT" in *"PD GUARD"*) ok "and says why" ;; *) fail "the block must explain itself" ;; esac
+run_hook pd-guard.py '{"hook_event_name":"UserPromptSubmit","prompt":"/lanes:pd beta","session_id":"second"}'
+[ "$RC" = "2" ] && ok "the long form /lanes:pd is blocked too" \
+                || fail "/lanes:pd slipped past the lock (rc=$RC)"
 
 run_hook pd-guard.py '{"hook_event_name":"UserPromptSubmit","prompt":"/pd alpha","session_id":"first"}'
 [ "$RC" = "0" ] && ok "the holder may keep working" || fail "the lock holder must not block itself"

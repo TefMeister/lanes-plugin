@@ -93,7 +93,9 @@ def main():
     except Exception:
         return 0
     prompt = (data.get("prompt") or "").strip()
-    m = re.match(r"^/(pd|lm)\b(.*)$", prompt, re.S)
+    # "/lanes:pd" is the same command as "/pd" - the front page tells people to type it that way.
+    # Until 0.25.1 only the short form was matched, so the long form skipped this guard.
+    m = re.match(r"^/(?:lanes:)?(pd|lm)\b(.*)$", prompt, re.S)
     if not m:
         return 0
     lane, rest = "/" + m.group(1), m.group(2).strip()
