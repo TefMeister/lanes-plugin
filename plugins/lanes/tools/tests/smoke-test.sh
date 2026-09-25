@@ -624,6 +624,14 @@ owed_same "$got" "$OWED_OTHER" && ok "\$LANES_BOARD still overrides everything" 
 
 rm -rf "$OWED_MINE" "$OWED_OTHER" "$OWED_ELSEWHERE" "$OWED_NEUTRAL"; rm -f "$OWED_CONF"
 
+echo "ideas.py - the ideas inbox (0.23.0)"
+if out=$(bash "$HERE/ideas-fixture.sh" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "ideas-fixture.sh failed"
+fi
+
 echo
 if [ "$FAILED" -eq 0 ]; then
   echo "smoke-test: all assertions passed"

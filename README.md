@@ -37,7 +37,7 @@ it only counts when someone else's Claude does it.
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Run several Claude Code sessions at once without them treading on each other. | `0.22.0`, early public release |
+| [`lanes`](plugins/lanes/) | Run several Claude Code sessions at once without them treading on each other. | `0.23.0`, early public release |
 
 ## Modding games?
 

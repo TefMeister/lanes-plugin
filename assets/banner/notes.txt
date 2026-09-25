@@ -1,16 +1,16 @@
-version: 0.22.0
+version: 0.23.0
 
 [top-left] WHAT'S NEW
-# NOW PUBLIC - EARLY VERSION
-in daily use since 2026-09-09
-.. still being built, expect changes
-# NOBODY'S NAME IS WRITTEN DOWN
-notes, commits and READMEs call you
-.. "User", unless you choose a name
-/lanes:setup asks, first thing
+# IDEAS FILE THEMSELVES
+jot ideas in your ideas repo, any time
+.. even from GitHub on a phone
+the next session files them first
+.. your words kept verbatim, forever
+# THEN THEY REACH THE PROJECT
+its next session lists them, numbered
+.. keep the numbers you want
 # ALSO
-no word list ships in the plugin
-.. private words stay on your machine
+early version, expect changes
 check it yourself first: AUDIT.md
 
 [top-right] THE LANES
@@ -24,6 +24,7 @@ check it yourself first: AUDIT.md
 /setup | install optional tools
 /update | get the newest version
 /pt | test the plugin itself
+/ideas | file waiting ideas
 .. type them as /lanes:<name>
 
 [bottom-left] GET STARTED

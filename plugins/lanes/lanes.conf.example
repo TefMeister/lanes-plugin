@@ -49,6 +49,17 @@ role = DEV
 # Overridden by $LANES_FRONTPAGE. Unset means the check stays quiet.
 # frontpage = /path/to/profile-repo/README.md
 
+# YOUR IDEAS REPO, if you keep one (0.23.0).
+# A private repo where ideas are written down as they come (DUMP.md) and then
+# filed by /lanes:ideas. template-ideas/ in the plugin is a ready-made one.
+# With this set, a session-start check files waiting ideas before other work,
+# and /pd and /lm open each project with its fresh ideas as a numbered list.
+# Overridden by $LANES_IDEAS. Unset means the check stays quiet.
+# ideas = /path/to/your-ideas-repo
+#
+# Projects never offered ideas from a page marked `*` (frozen or archived).
+# ideas_skip = old-project another-old-project
+
 # HOW MANY REPOS THAT ROOT SHOULD HOLD.
 # /gs prints a loud PARTIAL ESTATE banner when it finds fewer, because a
 # hygiene tool that silently understates is worse than no hygiene tool.
