@@ -55,7 +55,7 @@ TAG_PREVIEW_CHARS = 150                     # how much of a tag line `list` prin
 IDEAS_DIR, FRESH, CHOSEN, DONE, DECIDED = "ideas", "fresh", "chosen", "done", "decided.md"
 PAGE_DIR_NAMES = ("pages", "games")         # the first that exists in the ideas repo is used
 SHARED_PAGE_NOTE = "  (an idea for every project)"
-PAUSED_RE = re.compile(r"^\s*\W*\s*\**PAUSED", re.I | re.M)   # a board line like "⏸️ **PAUSED ...**"
+PAUSED_RE = re.compile(r"^[ \t]*\u23f8\ufe0f?[ \t]*\*\*PAUSED", re.M)  # a line starting "⏸️ **PAUSED"
 TODAY = datetime.date.today().isoformat()
 
 README = """# Ideas for this project

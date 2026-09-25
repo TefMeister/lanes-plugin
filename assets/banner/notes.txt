@@ -1,4 +1,4 @@
-version: 0.23.0
+version: 0.23.1
 
 [top-left] WHAT'S NEW
 # IDEAS FILE THEMSELVES
