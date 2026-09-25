@@ -54,6 +54,11 @@ Type them as `/lanes:<name>`, for example `/lanes:pd`.
   | `[VR USER]` | a person using the special hardware |
 
 - **Every finding says how well it is known,** not just what it says.
+- **It tells you which model a job needs.** Before starting, a session says whether the job wants
+  the strongest model, the standard one or a light one, and whether the one running fits. Too weak:
+  it stops and waits for you to switch. Stronger than needed: it says so and carries on. It also
+  names the model for the next step, so you can switch before it starts. Getting it working comes
+  first; saving tokens second.
 - **Two PCs?** A job only one PC can do is queued for that PC, and greets it at its next session.
 - **Nobody's name is written down.** You are "User" unless you choose a name. Each PC is PC1, PC2
   and so on unless you name it. Your real name, login and computer name are never written.
