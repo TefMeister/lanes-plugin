@@ -38,7 +38,7 @@ matters at the start of a session: *what can I actually do right now?*
 | Update | `/update` | Checks GitHub for a newer version of this plugin, says what changed, and updates it **after you say yes**. Also checked by itself at session start. | no |
 | Ideas | `/ideas` | Files ideas you wrote down in your ideas repo, word for word, onto each project's page, and hands them to that project's next session as a numbered list. Runs by itself when ideas are waiting. | no |
 | Test | `/pt` | Tests **this plugin** against real work; writes only to the plugin's own repo. | no |
-| — | *(no command)* | Manual mode: you drive, the session tells you what to do and reads the logs after. | you do |
+| Manual | `/ms` | You drive: the session gives you a few numbered steps at a time, reads the logs after, and writes the code in between. | you do |
 
 `/gs`, `/gr`, `/sr` are the three you run **before** starting work. `/pd` and `/lm` are the two
 that do it.
