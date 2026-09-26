@@ -122,8 +122,18 @@ def git(root, *args, check=True):
 def pull(root):
     if os.environ.pop("LANES_BUILDS_TEST_SKIP_FIRST_PULL", ""):   # tests only: act as if the other PC
         return                                                    # pushed between our pull and our push
-    if git(root, "remote", check=False).stdout.strip():
+    if has_upstream(root):
         git(root, "pull", "--rebase", "--quiet")
+
+
+def has_upstream(root):
+    """False for a brand-new repo whose first push has not happened yet: nothing to pull."""
+    return git(root, "rev-parse", "--abbrev-ref", "@{u}", check=False).returncode == 0
+
+
+def push_now(root):
+    args = ["push", "--quiet"] if has_upstream(root) else ["push", "--quiet", "-u", "origin", "HEAD"]
+    return git(root, *args, check=False).returncode == 0
 
 
 def has_remote(root):
@@ -252,9 +262,9 @@ def commit_and_push(root, project, message):
     if not has_remote(root):
         return "committed (no remote)"
     for _ in range(PUSH_TRIES):
-        if git(root, "push", "--quiet", check=False).returncode == 0:
+        if push_now(root):
             return "pushed"
-        git(root, "pull", "--rebase", "--quiet")
+        pull(root)
     return "NOT PUSHED - run `git push` in the builds repo"
 
 
@@ -291,14 +301,14 @@ def save_build(root, project, conf, name, when, note, result, push=True):
         git(root, "commit", "--quiet", "-m", f"{project}: {name}")
         if not has_remote(root):
             return name, "committed (no remote)"
-        if git(root, "push", "--quiet", check=False).returncode == 0:
+        if push_now(root):
             return name, "pushed"
         git(root, "reset", "--quiet", "--mixed", "HEAD~1")
         if git(root, "ls-files", "--", index_rel, check=False).stdout.strip():
             git(root, "checkout", "--", index_rel)
         else:
             os.remove(os.path.join(root, index_rel))
-        git(root, "pull", "--rebase", "--quiet")
+        pull(root)
         name = move_to_free_number(root, project, conf, name)
     return name, "NOT PUSHED - run `git push` in the builds repo"
 
