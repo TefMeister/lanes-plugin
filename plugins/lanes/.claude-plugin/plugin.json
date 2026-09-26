@@ -1,7 +1,7 @@
 {
   "name": "lanes",
   "description": "Run several Claude Code sessions at once without them treading on each other: named lanes, a shared work board, and the guards that keep two sessions off the same job.",
-  "version": "0.25.1",
+  "version": "0.25.2",
   "author": {
     "name": "TefMeister"
   },
