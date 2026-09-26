@@ -86,6 +86,13 @@ has "done: the app folder holds v1.0.0-b001" "$out" "restore puts b001 back"
 [ -f "$APP/game.exe" ] && ok "the app's own file is untouched" || fail "the app's own file is untouched"
 has "before restoring b001" "$(ls "$T/pc1/proj")" "the unsaved app folder was kept as a build first"
 
+echo "a brand-new, empty builds repo (the first push sets it up)"
+git init -q --bare -b main "$T/fresh.git"
+mkdir -p "$T/fresh" && git -C "$T/fresh" init -q -b main && git -C "$T/fresh" remote add origin "$T/fresh.git"
+pc fresh init proj --app "$APP" --ours mod.dll >/dev/null
+out=$(pc fresh snap proj "first" --note "first ever"); has "github: pushed" "$out" "the first build is pushed to an empty repo"
+out=$(pc fresh snap proj "second" --note "and again"); has "github: pushed" "$out" "and the next one pulls and pushes normally"
+
 echo
 [ "$FAILED" -eq 0 ] && echo "builds-fixture: $N checks, 0 failed" || echo "builds-fixture: FAILURES above ($N checks)"
 exit "$FAILED"
