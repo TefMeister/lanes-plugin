@@ -10,7 +10,10 @@ so you know exactly what can be deleted once the time comes."*
 run. Bisecting it needed the exact earlier binaries. The plugin DLLs survived only because the
 install helper happened to keep `.pre-*` copies; the framework build from the good run was gone
 (two later builds had overwritten it), so the comparison had to be rebuilt from a patch, which is
-not the same binary. Status: NOT BUILT. Hand-made version in use meanwhile (see below).
+not the same binary. **Status: BUILT in 0.26.0** as `tools/builds.py` (see `docs/PROTOCOL.md` §14). It
+differs from this spec in three ways: every build is a full copy of everything of ours, not one binary;
+the whole archive is one git repo both PCs clone, so the numbers stay in step; and `/lanes:builds` with a
+safe-to-delete list is not built yet, because nothing may be deleted until a project is finished.
 
 ## What it does
 

@@ -66,6 +66,16 @@ role = DEV
 # Projects never offered ideas from a page marked `*` (frozen or archived).
 # ideas_skip = old-project another-old-project
 
+# KEEP EVERY BUILD (0.26.0).
+# A clone of a PRIVATE repo where every change you install is saved as its own
+# numbered version (tools/builds.py), and pushed so every PC has the same ones.
+# Overridden by $LANES_BUILDS. Unset means builds.py does nothing.
+# builds = /path/to/your-builds-repo
+#
+# The app folder of a project ON THIS PC, when it differs from the one in that
+# project's PROJECT.conf (a different drive or Steam library, say).
+# builds_app.my-project = /path/to/the/app
+
 # HOW MANY REPOS THAT ROOT SHOULD HOLD.
 # /gs prints a loud PARTIAL ESTATE banner when it finds fewer, because a
 # hygiene tool that silently understates is worse than no hygiene tool.

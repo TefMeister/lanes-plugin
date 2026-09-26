@@ -645,6 +645,14 @@ else
   fail "ideas-fixture.sh failed"
 fi
 
+echo "builds.py - every change a numbered build, on every PC (0.26.0)"
+if out=$(bash "$HERE/builds-fixture.sh" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "builds-fixture.sh failed"
+fi
+
 echo
 if [ "$FAILED" -eq 0 ]; then
   echo "smoke-test: all assertions passed"

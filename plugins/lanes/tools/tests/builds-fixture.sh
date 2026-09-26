@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+# builds-fixture.sh - asserts builds.py keeps every build, keeps two PCs' numbers apart, and never
+# pushes a local-only file. Plays two PCs against one bare "GitHub" repo in a temp folder, and never
+# reads or writes the real lanes.conf (LANES_CONFIG points at a scratch file).
+#   bash tools/tests/builds-fixture.sh
+set -uo pipefail
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+TOOL="$(cd "$HERE/.." && pwd)/builds.py"
+PY=""
+for cand in python3 python py; do
+  command -v "$cand" >/dev/null 2>&1 || continue
+  "$cand" -c "" >/dev/null 2>&1 || continue
+  PY="$cand"; break
+done
+[ -n "$PY" ] || { echo "builds-fixture: no working python"; exit 2; }
+
+T="$(mktemp -d)"; T="$(cygpath -m "$T" 2>/dev/null || echo "$T")"; trap 'rm -rf "$T"' EXIT
+FAILED=0; N=0
+ok()   { N=$((N+1)); printf '  ok    %s\n' "$1"; }
+fail() { N=$((N+1)); printf '  FAIL  %s\n' "$1"; FAILED=1; }
+has()  { case "$2" in *"$1"*) ok "$3" ;; *) fail "$3 (expected: $1)" ;; esac; }
+hasnt(){ case "$2" in *"$1"*) fail "$3 (did NOT expect: $1)" ;; *) ok "$3" ;; esac; }
+
+export GIT_AUTHOR_NAME=fixture GIT_AUTHOR_EMAIL=fixture@example.invalid
+export GIT_COMMITTER_NAME=fixture GIT_COMMITTER_EMAIL=fixture@example.invalid
+git init -q --bare -b main "$T/remote.git"
+git clone -q "$T/remote.git" "$T/pc1" 2>/dev/null
+git -C "$T/pc1" commit -q --allow-empty -m start && git -C "$T/pc1" push -q -u origin main 2>/dev/null
+git clone -q "$T/remote.git" "$T/pc2" 2>/dev/null
+
+APP="$T/app"; mkdir -p "$APP/mods/data" "$APP/mods/edited"
+echo game > "$APP/game.exe"; echo v1 > "$APP/mod.dll"; echo cfg > "$APP/mods/data/a.txt"
+echo edited-game-file > "$APP/mods/edited/level.pak"; echo noise > "$APP/mods/log.txt"
+printf 'builds_app.proj = %s\n' "$APP" > "$T/lanes.conf"
+export LANES_CONFIG="$T/lanes.conf"
+pc() { local who="$1"; shift; LANES_BUILDS="$T/$who" "$PY" "$TOOL" "$@" 2>&1; }
+
+echo "init + snap"
+out=$(pc pc1 init proj --app "$APP" --ours mod.dll --ours mods --skip log.txt --local-only mods/edited --series 1.0.0)
+has "PROJECT.conf" "$out" "init writes the project settings"
+out=$(pc pc1 snap proj "first" --note "the first build")
+has "v1.0.0-b001 - first" "$out" "first build is b001"
+has "github: pushed" "$out" "the build is pushed"
+B1="$T/pc1/proj/v1.0.0-b001 - first"
+[ -f "$B1/mod.dll" ] && ok "our file is copied" || fail "our file is copied"
+[ -f "$B1/game.exe" ] && fail "the app's own file is NOT copied" || ok "the app's own file is NOT copied"
+[ -f "$B1/mods/log.txt" ] && fail "skipped file is not copied" || ok "skipped file is not copied"
+[ -f "$B1/mods/edited/level.pak" ] && ok "local-only file is kept on the PC" || fail "local-only file is kept on the PC"
+tracked=$(git -C "$T/pc1" ls-files)
+hasnt "level.pak" "$tracked" "local-only file is never committed"
+has "mods/data/a.txt" "$tracked" "an ordinary file of ours is committed"
+has "mods/edited/level.pak" "$(cat "$B1/MANIFEST.sha256")" "local-only file is still in the manifest"
+
+echo "which"
+out=$(pc pc1 which proj); has "holds v1.0.0-b001" "$out" "which: the app folder matches b001"
+echo v2 > "$APP/mod.dll"
+out=$(pc pc1 which proj); has "matches NO saved build" "$out" "which: an unsaved change is reported"
+
+echo "two PCs make the same number at the same moment"
+git -C "$T/pc2" pull -q --rebase 2>/dev/null
+out=$(pc pc1 snap proj "pc1 change" --note "from pc1"); has "b002" "$out" "pc1 makes b002 and pushes"
+# pc2 has not seen it: skip its pull, the way a push from the other PC lands between pull and push
+out=$(LANES_BUILDS_TEST_SKIP_FIRST_PULL=1 pc pc2 snap proj "pc2 change" --note "from pc2")
+has "had already used b002" "$out" "pc2's push is refused and it notices the clash"
+has "b003 - pc2 change" "$out" "pc2's build moves to b003"
+has "github: pushed" "$out" "and is then pushed"
+git -C "$T/pc1" pull -q --rebase 2>/dev/null
+dups=$(ls "$T/pc1/proj" | grep -o '^v1.0.0-b[0-9]*' | sort | uniq -d)
+[ -z "$dups" ] && ok "no two builds share a number" || fail "no two builds share a number ($dups)"
+
+echo "result"
+out=$(pc pc1 result proj 1 "worked fine"); has "result recorded" "$out" "result is recorded"
+has "worked fine" "$(cat "$T/pc1/proj/INDEX.md")" "the index shows the result"
+
+echo "restore on the other PC"
+git -C "$T/pc2" pull -q --rebase 2>/dev/null
+out=$(pc pc2 restore proj 1); has "dry run" "$out" "restore without --yes changes nothing"
+has "kept on the other PC only" "$out" "restore names the local-only file that is missing"
+out=$(pc pc2 restore proj 1 --yes); has "stopped: files missing" "$out" "restore refuses while a file is missing"
+echo v9 > "$APP/mod.dll"
+has "saved as a build first" "$(pc pc1 restore proj 1)" "dry run warns when the app folder is unsaved"
+out=$(pc pc1 restore proj 1 --yes)
+has "done: the app folder holds v1.0.0-b001" "$out" "restore puts b001 back"
+[ "$(cat "$APP/mod.dll")" = "v1" ] && ok "the restored file is b001's" || fail "the restored file is b001's"
+[ -f "$APP/game.exe" ] && ok "the app's own file is untouched" || fail "the app's own file is untouched"
+has "before restoring b001" "$(ls "$T/pc1/proj")" "the unsaved app folder was kept as a build first"
+
+echo
+[ "$FAILED" -eq 0 ] && echo "builds-fixture: $N checks, 0 failed" || echo "builds-fixture: FAILURES above ($N checks)"
+exit "$FAILED"
