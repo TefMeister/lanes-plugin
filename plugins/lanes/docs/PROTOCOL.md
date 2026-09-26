@@ -691,3 +691,36 @@ every active one, `-` for none yet). `ideas.py sync` copies undecided ideas into
 `/pd` and `/lm` show them as a numbered list at the start; `ideas.py pick` keeps the chosen numbers and
 drops the rest from that project, logging both. Silence is not an answer: nothing is dropped until the
 person replies. Checked by `tools/tests/ideas-fixture.sh`.
+
+## 14. Every change is a numbered build, on every PC (0.26.0, 2026-09-27)
+
+**What it is for.** Finding what broke needs the exact earlier files, and a build that only exists on
+one PC cannot be tested on the other. Both happened: a picture turned upside down some time after a
+good run and the good build had been overwritten, and changes were tested on one PC with nothing on
+the other to compare against. The person asked for it three times, the last in these words: *"each
+new version, even the smallest change gets a new version of the mod ... and it also has to be pushed
+on github, so the mod version is always in sync between the dev and home pc"*.
+
+**How it works.** `tools/builds.py`, switched on by `builds = <clone of a private repo>` in `lanes.conf`.
+Each project has `<builds>/<project>/PROJECT.conf` naming its app folder and which files in it are ours.
+`snap` copies every file of ours into a new folder `v<series>-bNNN - <title>/` with a hash list and a
+`CHANGES.md` (what changed since the last build, why, and later what was seen), adds a line to
+`INDEX.md`, commits and pushes. Git stores an unchanged file once, so a full copy per build costs only
+what changed. `result` fills in what was seen. `which` says which build the app folder holds right now.
+`restore` puts one back, and saves the current folder first if it matches no build.
+
+**The rules.**
+
+- **The smallest change is a new number.** A file in or out, a setting, a rebuilt binary. Snap straight
+  after the change and before the test, so the result has a number to belong to.
+- **Never overwrite, never delete.** The tool has no delete. Old builds go only when the person says
+  the project is finished.
+- **Numbers never clash between PCs.** `snap` pulls before it numbers. If the other PC pushed in between,
+  the push is refused; the tool undoes its own commit (keeping the files), takes the other PC's build,
+  moves its own to the next free number and pushes again. No merge is ever needed.
+- **What must not be published stays on the PC.** Files made from the app's own data are listed under
+  `local_only`; they are copied and hashed but never committed, and `restore` on the other PC names
+  exactly which ones it lacks. Files over 95 MB go up as a release asset with a stub left in the folder.
+
+Checked by `tools/tests/builds-fixture.sh` (two PCs on one remote, including a same-number race).
+

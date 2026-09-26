@@ -225,7 +225,9 @@ machines.**
 5. **⚠️ Verify what is actually deployed, by hash.** "Deployed" written on a board is prose, not
    evidence. Check the installed artifact against the source you are about to reason from, and
    **regenerate rather than reuse** a staged build you cannot account for. A session that measures
-   a build it did not deploy learns nothing and records it as fact.
+   a build it did not deploy learns nothing and records it as fact. With saved builds (PROTOCOL §14),
+   `builds.py which <project>` says which numbered build the app folder holds, and whether a newer
+   one is waiting from the other PC.
 6. **State the gate in one line** before you start.
 6b. **Name the model this session needs, beside that gate line, before driving anything** (0.12.0).
    One plain line: the tier the work in front of you needs, and whether it matches the model
@@ -275,6 +277,11 @@ or registry key before changing it.
   plainly on screen is a broken statistic.
 - **Every install stays a dev build.** Never revert a change to make something usable again, and
   never trade progress for a working save or a smoother run. That is what backups are for.
+- **Every change to the app folder is a new numbered build** (0.26.0), if `builds = ...` is set in
+  `lanes.conf`: a file in or out, a setting, a new binary. Straight after the change, before testing it:
+  `python "${CLAUDE_PLUGIN_ROOT}/tools/builds.py" snap <project> "<short title>" --note "<what and why>"`,
+  and once a result is seen, `builds.py result <project> <N> "<what was seen>"`. Never overwrite a build;
+  the smallest change is a new number. It is pushed at once, so the other PC can test the same build.
 - **Check the shape of any file before you add to it** (`tools/code-shape-scan.py`). If it is over
   the size budget, the split is the first job; see `docs/PROTOCOL.md` §6.
 - **⚠ Before you build a lever, say which step runs LAST**, and make it prove its own effect —

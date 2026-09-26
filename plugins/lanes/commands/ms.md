@@ -73,6 +73,10 @@ TELL ME: <the one or two things you need back: a number, yes/no, a screenshot, h
   work that follows without narrating it, then print the next `NEXT` block.
 - **When a build must be swapped:** step 1 is "close the app", the swap happens in your turn, and the
   next block starts with "start it again". Never assume it was closed.
+- **Every swap is a new numbered build** (0.26.0), the same as `/lm`: after the change and before the
+  next block, `builds.py snap <project> "<title>" --note "<what and why>"`; when they report what they
+  saw, `builds.py result <project> <N> "<their words>"`. Tell them the number in the next block, so
+  "b007 did X" is something they can say back.
 
 Take as long as the work needs between their turns. During their turn, do nothing to the app.
 

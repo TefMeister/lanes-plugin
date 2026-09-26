@@ -57,6 +57,15 @@ and **"Choose a name"** (they type it through "Other").
 - ⚠️ **Never suggest the computer's real name.**
 - Nobody set one? The first claim or reminder takes the next free PC number by itself.
 
+## 0.7 Keep every build? (0.26.0, only if they mod or build something that gets installed)
+
+Ask **one question**: *"Should every change you install be saved as its own numbered version, and sent
+to a private GitHub repo so your other PCs can use the same one?"* Options: **"Yes"** and **"Not now"**.
+On yes: make a private repo (`gh repo create <name> --private`), clone it, and add
+`builds = <that clone>` to `lanes.conf`. Each project is set up the first time it needs it, with
+`tools/builds.py init` (see `docs/PROTOCOL.md` §14). On another PC: clone the same repo and set the
+same key; if the app sits in a different folder there, also set `builds_app.<project> = <folder>`.
+
 ## 1. Scan
 
 ```bash
