@@ -54,7 +54,7 @@ MAX_ISSUES = 50                             # open issues read per check
 TAG_PREVIEW_CHARS = 150                     # how much of a tag line `list` prints
 IDEAS_DIR, FRESH, CHOSEN, DONE, DECIDED = "ideas", "fresh", "chosen", "done", "decided.md"
 PAGE_DIR_NAMES = ("pages", "games")         # the first that exists in the ideas repo is used
-SHARED_PAGE_NOTE = "  (an idea for every project)"
+SHARED_PAGE_NOTE = "  (every-project reminder, not new)"
 PAUSED_RE = re.compile(r"^[ \t]*\u23f8\ufe0f?[ \t]*\*\*PAUSED", re.M)  # a line starting "⏸️ **PAUSED"
 TODAY = datetime.date.today().isoformat()
 
@@ -367,7 +367,14 @@ def cmd_list(a, ctx):
     if not files:
         print(f"{a.repo}: no fresh ideas waiting.")
         return
-    print(f"{a.repo}: {len(files)} fresh idea(s). Answer with the numbers to keep; the rest are dropped.")
+    # 2026-09-26 (user feedback): ideas for EVERY project are not new ideas and must not be presented as if they were. They are
+    # reminders: each project answers them once, for itself, and every other project keeps its own copy until its own
+    # session answers. (pick already works that way; the wording did not say so.)
+    shared = sum(1 for p in files if re.search(r"^Shared: yes", read(p), re.M))
+    own = len(files) - shared
+    parts = ([f"{own} new for this project"] if own else []) + \
+        ([f"{shared} every-project reminder(s) not yet answered HERE (other projects keep theirs until they answer)"] if shared else [])
+    print(f"{a.repo}: {'; '.join(parts)}. Answer with the numbers to keep; the rest are dropped for {a.repo} only.")
     for i, p in enumerate(files, 1):
         text = read(p)
         title = text.splitlines()[0].lstrip("# ").strip()
