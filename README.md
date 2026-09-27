@@ -29,6 +29,7 @@ you have at the start of every session: *what can I actually do right now?*
 | `/gs` | Good-standing Sweep | Hygiene check: are notes tagged, and are hand-offs being picked up? |
 | `/gates` | Gate Board | Shows the work board. |
 | `/gate-watch` | Gate Watch | Tells you when another session finishes something. |
+| `/mint` | Mint | Keeps the real game untouched; you mod a private copy of it on your PC. |
 | `/ideas` | Ideas | Files the ideas you jotted down, onto the right project. |
 | `/setup` | Setup | First-run setup: your name, this PC's name, and optional tools. |
 | `/update` | Update | Gets the newest version of the plugin, after asking you. |
@@ -94,7 +95,7 @@ what is new and never installs without asking. The full manual is in
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.26.0`, early public release |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.27.0`, early public release |
 
 ## Modding games?
 

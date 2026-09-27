@@ -228,6 +228,7 @@ machines.**
    a build it did not deploy learns nothing and records it as fact. With saved builds (PROTOCOL §14),
    `builds.py which <project>` says which numbered build the app folder holds, and whether a newer
    one is waiting from the other PC.
+5b. **Check the clean install is mint (0.27.0): if `mint_vanilla.<project>` is set in `lanes.conf`, run `python "${CLAUDE_PLUGIN_ROOT}/tools/mint.py" check <project>`. Not mint means something wrote into the untouched install; say so plainly before any test. Everything of ours goes into the private copy (`mint_copy.<project>`), never into the clean install. Not set up, and the project keeps showing results that make no sense after reinstalls? Offer `/lanes:mint` in one line.
 6. **State the gate in one line** before you start.
 6b. **Name the model this session needs, beside that gate line, before driving anything** (0.12.0).
    One plain line: the tier the work in front of you needs, and whether it matches the model
