@@ -35,6 +35,8 @@ TWO KINDS OF FILE NEVER GO TO GITHUB, and both are still listed with their hash 
 WHERE THINGS ARE
   lanes.conf  builds = <clone of your private builds repo>      ($LANES_BUILDS)
               builds_app.<project> = <app folder on THIS PC>    (overrides PROJECT.conf `app`)
+              mint_copy.<project> = <private copy>             (mint.py; wins over both, and restore
+                                                               refuses to write into mint_vanilla)
   <builds>/<project>/PROJECT.conf  - series, app, ours, skip, local_only (one value per line, repeatable)
 
 NUMBERS STAY IN STEP BETWEEN PCs: `snap` pulls before it numbers and pushes straight after. If the other
@@ -107,7 +109,9 @@ def read_project(root, project):
                 conf[key].append(val)
             elif key in conf:
                 conf[key] = val
-    conf["app"] = conf_get(f"builds_app.{project}") or conf["app"]
+    # A private copy (mint.py, 0.27.0) IS the app folder: the clean install is never written into.
+    conf["app"] = conf_get(f"mint_copy.{project}") or conf_get(f"builds_app.{project}") or conf["app"]
+    conf["vanilla"] = conf_get(f"mint_vanilla.{project}")
     return conf
 
 
@@ -459,6 +463,9 @@ def cmd_restore(a):
             if os.path.isfile(full):
                 continue
         missing.append(rel + ("  (release asset)" if os.path.isfile(stub) else "  (kept on the other PC only)"))
+    if conf["vanilla"] and os.path.normcase(os.path.abspath(conf["app"])) ==             os.path.normcase(os.path.abspath(conf["vanilla"])):
+        sys.exit(f"builds.py: refused - {conf['app']!r} is the clean install (mint_vanilla.{a.project}), and nothing "
+                 f"is ever written into it. Restore into the private copy: set mint_copy.{a.project} in lanes.conf.")
     state = app_state(conf)
     best = closest(root, a.project, conf, state)
     unsaved = bool(state) and (best is None or best[2])

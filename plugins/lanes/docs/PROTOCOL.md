@@ -724,3 +724,27 @@ what changed. `result` fills in what was seen. `which` says which build the app 
 
 Checked by `tools/tests/builds-fixture.sh` (two PCs on one remote, including a same-number race).
 
+## 15. Keep the app in mint condition; mod a private copy (0.27.0, 2026-09-27)
+
+**What it is for.** A bug followed a game through three "clean" reinstalls. Every file that was not the
+game's own was moved out and the store verified the rest, and the bug stayed; only uninstalling,
+deleting the leftover folder and installing again removed it. A partial clean cannot prove itself
+clean, so a test against it proves nothing either. The person's words: *"keep the vanilla game in mint
+condition"*.
+
+**How it works.** `/lanes:mint` and `tools/mint.py`. After a complete reinstall, `fingerprint` records a
+hash of every file of the clean install (on this PC only). `copy` makes the private working copy and
+checks every file against the original; `check` says in seconds whether the clean install is still
+mint, or what differs in the copy. `builds.py` treats `mint_copy.<project>` as the app folder.
+
+**The rules.**
+
+- **Nothing of ours is ever written into the clean install.** The tool only reads it; `builds.py restore`
+  refuses it as a target.
+- **Only a complete reinstall counts as clean.** Verifying in the store does not remove extra files.
+- **The copy never leaves the PC.** It is the game's own files, and sharing them is illegal. The tool
+  refuses a git repository, a cloud-synced folder or the clean install as its destination, and writes a
+  `NOT-FOR-SHARING.txt` notice into it.
+- **Every step that removes or installs anything is the person's yes**, one step at a time.
+
+Checked by `tools/tests/mint-fixture.sh`.

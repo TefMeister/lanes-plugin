@@ -76,6 +76,16 @@ role = DEV
 # project's PROJECT.conf (a different drive or Steam library, say).
 # builds_app.my-project = /path/to/the/app
 
+# KEEP THE APP IN MINT CONDITION (0.27.0, /lanes:mint).
+# The untouched install nothing of yours ever goes into, and a private copy on
+# this PC where all modding happens. The copy is the game's own files: it never
+# leaves this PC (sharing it is illegal). builds.py uses mint_copy as the app
+# folder and refuses to restore into mint_vanilla.
+# mint_home = /local/folder/for/fingerprints        (default ~/.claude/lanes/mint)
+# mint_vanilla.my-project = /path/to/the/clean/install
+# mint_copy.my-project = /path/to/the/private/copy
+# mint_normal.my-project = settings.ini             (files the app rewrites itself; one per line)
+
 # HOW MANY REPOS THAT ROOT SHOULD HOLD.
 # /gs prints a loud PARTIAL ESTATE banner when it finds fewer, because a
 # hygiene tool that silently understates is worse than no hygiene tool.
