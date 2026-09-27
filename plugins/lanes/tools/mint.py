@@ -7,6 +7,8 @@
     mint.py copy        <project> --to DIR [--yes] [--steam-appid N]
                                                       make the private working copy, verified file by file
     mint.py status      <project>                     what is set up, and whether the clean install still matches
+    mint.py scripts     <project> [--repo DIR]        find the project's OWN scripts that still name the clean
+                                                      install (a deploy/install step would write into it)
 
 WHY (0.27.0)
   A bug followed a game through three "clean" reinstalls: every file that was not the game's own was
@@ -16,6 +18,13 @@ WHY (0.27.0)
   condition", and do the modding in a separate copy. Then the clean install is a fixed reference that
   nothing ever writes into, a fingerprint says in seconds whether it is still clean, and a test copy
   can be thrown away and remade from it whenever a result stops making sense.
+
+SCRIPTS STILL POINTING AT THE CLEAN INSTALL (0.27.1)
+  The same day the copy was made, four of the project's own tools (a build script's --deploy, an asset
+  installer, a game driver, an old snapshot tool) were found still naming the real game folder. mint.py
+  and builds.py refuse to write there, but a project's own scripts know nothing of that. `scripts` reads
+  the project repo for any script that names the clean install, in any spelling (backslashes, C:/..., /c/...),
+  and says where to point it instead. `check` runs it too, so every session start sees it.
 
 WHAT IT NEVER DOES
   - It never writes into the clean install. Every command only reads it.
@@ -47,6 +56,11 @@ LIST_MAX = 40                         # files listed per section before "... and
 FP_PREFIX = "fingerprint-"
 FP_SUFFIX = ".sha256"
 NOTICE_FILE = "NOT-FOR-SHARING.txt"
+SCRIPT_EXTS = (".sh", ".bash", ".py", ".ps1", ".psm1", ".bat", ".cmd", ".lua", ".js", ".cmake")   # files that can
+                                      # run a deploy/install step (logs and notes only record paths, so they are skipped)
+SCRIPT_OK_MARK = "mint-ok"            # a line (or the line above it) carrying this is a deliberate read-only use
+SCRIPT_SKIP_DIRS = (".git", "node_modules", "build", "__pycache__")
+SCRIPT_MAX_BYTES = 2 << 20            # skip anything bigger (generated dumps, not scripts)
 SYNC_WORDS = ("onedrive", "dropbox", "google drive", "googledrive", "icloud")   # folder names that sync
 
 NOTICE = """\
@@ -282,15 +296,89 @@ def cmd_check(a):
     print(f"{what} of {a.project} against {os.path.basename(fp)}")
     if normals:
         show(normals, "changed by the app itself (normal)")
+    scripts_bad = 0 if a.copy else report_scripts(a.project, default_repo(a.project))
     if not faults:
         print(f"  {what} matches the fingerprint" + (" - still mint" if not a.copy else ""))
-        return 0
+        return scripts_bad
     if a.copy:
         show([f"{k}: {r}" for k, r in faults], "differs from the clean install (your changes)")
         return 0
     show([f"{k}: {r}" for k, r in faults], "NOT MINT any more")
     print("  something wrote into the clean install. Find out what before trusting any test against it.")
     return 1
+
+
+def path_spellings(folder):
+    """Every way a script may write this folder: backslashes (single or doubled), C:/x, /c/x (lower-cased)."""
+    f = os.path.abspath(folder).rstrip("\\/")
+    fwd = f.replace("\\", "/")
+    out = {f.lower(), fwd.lower(), f.replace("\\", "\\\\").lower()}
+    m = re.match(r"^([A-Za-z]):/(.*)$", fwd)
+    if m:
+        out.add(f"/{m.group(1).lower()}/{m.group(2)}".lower())
+    return sorted(out, key=len, reverse=True)
+
+
+def scan_scripts(project, repo):
+    """(file, line number, line) for every script line that names the clean install."""
+    v = conf_get(f"mint_vanilla.{project}")
+    if not v or not repo or not os.path.isdir(repo):
+        return []
+    spell = path_spellings(v)
+    hits = []
+    for base, dirs, files in os.walk(repo):
+        dirs[:] = [d for d in dirs if d not in SCRIPT_SKIP_DIRS]
+        for n in files:
+            if not n.lower().endswith(SCRIPT_EXTS):
+                continue
+            path = os.path.join(base, n)
+            try:
+                if os.path.getsize(path) > SCRIPT_MAX_BYTES:
+                    continue
+                with open(path, encoding="utf-8", errors="replace") as f:
+                    prev = ""
+                    for i, line in enumerate(f, 1):
+                        low = line.lower()
+                        if any(sp in low for sp in spell) and SCRIPT_OK_MARK not in low and SCRIPT_OK_MARK not in prev:
+                            hits.append((os.path.relpath(path, repo), i, line.strip()[:140]))
+                        prev = low
+            except OSError:
+                continue
+    return hits
+
+
+def default_repo(project):
+    root = conf_get("root")
+    return os.path.join(root, project) if root else ""
+
+
+def report_scripts(project, repo):
+    if not repo or not os.path.isdir(repo):
+        return 0      # no repo known on this PC (no `root` in lanes.conf): nothing to read, nothing to say
+    hits = scan_scripts(project, repo)
+    if not hits:
+        print(f"  no script in {repo} names the clean install")
+        return 0
+    c = conf_get(f"mint_copy.{project}")
+    print(f"  {len(hits)} script line(s) in {repo} still name the CLEAN INSTALL - a deploy or install step there")
+    print(f"  would write into it. Point them at the private copy{(' (' + c + ')') if c else ''}:")
+    by_file = {}
+    for rel, i, line in hits:
+        by_file.setdefault(rel, []).append((i, line))
+    for rel, lines in list(by_file.items())[:LIST_MAX]:
+        i, line = lines[0]
+        more = f"  (+{len(lines) - 1} more lines)" if len(lines) > 1 else ""
+        print(f"    {rel}:{i}: {line}{more}")
+    if len(by_file) > LIST_MAX:
+        print(f"    ... and {len(by_file) - LIST_MAX} more files")
+    print(f"  A deliberate read-only use (reading the game's archives, say) can carry a `{SCRIPT_OK_MARK}` comment on")
+    print("  that line or the line above; it is then not listed.")
+    return 1
+
+
+def cmd_scripts(a):
+    vanilla_of(a.project)
+    return report_scripts(a.project, a.repo or default_repo(a.project))
 
 
 def cmd_copy(a):
@@ -350,6 +438,9 @@ def main():
     c = sub.add_parser("check")
     c.add_argument("project")
     c.add_argument("--copy", action="store_true", help="check the private copy instead")
+    c = sub.add_parser("scripts")
+    c.add_argument("project")
+    c.add_argument("--repo", default="", help="the project repo (default: <root>/<project> from lanes.conf)")
     c = sub.add_parser("copy")
     c.add_argument("project")
     c.add_argument("--to", required=True)
@@ -358,7 +449,7 @@ def main():
                    help="write steam_appid.txt so the copy starts itself instead of Steam starting the real one")
     a = p.parse_args()
     return {"guide": cmd_guide, "fingerprint": cmd_fingerprint, "check": cmd_check,
-            "copy": cmd_copy, "status": cmd_status}[a.cmd](a) or 0
+            "copy": cmd_copy, "status": cmd_status, "scripts": cmd_scripts}[a.cmd](a) or 0
 
 
 if __name__ == "__main__":
