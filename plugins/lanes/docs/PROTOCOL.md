@@ -746,5 +746,10 @@ mint, or what differs in the copy. `builds.py` treats `mint_copy.<project>` as t
   refuses a git repository, a cloud-synced folder or the clean install as its destination, and writes a
   `NOT-FOR-SHARING.txt` notice into it.
 - **Every step that removes or installs anything is the person's yes**, one step at a time.
+- **The project's own scripts point at the copy too (0.27.1).** `mint.py` and `builds.py` guard
+  themselves, but a project's deploy step, asset installer or game driver knows nothing of mint; on the
+  day the copy was made, four of them still named the real game. `mint.py scripts <project>` (also run by
+  `check`) lists every script line in the project repo that names the clean install, in any spelling. Fix
+  each in the same session; a deliberate read-only line may carry `mint-ok`.
 
 Checked by `tools/tests/mint-fixture.sh`.

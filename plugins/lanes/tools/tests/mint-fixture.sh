@@ -88,6 +88,25 @@ grep -v '^mint_copy' "$T/lanes.conf" > "$T/l2" && mv "$T/l2" "$T/lanes.conf"
 out=$("$PY" "$TOOLS/builds.py" restore proj 1 --yes 2>&1)
 has "refused" "$out" "restore into the clean install is refused"
 
+echo "scripts that still name the clean install (0.27.1)"
+R="$T/repo"; mkdir -p "$R/tools" "$R/notes"
+printf 'GAME="%s"\ncp mod.dll "$GAME/"\n' "$V" > "$R/tools/deploy.sh"
+VB=$(printf '%s' "$V" | sed 's#/#\\\\#g')      # the same folder written with backslashes
+printf 'P = r"%s\\game.exe"   # mint-ok: read-only\n' "$VB" > "$R/tools/read.py"
+printf 'Current game path: %s\n' "$V" > "$R/notes/old-run.txt"
+out=$(mint scripts proj --repo "$R"); rc=$?
+has "deploy.sh" "$out" "a deploy script naming the clean install is found"
+case "$out" in *read.py*) fail "a mint-ok line is not listed" ;; *) ok "a mint-ok line is not listed" ;; esac
+case "$out" in *old-run.txt*) fail "logs and notes are not scanned" ;; *) ok "logs and notes are not scanned" ;; esac
+[ $rc -eq 1 ] && ok "exit 1 when a script names it" || fail "exit 1 when a script names it"
+printf 'P = r"%s\\game.exe"\n' "$VB" > "$R/tools/install.py"
+has "install.py" "$(mint scripts proj --repo "$R")" "the backslash spelling is caught too"
+rm -f "$R/tools/install.py"
+printf 'GAME="%s"
+' "$T/copy" > "$R/tools/deploy.sh"
+out=$(mint scripts proj --repo "$R"); rc=$?
+has "no script" "$out" "pointing it at the copy clears it"; [ $rc -eq 0 ] && ok "exit 0 when clean" || fail "exit 0 when clean"
+
 after=$(treesum "$V")
 [ "$before" = "$after" ] && ok "the clean install is byte-for-byte what it was before every command" \
   || fail "the clean install changed"

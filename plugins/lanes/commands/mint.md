@@ -60,6 +60,10 @@ This is an **option**. Offer it; never switch it on without a yes. The tool is
   restore goes into the copy.
 - **At the start of `/lm`, `/ms` and `/pd` on the project**, run `mint.py check <project>`. Not mint any
   more means something wrote into it: say so plainly and find out what before trusting any test.
+- **The project's own scripts point at the copy, never the clean install (0.27.1).** `mint.py check` also
+  lists every script in the project repo that still names the clean install (`mint.py scripts <project>`
+  on its own). Point each one at the copy in the same session; a line that only reads the game may carry
+  a `mint-ok` comment instead.
 - **When results stop making sense**, compare the copy with `mint.py check <project> --copy`, and offer
   to throw the copy away and make a fresh one from the clean install.
 - **The copy never leaves this PC.** Never commit it, upload it, sync it or pack it into a release.
