@@ -40,6 +40,8 @@ half-size one about 300; the patch around a menu often under 100. So:
    - When a screen is reached, `mom mark <window> <route.json> <name> --region x,y,w,h --note "<what it shows>"`.
      Pick a patch of **text or icons that does not animate**; the note is what a later session reads when lost.
    - Take a bigger picture again only when the patches stop making sense (a new screen, a pop-up).
+   - If a key is sometimes ignored because a screen is still fading in, add `"repress": 4` to the wait step after
+     it in the route file: the tool presses that key again every 4 seconds until the screen arrives.
 4. **Save the route** with the project's control profile (`routes/<project>/<route>.json`) and commit it. A route
    holds fingerprints only, never a picture of the app, so it is safe to publish. **Never commit the screenshots.**
 
