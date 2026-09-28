@@ -91,6 +91,22 @@ echo "check (session start, 0.28.0)"
 out=$(pc pc1 check)
 has "a newer build" "$out" "check: says a newer build is saved when the folder holds an older one"
 hasnt "$T" "$out" "check: never prints a folder path"
+has "builds.py back proj 1" "$out" "check: says how to mark going back as on purpose"
+
+echo "going back on purpose (0.32.0)"
+out=$(pc pc1 back proj 99 "no such build"); has "no build b099" "$out" "back: refuses a build that does not exist"
+out=$(pc pc1 back proj 1 "   "); has "say why" "$out" "back: refuses an empty reason"
+out=$(pc pc1 back proj 1 "the later ones were tests that did not work")
+has "stays on b001 on purpose" "$out" "back: notes the build"
+has "github: pushed" "$out" "back: the note is pushed, so the other PC knows too"
+has "b001 held on purpose while b" "$(cat "$T/pc1/proj/HELD.txt")" "back: HELD.txt carries the note"
+out=$(pc pc1 check); [ -z "$out" ] && ok "check: silent while the folder holds the build noted as on purpose" \
+                                  || fail "check: silent while the folder holds the build noted as on purpose (got: $out)"
+has "noted as on purpose" "$(pc pc1 which proj)" "which: says staying behind is on purpose"
+SRC="$T/newer-src"; mkdir -p "$SRC"; echo v-newer > "$SRC/mod.dll"
+pc pc1 snap proj "made after the note" --note "a build saved after going back" --source "$SRC" >/dev/null
+out=$(pc pc1 check)
+has "a newer build" "$out" "check: a build saved AFTER the note is reported again"
 echo v-unsaved > "$APP/mod.dll"
 out=$(pc pc1 check)
 has "matches NO saved build" "$out" "check: a swapped file is reported"

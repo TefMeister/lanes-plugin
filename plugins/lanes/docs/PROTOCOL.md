@@ -727,6 +727,10 @@ what changed. `result` fills in what was seen. `which` says which build the app 
   project whose app folder this PC names in `lanes.conf`, it warns when the folder is gone, when it matches
   no saved build, or when a newer build is saved. Silent otherwise. It prints project and build names only,
   never a path, machine or person. `LANES_BUILDS_CHECK=0` turns it off.
+- **Going back on purpose is not drift (0.32.0).** Test builds that did not work come back out, so the app
+  folder often holds an older build than the newest saved one. `builds.py back <project> <N> "<why>"` (or
+  `restore ... --why "..."`) writes one line to `<project>/HELD.txt`, and `check` stays silent while the
+  folder holds that build. A build saved after the note is still reported: that one may really be missing.
 
 Checked by `tools/tests/builds-fixture.sh` (two PCs on one remote, including a same-number race).
 

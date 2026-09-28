@@ -8,7 +8,8 @@
     builds.py result  <project> <N> "<what was seen>"      fill in a result later
     builds.py list    <project>
     builds.py which   <project>                            which build the app folder holds right now
-    builds.py restore <project> <N> [--yes]                put build N back into the app folder
+    builds.py restore <project> <N> [--yes] [--why "..."]  put build N back into the app folder
+    builds.py back    <project> <N> "<why>"                the app folder went back to build N ON PURPOSE
     builds.py check                                        session start: silent unless a folder drifted
 
 WHY (0.26.0)
@@ -44,6 +45,15 @@ NUMBERS STAY IN STEP BETWEEN PCs: `snap` pulls before it numbers and pushes stra
 PC pushed the same number in between, the push is refused, the tool pulls again and renumbers its own
 build to the next free number, so two PCs can never share a number.
 
+GOING BACK ON PURPOSE (0.32.0)
+  Test builds that did not work are taken back out, so the app folder often holds an OLDER build than the
+  newest one saved - and `check` used to warn about that at every session start, although nothing was
+  wrong (six failed probe builds, b030-b035, made the check ask for b035 back on the PC that made them).
+  `back` (or `restore --why`) writes one line to <project>/HELD.txt: "b029 held on purpose while b035 was
+  the newest, because ...". `check` stays silent while the app folder holds that build and nothing newer
+  than the noted newest has been saved; a build saved AFTER the note is still reported, because that one
+  may really be missing on this PC.
+
 Nothing is ever deleted by this tool, except that `restore` removes the `ours` items from the app folder
 before copying the chosen build in - and it first saves the app folder as a build if it does not match one.
 """
@@ -64,6 +74,7 @@ CHANGES_LIST_MAX = 200                 # files listed per section in CHANGES.md
 PUSH_TRIES = 3
 META = ("MANIFEST.sha256", "CHANGES.md", ".gitignore")
 RELEASE_STUB = ".release.txt"
+HELD_FILE = "HELD.txt"                 # "went back to bN on purpose" notes, newest last
 NOT_TESTED = "(not tested yet)"
 CHECK_PULL_SECONDS = 15                # `check` at session start gives the pull this long, then goes on
 
@@ -418,6 +429,52 @@ def closest(root, project, conf, state):
     return best
 
 
+def read_held(root, project):
+    """The newest "held on purpose" note as (held, newest_then, line), or None."""
+    path = os.path.join(root, project, HELD_FILE)
+    if not os.path.isfile(path):
+        return None
+    last = None
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            m = re.match(r"^\s*-?\s*b(\d+) held on purpose while b(\d+) was the newest", line)
+            if m:
+                last = (int(m.group(1)), int(m.group(2)), line.strip())
+    return last
+
+
+def held_covers(root, project, num, newest):
+    """True when the app folder holding b<num> while b<newest> exists was noted as deliberate."""
+    held = read_held(root, project)
+    return bool(held) and held[0] == num and newest <= held[1]
+
+
+def write_held(root, project, conf, number, why):
+    saved = builds(root, project, conf)
+    if not any(b == number for b, _ in saved):
+        sys.exit(f"builds.py: no build b{number:03d} in {project}")
+    why = " ".join(why.split())
+    if not why:
+        sys.exit("builds.py: say why, in a few plain words - the note is for the next session to read.")
+    newest = saved[-1][0]
+    path = os.path.join(root, project, HELD_FILE)
+    new = not os.path.isfile(path)
+    with open(path, "a", encoding="utf-8", newline="\n") as f:
+        if new:
+            f.write(f"# {project}: builds the app folder went back to ON PURPOSE (builds.py back). Newest last.\n"
+                    "# While the folder holds the last one here, `check` does not ask for the newer builds.\n\n")
+        f.write(f"- b{number:03d} held on purpose while b{newest:03d} was the newest ({time.strftime('%Y-%m-%d')}): {why}\n")
+    return commit_and_push(root, project, f"{project}: b{number:03d} held on purpose")
+
+
+def cmd_back(a):
+    root = builds_root()
+    conf = read_project(root, a.project)
+    pull(root)
+    print(f"noted: {a.project} stays on b{a.number:03d} on purpose")
+    print(f"github: {write_held(root, a.project, conf, a.number, a.why)}")
+
+
 def cmd_which(a):
     root = builds_root()
     conf = read_project(root, a.project)
@@ -438,7 +495,10 @@ def cmd_which(a):
             print(f"  {p}")
         print("  -> save it with `builds.py snap` before testing, so the result belongs to a number")
     if name != latest:
-        print(f"the newest build is {latest} - `builds.py restore {a.project} {all_builds[-1][0]}` brings it here")
+        if not diff and held_covers(root, a.project, num, all_builds[-1][0]):
+            print(f"the newest build is {latest}; staying on {name} was noted as on purpose ({HELD_FILE})")
+        else:
+            print(f"the newest build is {latest} - `builds.py restore {a.project} {all_builds[-1][0]}` brings it here")
 
 
 def local_app_keys():
@@ -491,9 +551,10 @@ def cmd_check(_a):
             msgs.append(f"- {project}: the app folder matches NO saved build ({len(diff)} file(s) differ from "
                         f"the nearest, b{num:03d}). Something was swapped, or a change was never saved. "
                         f"`builds.py which {project}` lists them; do not test until it is known.")
-        elif newest > num:
+        elif newest > num and not held_covers(root, project, num, newest):
             msgs.append(f"- {project}: this PC holds b{num:03d}; a newer build, b{newest:03d}, is saved "
-                        f"(`builds.py restore {project} {newest}` brings it here, if that is wanted).")
+                        f"(`builds.py restore {project} {newest}` brings it here, if that is wanted; if staying on "
+                        f"b{num:03d} is on purpose, `builds.py back {project} {num} \"<why>\"` says so).")
     if msgs:
         print("BUILDS CHECK - this PC's app folders against the saved builds. Tell the person in plain words:")
         print("\n".join(msgs))
@@ -557,6 +618,8 @@ def cmd_restore(a):
             os.makedirs(os.path.dirname(target), exist_ok=True)
             shutil.copy2(full, target)
     print(f"  done: the app folder holds {name}")
+    if a.why:
+        print(f"  noted as on purpose: {write_held(root, a.project, conf, a.number, a.why)}")
 
 
 def cmd_init(a):
@@ -618,7 +681,13 @@ def main():
     p.add_argument("number", type=int)
     p.add_argument("--yes", action="store_true")
     p.add_argument("--force-missing", action="store_true")
+    p.add_argument("--why", default="", help="going back on purpose: note it, so `check` stops asking")
     p.set_defaults(fn=cmd_restore)
+    p = sub.add_parser("back")
+    p.add_argument("project")
+    p.add_argument("number", type=int)
+    p.add_argument("why")
+    p.set_defaults(fn=cmd_back)
     a = ap.parse_args()
     a.fn(a)
 
