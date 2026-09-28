@@ -70,6 +70,8 @@ role = DEV
 # A clone of a PRIVATE repo where every change you install is saved as its own
 # numbered version (tools/builds.py), and pushed so every PC has the same ones.
 # Overridden by $LANES_BUILDS. Unset means builds.py does nothing.
+# With it set, every session start checks this PC's app folders against the
+# saved builds and speaks up only when one has drifted (0.28.0).
 # builds = /path/to/your-builds-repo
 #
 # The app folder of a project ON THIS PC, when it differs from the one in that

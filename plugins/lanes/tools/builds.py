@@ -9,6 +9,7 @@
     builds.py list    <project>
     builds.py which   <project>                            which build the app folder holds right now
     builds.py restore <project> <N> [--yes]                put build N back into the app folder
+    builds.py check                                        session start: silent unless a folder drifted
 
 WHY (0.26.0)
   The person asked for it twice: "keep each version saved ... so we can roll back steps", then "a new
@@ -64,6 +65,7 @@ PUSH_TRIES = 3
 META = ("MANIFEST.sha256", "CHANGES.md", ".gitignore")
 RELEASE_STUB = ".release.txt"
 NOT_TESTED = "(not tested yet)"
+CHECK_PULL_SECONDS = 15                # `check` at session start gives the pull this long, then goes on
 
 
 # ---- config -------------------------------------------------------------------------------------
@@ -439,6 +441,64 @@ def cmd_which(a):
         print(f"the newest build is {latest} - `builds.py restore {a.project} {all_builds[-1][0]}` brings it here")
 
 
+def local_app_keys():
+    """Projects whose app folder THIS PC names in lanes.conf (builds_app.* / mint_copy.*)."""
+    out = set()
+    for path in conf_candidates():
+        if not os.path.isfile(path):
+            continue
+        with open(path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                m = re.match(r"^\s*(?:builds_app|mint_copy)\.([^\s=]+)\s*=\s*\S", line)
+                if m:
+                    out.add(m.group(1))
+    return out
+
+
+def cmd_check(_a):
+    """Session start (0.28.0): silent unless an app folder on this PC drifted from the saved builds.
+
+    Prints project and build names only - never a folder path, machine or person - because this text
+    goes straight into a session and from there can reach a note, a commit or a screenshot.
+    """
+    root = os.environ.get("LANES_BUILDS", "") or conf_get("builds")
+    if not root or not os.path.isdir(root):
+        return
+    if has_upstream(root):
+        try:   # a slow or absent network must never hold up or break a session start
+            subprocess.run(["git", "-C", root, "pull", "--rebase", "--quiet"], capture_output=True,
+                           timeout=CHECK_PULL_SECONDS)
+        except (subprocess.TimeoutExpired, OSError):
+            pass
+    named = local_app_keys()
+    msgs = []
+    for project in sorted(os.listdir(root)):
+        if not os.path.isfile(os.path.join(root, project, "PROJECT.conf")):
+            continue
+        conf = read_project(root, project)
+        if not conf["app"] or not conf["ours"]:
+            continue
+        if not os.path.isdir(conf["app"]):
+            if project in named:
+                msgs.append(f"- {project}: the app folder lanes.conf names for it is not there any more.")
+            continue            # PROJECT.conf's folder may simply be the other PC's: not this PC's business
+        saved = builds(root, project, conf)
+        if not saved:
+            continue
+        num, _, diff = closest(root, project, conf, app_state(conf))
+        newest = saved[-1][0]
+        if diff:
+            msgs.append(f"- {project}: the app folder matches NO saved build ({len(diff)} file(s) differ from "
+                        f"the nearest, b{num:03d}). Something was swapped, or a change was never saved. "
+                        f"`builds.py which {project}` lists them; do not test until it is known.")
+        elif newest > num:
+            msgs.append(f"- {project}: this PC holds b{num:03d}; a newer build, b{newest:03d}, is saved "
+                        f"(`builds.py restore {project} {newest}` brings it here, if that is wanted).")
+    if msgs:
+        print("BUILDS CHECK - this PC's app folders against the saved builds. Tell the person in plain words:")
+        print("\n".join(msgs))
+
+
 def cmd_restore(a):
     root = builds_root()
     conf = read_project(root, a.project)
@@ -551,6 +611,8 @@ def main():
         p = sub.add_parser(name)
         p.add_argument("project")
         p.set_defaults(fn=fn)
+    p = sub.add_parser("check")
+    p.set_defaults(fn=cmd_check)
     p = sub.add_parser("restore")
     p.add_argument("project")
     p.add_argument("number", type=int)

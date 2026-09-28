@@ -86,6 +86,25 @@ has "done: the app folder holds v1.0.0-b001" "$out" "restore puts b001 back"
 [ -f "$APP/game.exe" ] && ok "the app's own file is untouched" || fail "the app's own file is untouched"
 has "before restoring b001" "$(ls "$T/pc1/proj")" "the unsaved app folder was kept as a build first"
 
+echo "check (session start, 0.28.0)"
+# pc1's app folder holds b001 while newer builds exist: an informational line, and no path in it
+out=$(pc pc1 check)
+has "a newer build" "$out" "check: says a newer build is saved when the folder holds an older one"
+hasnt "$T" "$out" "check: never prints a folder path"
+echo v-unsaved > "$APP/mod.dll"
+out=$(pc pc1 check)
+has "matches NO saved build" "$out" "check: a swapped file is reported"
+has "- proj:" "$out" "check: names the project"
+hasnt "$T" "$out" "check: still no folder path when something differs"
+pc pc1 snap proj "saved now" --note "the unsaved change, saved" >/dev/null
+out=$(pc pc1 check); [ -z "$out" ] && ok "check: silent when the folder holds the newest build" \
+                                  || fail "check: silent when the folder holds the newest build (got: $out)"
+mv "$APP" "$T/app-moved"
+out=$(pc pc1 check); has "is not there any more" "$out" "check: a missing app folder named in lanes.conf is reported"
+mv "$T/app-moved" "$APP"
+out=$(LANES_BUILDS="" LANES_CONFIG="$T/none.conf" "$PY" "$TOOL" check 2>&1)
+[ -z "$out" ] && ok "check: silent when no builds repo is set" || fail "check: silent when no builds repo is set (got: $out)"
+
 echo "a brand-new, empty builds repo (the first push sets it up)"
 git init -q --bare -b main "$T/fresh.git"
 mkdir -p "$T/fresh" && git -C "$T/fresh" init -q -b main && git -C "$T/fresh" remote add origin "$T/fresh.git"

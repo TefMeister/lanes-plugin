@@ -721,6 +721,10 @@ what changed. `result` fills in what was seen. `which` says which build the app 
 - **What must not be published stays on the PC.** Files made from the app's own data are listed under
   `local_only`; they are copied and hashed but never committed, and `restore` on the other PC names
   exactly which ones it lacks. Files over 95 MB go up as a release asset with a stub left in the folder.
+- **Drift is noticed at session start (0.28.0).** `hooks/builds-brief` runs `builds.py check`: for each
+  project whose app folder this PC names in `lanes.conf`, it warns when the folder is gone, when it matches
+  no saved build, or when a newer build is saved. Silent otherwise. It prints project and build names only,
+  never a path, machine or person. `LANES_BUILDS_CHECK=0` turns it off.
 
 Checked by `tools/tests/builds-fixture.sh` (two PCs on one remote, including a same-number race).
 
