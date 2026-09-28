@@ -28,12 +28,12 @@ the tool's `README.md` → "Setting a game up" has the detail:
 1. **Save point:** ask the person to play past the tutorials to a save that always loads in the same spot, and
    which slot it is. Keep their answers with `mom note <route.json> "..."`.
 2. **Menus:** ask which button gets past each screen, or have them play through the menus while `mom record`
-   runs, tapping **numpad +** on each screen worth waiting for.
+   runs: **numpad +** on a screen that needs a key, **numpad −** on one that just needs waiting for.
 3. **Controls:** ask for the minimum buttons to move and look, and how they behave (held or tapped, how long).
 4. **Input check:** `mom probe <window> <key> --seconds 1.5 --region x,y,w,h [--watch-file <mod log>]` for each
    control, on a spot they point at. A key that reaches the game shows there even when nothing seems to happen.
-5. **They play the route once while `mom record <window> <route.json>` runs** (numpad + = checkpoint here,
-   numpad − = stop). Then `mom mark-image <route.json> N <name> --region x,y,w,h` for each marker, choosing the
+5. **They play the route once while `mom record <window> <route.json>` runs** (numpad + = a key is needed on
+   this screen, numpad − = just wait here, numpad * = stop). Then `mom mark-image <route.json> N <name> --region x,y,w,h` for each marker, choosing the
    region together. For movement, use `move_o_matic.py` (same commands plus `hold` and `turn`).
 
    Also teach State-o-matiC the screens that fool it (`state_o_matic.py teach <window> states.json <state> --region ..`):
