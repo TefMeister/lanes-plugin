@@ -25,24 +25,28 @@ half-size one about 300; the patch around a menu often under 100. So:
 
 1. **A route exists?** Look for `routes/<project>/*.json` in the project's control profile or notes. Run it:
    `mom run <route.json> --lost-dir <scratch folder>`. Exit **0**: you are there, no picture was needed.
-2. **Exit 2 (lost):** the JSON line names the checkpoint, its note and two pictures. Read the **small patch first**
-   (`lost-patch.png`). Only if the patch does not explain it, read the half-size `lost-full.png`. Usual causes: a
+2. **Exit 3 (gone) or 4 (not responding):** the game crashed, never started, or hung. That is a problem with the
+   build or the install, not with the route: read the project's own logs, not the screen.
+3. **Exit 2 (lost):** the JSON's `reason` says whether the picture was **frozen** or just **different**, and it names
+   the checkpoint, its note and two pictures. A frozen picture points at the game or the mod, like exit 3 and 4.
+   Otherwise read the **small patch first** (`lost-patch.png`). Only if the patch does not explain it, read the half-size `lost-full.png`. Usual causes: a
    pop-up (a firewall prompt, a news screen), a slower load (rerun with a longer `--timeout`), or the app changed.
    Fix it by hand with `mom press`, then continue with `mom run <route> --from <next step>`. If the app has changed
    for good, re-record that part.
-3. **No route yet? Record one while you walk it:**
+4. **No route yet? Record one while you walk it:**
    - `mom new <route.json> --game "<name>" --window "<part of the window title>" --route <name>`, and
      `mom add <route.json> --launch <how it starts>` if it should start the app.
    - `mom look <window> <file> --scale 0.5` **once**, to see the first screen.
    - `mom press <window> <key> --route <route.json> --changed <crop.png>`: the key is recorded, and the tool saves
      only the patch that changed (it ignores anything that moves by itself). **Read the crop, not the screen.**
    - `mom look <window> <crop.png> --region x,y,w,h` to see that patch again after the next key.
+   - A menu that needs the mouse: `mom click <window> x,y --route <route.json>` (x,y as fractions of the window).
    - When a screen is reached, `mom mark <window> <route.json> <name> --region x,y,w,h --note "<what it shows>"`.
      Pick a patch of **text or icons that does not animate**; the note is what a later session reads when lost.
    - Take a bigger picture again only when the patches stop making sense (a new screen, a pop-up).
    - If a key is sometimes ignored because a screen is still fading in, add `"repress": 4` to the wait step after
      it in the route file: the tool presses that key again every 4 seconds until the screen arrives.
-4. **Save the route** with the project's control profile (`routes/<project>/<route>.json`) and commit it. A route
+5. **Save the route** with the project's control profile (`routes/<project>/<route>.json`) and commit it. A route
    holds fingerprints only, never a picture of the app, so it is safe to publish. **Never commit the screenshots.**
 
 ## Report
