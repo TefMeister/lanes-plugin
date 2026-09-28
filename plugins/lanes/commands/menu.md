@@ -36,7 +36,11 @@ the tool's `README.md` → "Setting a game up" has the detail:
    numpad − = stop). Then `mom mark-image <route.json> N <name> --region x,y,w,h` for each marker, choosing the
    region together. For movement, use `move_o_matic.py` (same commands plus `hold` and `turn`).
 
-Only after that, run it yourself as often as the tests need.
+   Also teach State-o-matiC the screens that fool it (`state_o_matic.py teach <window> states.json <state> --region ..`):
+   menus with a moving 3D scene behind them, and gameplay where nothing moves.
+
+Only after that, run it yourself as often as the tests need. **Not sure what the game is doing?**
+`state_o_matic.py watch <window> [--poke <key>] [--states states.json]` says menu, loading, cutscene or gameplay, with the reason.
 
 ## The rule that keeps it cheap
 
