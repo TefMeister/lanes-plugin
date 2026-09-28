@@ -2,7 +2,8 @@
 description: (Menu-o-matiC) Gets an app from launch to where the work happens, and back out, by replaying a recorded menu route, and records new routes while looking at as little of the screen as possible. A replay costs no model tokens; the model only looks when a checkpoint fails. Launching belongs to /lm (or the person's say-so); never from /pd, /gr, /sr or /gs.
 ---
 
-`/menu` — **Menu-o-matiC.** Walks an app's menus by itself: start it, get through the intro, the title screen and
+`/menu` — **Menu-o-matiC and Move-o-matiC.** Walks an app's menus by itself, and moves a character or car along a
+recorded route: start it, get through the intro, the title screen and
 the menus to where the work happens, and quit through the menu at the end. Built for game modding, where one
 session walks the same menus dozens of times.
 
@@ -17,6 +18,25 @@ beside it explains the route format. Windows only; needs Pillow (`python -m pip 
   files.
 - Keys only ever go to the named window: the tool brings it to the front before every key and every picture, and
   stops with an error if it cannot. Do not work around that error; find out what is in the way.
+
+## First time on a game: set it up WITH the person
+
+Never start by guessing buttons. Poking at a game until something works costs whole sessions and gives wrong
+conclusions (a car tapped forward for half an hour that needed the throttle HELD). Do this once per game, together;
+the tool's `README.md` → "Setting a game up" has the detail:
+
+1. **Save point:** ask the person to play past the tutorials to a save that always loads in the same spot, and
+   which slot it is. Keep their answers with `mom note <route.json> "..."`.
+2. **Menus:** ask which button gets past each screen, or have them play through the menus while `mom record`
+   runs, tapping **numpad +** on each screen worth waiting for.
+3. **Controls:** ask for the minimum buttons to move and look, and how they behave (held or tapped, how long).
+4. **Input check:** `mom probe <window> <key> --seconds 1.5 --region x,y,w,h [--watch-file <mod log>]` for each
+   control, on a spot they point at. A key that reaches the game shows there even when nothing seems to happen.
+5. **They play the route once while `mom record <window> <route.json>` runs** (numpad + = checkpoint here,
+   numpad − = stop). Then `mom mark-image <route.json> N <name> --region x,y,w,h` for each marker, choosing the
+   region together. For movement, use `move_o_matic.py` (same commands plus `hold` and `turn`).
+
+Only after that, run it yourself as often as the tests need.
 
 ## The rule that keeps it cheap
 
