@@ -663,6 +663,14 @@ else
   fail "builds-fixture.sh failed"
 fi
 
+echo "menu-o-matic - replaying and recording menu routes (0.29.0)"
+if out=$(bash "$HERE/menu-o-matic-fixture.sh" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "menu-o-matic-fixture.sh failed"
+fi
+
 echo
 if [ "$FAILED" -eq 0 ]; then
   echo "smoke-test: all assertions passed"

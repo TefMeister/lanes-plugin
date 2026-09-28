@@ -31,6 +31,7 @@ you have at the start of every session: *what can I actually do right now?*
 | `/gate-watch` | Gate Watch | Tells you when another session finishes something. |
 | `/mint` | Mint | Keeps the real game untouched; you mod a private copy of it on your PC. |
 | `/ideas` | Ideas | Files the ideas you jotted down, onto the right project. |
+| `/menu` | Menu-o-matiC | Gets a game from launch through its menus by itself, from a recorded route; it looks at the screen only when something is unexpected. |
 | `/setup` | Setup | First-run setup: your name, this PC's name, and optional tools. |
 | `/update` | Update | Gets the newest version of the plugin, after asking you. |
 | `/pt` | Plugin Test | Tests the plugin itself. |
@@ -95,7 +96,7 @@ what is new and never installs without asking. The full manual is in
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.28.0`, early public release |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.29.0`, early public release |
 
 ## Modding games?
 
