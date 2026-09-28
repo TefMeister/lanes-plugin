@@ -168,7 +168,9 @@ GATE: VR USER   — nothing further without a person actually using it
 ```
 
 That claim is an **exhaustion** claim, so it has to be checkable rather than asserted: it is true
-when the board holds no rows at a cheaper tag. Audit and re-date the block before saying it.
+when the board holds no rows at a cheaper tag. Audit and re-date the block before saying it, and read the board's lines above the block as well:
+a fact there (where the repo is cloned, which PC has what) that the session found untrue is fixed
+the same session, because nothing else ever re-reads it.
 
 **Never trail off** into "that's probably everything for now". Either there is a cheaper item, or
 there is a named wall. Both are answers; vagueness is not.

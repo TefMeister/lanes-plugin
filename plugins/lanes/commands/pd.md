@@ -180,7 +180,8 @@ nothing to do. Name anything it `SKIPPED` or `FAILED` in the write-up.
    fixing X worked", ask whether the failing path still runs. If it does not, the claim is a
    hypothesis however well the fix worked.
 7. **Write it up** with a confidence tag on every durable claim, and update the board's `OPEN` block
-   so the next session inherits an accurate gate.
+   so the next session inherits an accurate gate. Read the lines above the block too, and fix any fact
+   there that this session found untrue.
 8. **Commit only your own lane's paths.** Never `git add -A` in a shared repo. `git pull --rebase`
    before pushing.
 9. **Release every claim you took.**

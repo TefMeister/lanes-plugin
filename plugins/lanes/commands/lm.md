@@ -310,6 +310,9 @@ or registry key before changing it.
 1. **Write it up** — what was done, what it means, and a confidence tag on every durable claim.
 2. **Re-audit the `OPEN` block** and re-date it. A stale block is a session that logged work without
    re-auditing what is left, and it makes the board understate.
+   **Read the lines above the block too** (repo, where it is cloned, which PC has what): any fact there
+   this session found untrue gets fixed now. Only the block gets audited otherwise, so a header line
+   can stay wrong for a week while every session steps over it.
 3. **⚠️ Verify before you write it down.** A fix that removes the symptom *and* stops the failing
    path from being exercised has proved nothing about the cause. If the failing path no longer
    runs, the claim is a hypothesis however well the fix worked.
