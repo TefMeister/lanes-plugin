@@ -87,7 +87,8 @@ Take as long as the work needs between their turns. During their turn, do nothin
 
 - Write up what was tried and what they saw (quote them), with a confidence tag on every claim. `n`
   counts **their** runs.
-- Update the status file and re-date the `OPEN` block.
+- Update the status file and re-date the `OPEN` block. Read the lines above the block too, and fix any
+  fact there that this session found untrue.
 - **Release the claim last:** `bash "${CLAUDE_PLUGIN_ROOT}/tools/lane-claim.sh" release /ms <project>`.
 - Commit only this lane's paths, never `git add -A`, with the trailer `Lane: /ms <project>`.
   `git pull --rebase` before pushing.
