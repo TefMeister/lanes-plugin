@@ -53,6 +53,18 @@
         "hooks": [
           {
             "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" builds-brief",
+            "shell": "bash",
+            "timeout": 60,
+            "statusMessage": "Checking this PC's app folders against the saved builds",
+            "async": false
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" setup-nudge",
             "shell": "bash",
             "timeout": 10,
