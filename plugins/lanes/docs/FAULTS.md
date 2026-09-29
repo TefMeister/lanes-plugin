@@ -504,3 +504,16 @@ they were resolved by keeping one copy. Nothing was lost `[verified-live 2026-09
 **Fix to make.** Write nothing machine- or date-specific into the idea file, so two PCs produce byte-identical
 files and git merges them silently. And have `git_commit` in `ideas.py` abort the rebase and say so when it fails,
 instead of leaving the repo stuck.
+
+### The front-page check reads stale clones, and counts planned dates as work done (found 2026-09-29)
+
+**What happened.** A cross-PC sweep on 2026-09-29 (after two false start-up warnings about the other PC, both
+caused by the estate's own checks reading a clone nobody had pulled yet) found the same pattern in
+`frontpage-scan.sh`: it reads the board and the front page straight off disk, without fetching, so at session
+start it compares whatever the two clones last pulled. It stayed silent that morning although the front page was
+behind the boards. It also takes the newest ISO date *anywhere* on a board, so a planned date ("Tefa tests it on
+2026-09-30") counts as work already done and makes the page look behind until that day passes
+`[verified-live 2026-09-29, n=1]`.
+
+**Fix to make.** Fetch both repos and read them through `git show origin/main:<path>` (as `gate-scan.sh` and
+`owed.sh` already do), and ignore dates later than today. Same family as fault 13.
