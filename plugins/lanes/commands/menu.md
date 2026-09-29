@@ -31,7 +31,8 @@ the tool's `README.md` → "Setting a game up" has the detail:
    which slot it is. Keep their answers with `mom note <route.json> "..."`.
 2. **Menus: three goals per game**, each recorded on its own, the quickest way through: **launch → gameplay**,
    **launch → key bindings** (picture the pages, read them once, store the keys in the route's `controls`), and
-   **gameplay → desktop**.
+   **gameplay → desktop**. Record them in this order: goal 1, quit; goal 2, quit; then drive into gameplay with
+   goal 1, have them press Home and work back out for goal 3. Replay each goal once before recording the next.
 3. **Controls:** ask for the minimum buttons to move and look, and how they behave (held or tapped, how long).
 4. **Input check:** `mom probe <window> <key> --seconds 1.5 --region x,y,w,h [--watch-file <mod log>]` for each
    control, on a spot they point at. A key that reaches the game shows there even when nothing seems to happen.
