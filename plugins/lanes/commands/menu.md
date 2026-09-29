@@ -48,6 +48,10 @@ the tool's `README.md` → "Setting a game up" has the detail:
 Only after that, run it yourself as often as the tests need. **Not sure what the game is doing?**
 `state_o_matic.py watch <window> [--poke <key>] [--states states.json]` says menu, loading, cutscene or gameplay, with the reason.
 
+## A map of routes per game (0.34.0)
+
+Record more than "launch to gameplay": each route has a start and an end (`mom new ... --from closed --to keybindings`), and `mom routes <folder>` lists a game's map. Early on, record `closed -> keybindings` too: it ends with `picture` steps (`mom add FILE --picture NAME`); read those pictures once and store the keys in the route's `controls`, so no later session has to ask for them. Movement routes follow the same idea: short named trips from a spot the game can restore.
+
 ## The rule that keeps it cheap
 
 **Look big once, then only at small patches.** A full screenshot is about 1,200 input tokens at 1280×720; a
