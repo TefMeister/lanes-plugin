@@ -511,7 +511,7 @@ instead of leaving the repo stuck.
 caused by the estate's own checks reading a clone nobody had pulled yet) found the same pattern in
 `frontpage-scan.sh`: it reads the board and the front page straight off disk, without fetching, so at session
 start it compares whatever the two clones last pulled. It stayed silent that morning although the front page was
-behind the boards. It also takes the newest ISO date *anywhere* on a board, so a planned date ("Tefa tests it on
+behind the boards. It also takes the newest ISO date *anywhere* on a board, so a planned date ("User tests it on
 2026-09-30") counts as work already done and makes the page look behind until that day passes
 `[verified-live 2026-09-29, n=1]`.
 
