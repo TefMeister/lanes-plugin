@@ -265,6 +265,7 @@ done:
      whether it is windowed at all. Their answer settles it: what they see outranks the measurement.
      A fullscreen or oversized game hides the Claude session from them, so they cannot follow or stop
      it. Nothing else begins until they have said yes (a user's rule, 2026-09-29).
+   - **Once per project.** After they have said yes, store it (`mom windowcheck <window> --route <route.json> --confirmed`); later sessions only measure, and ask again only if the window changed size or turned fullscreen.
 
 Why the window comes before any real work:
 - **Measurements carry between machines only if the picture is the same shape.** Anything keyed to
