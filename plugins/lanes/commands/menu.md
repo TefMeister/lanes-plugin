@@ -21,7 +21,7 @@ beside it explains the route format. Windows only; needs Pillow (`python -m pip 
 
 ## First time on a game: set it up WITH the person
 
-**Before anything else: the game runs in a window, and the person has said so.** Run `mom windowcheck <window>`, then ask them to confirm the game is in a window of the right size and that they can still see this session. If the check cannot tell, ask whether it is windowed at all. No recording, replay or modding until they say yes: a fullscreen game hides the session from them. (`/lm` §4b has the details.)
+**Before anything else: the game runs in a window, and the person has said so.** Run `mom windowcheck <window>`, then ask them to confirm the game is in a window of the right size and that they can still see this session. If the check cannot tell, ask whether it is windowed at all. No recording, replay or modding until they say yes: a fullscreen game hides the session from them. Ask ONCE per game: store their yes with `mom windowcheck <window> --route <route.json> --confirmed`; after that, only measure. (`/lm` §4b has the details.)
 
 Never start by guessing buttons. Poking at a game until something works costs whole sessions and gives wrong
 conclusions (a car tapped forward for half an hour that needed the throttle HELD). Do this once per game, together;
