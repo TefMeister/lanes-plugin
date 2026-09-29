@@ -43,6 +43,7 @@ If a file cannot be swapped while the app runs, say so and let them close it. Ne
 5. **Show the project's fresh ideas**, if an ideas repo is set up (`/lanes:ideas`). The person is right
    there, so ask for the numbers and record them.
 5b. **Check the clean install is mint (0.27.0): if `mint_vanilla.<project>` is set in `lanes.conf`, run `python "${CLAUDE_PLUGIN_ROOT}/tools/mint.py" check <project>`. Not mint means something wrote into the untouched install; say so plainly before any test. Everything of ours goes into the private copy (`mint_copy.<project>`), never into the clean install. Not set up, and the project keeps showing results that make no sense after reinstalls? Offer `/lanes:mint` in one line.
+5c. **Ask whether the game is in a window of the right size and they can still see this session** (`/lm` §4b), before the first steps. If it is not windowed yet, making it windowed IS the first job. Their answer settles it.
 6. **State the gate in one line,** and say in one line what you will try first and why it is the
    cheapest useful thing on the board. They may redirect; their choice wins.
 7. **Say which model this session needs** before the first steps. In this lane the person reads every

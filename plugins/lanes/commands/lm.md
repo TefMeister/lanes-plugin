@@ -255,6 +255,16 @@ done:
    immediately after the launch test.** Find the app's own setting (in-app menu, config file,
    registry key or command-line switch), prove it by measuring the window's client area, and write
    down where it lives.
+   - **Measure the SCREEN too, not only the window.** A game told only a size can switch the whole
+     display to that size and run fullscreen: the window then measures exactly 1280×720 and is still
+     fullscreen (Prototype, 2026-09-29: `-width 1280 -height 720` did that; `windowed width=1280
+     height=720` was the real window). A window as big as the screen, or a screen that changed size
+     while the game runs, is fullscreen. Menu-o-matiC's `windowcheck` does both measurements.
+   - **Then ASK the person, every time, before any modding starts:** "Is the game in a window, the
+     right size, and can you still see this session beside it?" If the check could not tell, ask
+     whether it is windowed at all. Their answer settles it: what they see outranks the measurement.
+     A fullscreen or oversized game hides the Claude session from them, so they cannot follow or stop
+     it. Nothing else begins until they have said yes (Tefa's rule, 2026-09-29).
 
 Why the window comes before any real work:
 - **Measurements carry between machines only if the picture is the same shape.** Anything keyed to
