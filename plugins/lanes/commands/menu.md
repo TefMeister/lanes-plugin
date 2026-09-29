@@ -29,17 +29,19 @@ the tool's `README.md` → "Setting a game up" has the detail:
 
 1. **Save point:** ask the person to play past the tutorials to a save that always loads in the same spot, and
    which slot it is. Keep their answers with `mom note <route.json> "..."`.
-2. **Menus:** ask which button gets past each screen, or have them play through the menus while `mom record`
-   runs: **Page Up** on a screen that needs a key, **Page Down** on one that just needs waiting for.
+2. **Menus: three goals per game**, each recorded on its own, the quickest way through: **launch → gameplay**,
+   **launch → key bindings** (picture the pages, read them once, store the keys in the route's `controls`), and
+   **gameplay → desktop**.
 3. **Controls:** ask for the minimum buttons to move and look, and how they behave (held or tapped, how long).
 4. **Input check:** `mom probe <window> <key> --seconds 1.5 --region x,y,w,h [--watch-file <mod log>]` for each
    control, on a spot they point at. A key that reaches the game shows there even when nothing seems to happen.
 5. **First, a rehearsal (the first recording of a game only).** Ask them to launch the game once themselves,
    when they are ready, and play the route with nothing recording, noting every button each screen needs.
    The recording then has no mistaken presses and no guessing. Say "LISTENING" only once the recorder is live.
-6. **They play the route once while `mom record <window> <route.json>` runs** (Page Up = a key is needed on
-   this screen, Page Down = just wait here, Home = undo the last mark, End = stop; never the number pad,
-   where our own mods keep their hotkeys). Then `mom mark-image <route.json> N <name> --region x,y,w,h` for each marker, choosing the
+6. **They play the route once while `mom record <window> <route.json>` runs, with three keys:** Home = start
+   (may be pressed before the game starts, so skippable logos are caught), Page Down = "the next key I press is a
+   step" (a picture of the screen is taken and exactly that one key is recorded), End = stop. Nothing else is
+   recorded; if it goes wrong, record the goal again. Never the number pad, where our own mods keep their hotkeys. Then `mom mark-image <route.json> N <name> --region x,y,w,h` for each marker, choosing the
    region together. For movement, use `move_o_matic.py` (same commands plus `hold` and `turn`).
 
    Also teach State-o-matiC the screens that fool it (`state_o_matic.py teach <window> states.json <state> --region ..`):
