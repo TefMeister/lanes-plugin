@@ -264,7 +264,7 @@ done:
      right size, and can you still see this session beside it?" If the check could not tell, ask
      whether it is windowed at all. Their answer settles it: what they see outranks the measurement.
      A fullscreen or oversized game hides the Claude session from them, so they cannot follow or stop
-     it. Nothing else begins until they have said yes (Tefa's rule, 2026-09-29).
+     it. Nothing else begins until they have said yes (a user's rule, 2026-09-29).
 
 Why the window comes before any real work:
 - **Measurements carry between machines only if the picture is the same shape.** Anything keyed to
