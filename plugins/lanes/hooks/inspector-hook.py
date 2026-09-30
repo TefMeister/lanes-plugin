@@ -50,7 +50,7 @@ def unquote(s):
 
 
 def to_native(path):
-    """Git bash hands us /c/Users/...; Python on Windows wants C:/Users/..."""
+    """Git bash hands us /c/<folder>/...; Python on Windows wants C:/<folder>/..."""
     m = re.match(r"^/([a-zA-Z])/(.*)$", path)
     if m and os.name == "nt":
         return f"{m.group(1).upper()}:/{m.group(2)}"
