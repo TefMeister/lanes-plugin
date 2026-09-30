@@ -338,6 +338,7 @@ or registry key before changing it.
    work. If this session's own work turned baffling part-way, say so here too. This is the **second**
    time the session says a model — pre-flight step 6b named the tier for the work it was about to do;
    this one is for whoever picks up next. `docs/PROTOCOL.md` §5.
+9. **End the report with the Inspector's line** (0.38.0): run `python "${CLAUDE_PLUGIN_ROOT}/tools/inspector.py" summary` and paste its one line as the last line of the report, unchanged: how many notes it found in this session's code, how many were fixed, kept on purpose, left for later, or are still unanswered. Print it even when it says "off" or "no code was written" - its absence would hide whether the Inspector is taking part. The claim release also shows it on screen when the Inspector is on.
 
 ---
 

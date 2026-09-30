@@ -121,6 +121,9 @@ def pre_release(data, command):
         if msg:
             sys.stderr.write(msg + "\n")
             return 2
+    # The session is ending cleanly: show the user the Inspector's score for it (2026-09-30).
+    line = inspector.session_summary(data.get("session_id") or "")
+    sys.stdout.write(json.dumps({"systemMessage": line}))
     return 0
 
 

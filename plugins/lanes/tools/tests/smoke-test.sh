@@ -651,6 +651,13 @@ else
   fail "inspector_faults_test.py failed"
 fi
 
+if out=$("$PY" "$HERE/inspector_summary_test.py" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "inspector_summary_test.py failed"
+fi
+
 echo "ideas.py - the ideas inbox (0.23.0)"
 if out=$(bash "$HERE/ideas-fixture.sh" 2>&1); then
   ok "$(printf '%s\n' "$out" | tail -n 1)"
