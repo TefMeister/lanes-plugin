@@ -95,3 +95,4 @@ Take as long as the work needs between their turns. During their turn, do nothin
   `git pull --rebase` before pushing.
 - **Report briefly.** They were there for all of it, so the summary is a reminder, not an account:
   what got proven, what got disproved, what is next, and what the next step requires.
+- **End the report with the Inspector's line** (0.38.0): run `python "${CLAUDE_PLUGIN_ROOT}/tools/inspector.py" summary` and paste its one line as the last line of the report, unchanged: how many notes it found in this session's code, how many were fixed, kept on purpose, left for later, or are still unanswered. Print it even when it says "off" or "no code was written" - its absence would hide whether the Inspector is taking part. The claim release also shows it on screen when the Inspector is on.

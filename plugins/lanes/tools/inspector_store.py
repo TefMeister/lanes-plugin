@@ -160,8 +160,9 @@ class Record:
         return self.items[k]
 
     def add_cleared(self, item):
+        tag = f" <!-- session:{item['session']} -->" if item.get("session") else ""
         self.cleared.insert(0, f"- {time.strftime('%Y-%m-%d')} {item['id']} {item['kind']} {item['path']}: "
-                               f"gone from the code")
+                               f"gone from the code{tag}")
 
     def place(self, item):
         """Which file a note belongs in."""

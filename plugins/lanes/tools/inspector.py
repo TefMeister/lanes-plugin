@@ -48,6 +48,8 @@ USAGE
   inspector.py stats REPO           how the verdicts split, per kind (for in-house testing)
   inspector.py brief [--session ID] notes left unanswered by an earlier session (session start)
   inspector.py final ROOT PROJECT.. the end-of-session check (a lane's claim release runs it)
+  inspector.py summary [--session ID] one line for the end of a session: found / fixed / kept / later /
+                                    unanswered in this session (default: $CLAUDE_CODE_SESSION_ID)
   lanes.conf: `inspector = off` switches it off; `inspector_repos = a, b` limits it to those repos;
   `inspector_root = <folder>` is where the copy-paste check looks for sibling projects.
 """
@@ -330,6 +332,8 @@ def check_files(paths, with_dups=True, baseline=True, session=None):
         rec.save()
         keep_notes_local(repo, rec.path)
         remember_project(repo, prefix)
+        if session:
+            note_session_checks(session, len(rels))
         results[(repo, prefix)] = (rec, raised, cleared)
     return results
 
@@ -617,6 +621,82 @@ def brief(session=None):
             "FIRST, before other work on that project:\n" + "\n".join(out))
 
 
+def session_file(session):
+    return os.path.join(home(), "sessions", re.sub(r"[^\w\-]", "_", session) + ".json")
+
+
+def note_session_checks(session, n):
+    """Count the source files looked over in a session, so a quiet session still shows the Inspector ran."""
+    p = session_file(session)
+    try:
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        try:
+            with open(p, encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, ValueError):
+            data = {}
+        data["checked"] = int(data.get("checked", 0)) + int(n)
+        data["last"] = time.strftime("%Y-%m-%d %H:%M")
+        with open(p, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(data, f)
+    except OSError:
+        pass
+
+
+def known_projects():
+    """(repo, prefix) for every project the Inspector has notes for on this PC."""
+    out = []
+    try:
+        with open(projects_log(), encoding="utf-8") as f:
+            for line in f:
+                parts = line.rstrip("\n").split("\t")
+                if len(parts) == 3 and os.path.isdir(parts[1]):
+                    out.append((parts[1], parts[2]))
+    except OSError:
+        pass
+    return list(dict.fromkeys(out))
+
+
+def session_summary(session):
+    """One line for the end of a session: how much the Inspector found in THIS session's code, and what
+    became of it (2026-09-30, so the user can see whether it is an active part of the work)."""
+    if not enabled():
+        return "🔍 Inspector: off on this PC (`inspector = on` in lanes.conf switches it on)."
+    if not session:
+        return "🔍 Inspector: on, but this session's id is unknown, so nothing can be counted."
+    counts = {"found": 0, "fixed": 0, "keep": 0, "later": 0, "waiting": 0}
+    projects = set()
+    tag = f"session:{session}"
+    for repo, prefix in known_projects():
+        rec = Record(repo, prefix)
+        mine = [i for i in rec.items.values() if i.get("session") == session]
+        gone = [c for c in rec.cleared if tag in c]
+        if mine or gone:
+            projects.add(project_name(repo, prefix))
+        counts["found"] += len(mine) + len(gone)
+        counts["fixed"] += len(gone)
+        for i in mine:
+            state = verdict_state(i["verdict"], i["kind"])
+            if state in ("keep", "later"):
+                counts[state] += 1
+            else:
+                counts["waiting"] += 1  # waiting, fix now not done yet, or an invalid fix now
+    checked = 0
+    try:
+        with open(session_file(session), encoding="utf-8") as f:
+            checked = int(json.load(f).get("checked", 0))
+    except (OSError, ValueError):
+        pass
+    if not counts["found"]:
+        if not checked:
+            return "🔍 Inspector: on, no code was written in this session."
+        return f"🔍 Inspector: looked over {checked} file edit(s) this session and found nothing messy."
+    where = f" in {', '.join(sorted(projects))}" if projects else ""
+    return (f"🔍 Inspector this session{where}: {counts['found']} found · {counts['fixed']} fixed · "
+            f"{counts['keep']} kept on purpose · {counts['later']} left for later · {counts['waiting']} unanswered "
+            f"({checked} file edit(s) looked over).")
+
+
 def stats(repo, prefix=""):
     """For in-house testing: how the verdicts split, per kind."""
     rec = Record(repo, prefix)
@@ -647,6 +727,14 @@ def main(argv):
         text = brief(session)
         if text:
             print(text)
+        return 0
+    if cmd == "summary":
+        line = session_summary(session or os.environ.get("CLAUDE_CODE_SESSION_ID") or "")
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")  # a Windows console's code page has no emoji
+        except (AttributeError, ValueError):
+            pass
+        print(line)
         return 0
     if cmd == "final" and len(rest) >= 2:
         msg = final_gate(os.path.abspath(rest[0]), rest[1:], carry="--carry" in rest)

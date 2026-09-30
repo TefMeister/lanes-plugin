@@ -821,5 +821,12 @@ the call through: a broken guard that blocks every commit is worse than none.
 past the hold (hence the `fix now` limit); lazy `keep` verdicts that cost usage and give nothing; false
 alarms, since it is a pattern checker. Answer each note against the code, not against the wish to upload.
 
-Checked by `tools/tests/inspector-fixture.sh` and `tools/tests/inspector_faults_test.py`, both run by the
-smoke test. Design: `docs/specs/inspector-idea.md`.
+**The end-of-session line (0.38.0).** So it is visible whether the Inspector is an active part of the work,
+every lane session ends its report with one line from `tools/inspector.py summary`: notes found in this
+session's code, how many were fixed (left the code), kept on purpose, left for later, and still unanswered,
+plus how many file edits it looked over. It counts by the Claude Code session id (`$CLAUDE_CODE_SESSION_ID`,
+the same id the hook stamps on each note). Releasing a lane's claim also shows the line on screen. When the
+Inspector is off the line says so, rather than disappearing.
+
+Checked by `tools/tests/inspector-fixture.sh`, `tools/tests/inspector_faults_test.py` and
+`tools/tests/inspector_summary_test.py`, all run by the smoke test. Design: `docs/specs/inspector-idea.md`.
