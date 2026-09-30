@@ -637,6 +637,20 @@ else
   fail "machine-label-fixture.sh failed"
 fi
 
+echo "the Inspector (0.37.0)"
+if out=$(bash "$HERE/inspector-fixture.sh" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "inspector-fixture.sh failed"
+fi
+if out=$("$PY" "$HERE/inspector_faults_test.py" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "inspector_faults_test.py failed"
+fi
+
 echo "ideas.py - the ideas inbox (0.23.0)"
 if out=$(bash "$HERE/ideas-fixture.sh" 2>&1); then
   ok "$(printf '%s\n' "$out" | tail -n 1)"

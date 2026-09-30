@@ -84,6 +84,17 @@
             "async": false
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook inspector-hook.py",
+            "shell": "bash",
+            "timeout": 20,
+            "statusMessage": "Inspector: anything carried over?"
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
@@ -121,6 +132,18 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook inspector-hook.py",
+            "shell": "bash",
+            "timeout": 60,
+            "statusMessage": "Inspector: checking the commit"
+          }
+        ]
       }
     ],
     "SessionEnd": [
@@ -131,6 +154,20 @@
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook pd-guard.py",
             "shell": "bash",
             "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook inspector-hook.py",
+            "shell": "bash",
+            "timeout": 60,
+            "statusMessage": "Inspector: looking over the edit"
           }
         ]
       }
