@@ -1,7 +1,8 @@
-# The Inspector — IDEA ONLY, NOT BUILT (2026-09-23)
+# The Inspector — the original idea (2026-09-23)
 
-> **Status: idea, parked on the author's instruction — "don't create anything just yet please."**
-> Nothing below exists. Do not build it until the author says go.
+> **Status: built and shipped in lanes 0.37.0 (2026-09-30).** What it does now is in `docs/PROTOCOL.md` §16.
+> This page is the design as first written on 2026-09-23, when it was still only an idea; it is kept as
+> the record of why the Inspector works the way it does. Where this page and §16 disagree, §16 is current.
 
 ## Where it came from
 
