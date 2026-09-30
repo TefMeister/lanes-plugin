@@ -94,3 +94,14 @@ role = DEV
 # Unset means the banner never fires - set it once your estate has a
 # stable size.
 # expected_repos = 22
+
+# THE INSPECTOR (0.37.0, docs/PROTOCOL.md section 16). Off unless this says on.
+# After every code edit it notes anything messy in the project's notes folder;
+# saves always go through, but git push waits until every note is answered.
+# inspector = on
+# inspector_home = /folder/for/its/backups        (default ~/.claude/lanes-inspector)
+# inspector_mode = end        (default: answer the notes at the end; `each` = after every edit)
+# inspector_repos = project-a, project-b          (limit it to these; unset = every repo)
+# inspector_root = /your/clone/root               (where it looks for code copied between projects)
+# inspector_notes_local = on  (keep the notes on this PC only, never committed; for public repos)
+# inspector_multi = staging   (repos that hold one folder per project; notes kept per folder)

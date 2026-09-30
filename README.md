@@ -81,6 +81,10 @@ two names, so keep them as they are.
 Then run `/lanes:setup`. It asks what to call you and this PC, then offers the optional tools:
 debuggers, Blender, build tools, VR. Say no once and it never asks again.
 
+**The Inspector (optional, new in 0.37.0).** Switch it on and every piece of code Claude writes is
+looked over: anything messy is noted for a decision before it is uploaded. It never edits code.
+Setup asks; it stays off otherwise.
+
 **Needs:** Claude Code, Git, Python 3.
 
 **Check it first.** Don't take our word that it is safe. [`AUDIT.md`](AUDIT.md) is a request you
@@ -96,7 +100,7 @@ what is new and never installs without asking. The full manual is in
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.36.1`, early public release |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.37.0`, early public release |
 
 ## Modding games?
 

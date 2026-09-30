@@ -763,3 +763,63 @@ mint, or what differs in the copy. `builds.py` treats `mint_copy.<project>` as t
   each in the same session; a deliberate read-only line may carry `mint-ok`.
 
 Checked by `tools/tests/mint-fixture.sh`.
+
+## 16. The Inspector: every code edit is looked over (0.37.0, 2026-09-30)
+
+**Optional, and off unless `inspector = on` in `lanes.conf`.** `/lanes:setup` asks; no answer means off.
+
+**What it is for.** §6 sets the rules for code shape, and `/gs` checks them once a sweep. By then the mess
+has had days to set. The cheapest moment to fix it is the minute it was written, by the session that wrote
+it, while it still knows why. So: Claude writes code; the Inspector writes what is messy into **a separate
+notes folder kept with the project**; Claude reads each note against the code and decides whether it is
+really mess, or has to be that way to work. **It never edits code.** It only writes its notes folder.
+
+**Where the notes live** (`tools/inspector_store.py`): `dev-archive/inspector/` in the project, or
+`inspector/` at its top when there is no `dev-archive/`. One file per kind: `this-session.md`,
+`waiting.md` (left by a session that ended first: answer these first), `decided.md`, `already-there.md`,
+`cleared.md`. The folder travels between PCs with the project. With `inspector_notes_local = on` it stays on
+this PC instead (listed in the clone's own `.git/info/exclude`), which suits a public repo.
+
+**The verdicts.** Each note's `Verdict:` line takes one of:
+
+| Verdict | Means |
+| --- | --- |
+| `waiting` | not answered yet |
+| `fix now` | real; fix it in this session. **Only** for loose numbers, loose addresses and commented-out code, whose fix cannot change behaviour. On any other kind it counts as no answer. |
+| `fix later: <board row>` | real; the named board row carries it. Structural fixes (splitting, moving, de-duplicating) go here and are done on their own, move-only and tested (§6). |
+| `keep: <why it must stay>` | not mess, or needed to work (for example, tuned in the headset). Raised again only if it gets clearly worse. |
+
+A `keep` needs a real reason and a `fix later` needs a row; an empty one still counts as `waiting`. The
+"has to stay" answers are what protect hand-tuned code from being tidied into something broken.
+
+**When it asks** (`inspector_mode`):
+
+- **`end` (default):** notes are written silently after every edit. **Saving is never blocked.** Uploading
+  is: `git push` waits while any note in that repo is unanswered or the notes folder is not committed, and
+  each time an upload waits, a copy of the held work goes to the Inspector's own folder (`inspector_home`,
+  as a git bundle). A lane releasing its claim (`lane-claim.sh release`) is held the same way, so the end of
+  a session is where the notes get answered, then everything uploads.
+- **`each`:** asks after every edit and holds each commit until its notes are answered.
+- **Emergency only:** a commit or release whose command says `inspector: carry over` goes through with notes
+  still waiting. The next session is told about them first.
+
+**Only new or worse.** A file the Inspector has never seen is compared with its last commit: what was
+already there is listed once in `already-there.md` and not raised. After that it raises what is new, and
+what got worse since its verdict. A note that leaves the code moves to `cleared.md`.
+
+**What it checks** (`tools/inspector_checks.py`): size past §6's 800 and 1,500 lines; Lua near its
+200-locals limit; bare numbers and raw addresses written into the code instead of named settings; F-key
+hotkeys (use the numpad); probe code left in a working file; commented-out code; very long or deeply nested
+functions; and blocks of matching lines copied from another file of this project or a sibling project in the
+same clone folder (`inspector_root`).
+
+**Where it is limited.** `inspector_repos = a, b` limits it to those projects. `inspector_multi` names repos
+that hold one folder per project, so each folder gets its own notes. Anything the hook cannot work out lets
+the call through: a broken guard that blocks every commit is worse than none.
+
+**Known ways it can make things worse, which is why the verdict step matters:** tidying working code to get
+past the hold (hence the `fix now` limit); lazy `keep` verdicts that cost usage and give nothing; false
+alarms, since it is a pattern checker. Answer each note against the code, not against the wish to upload.
+
+Checked by `tools/tests/inspector-fixture.sh` and `tools/tests/inspector_faults_test.py`, both run by the
+smoke test. Design: `docs/specs/inspector-idea.md`.

@@ -66,6 +66,15 @@ On yes: make a private repo (`gh repo create <name> --private`), clone it, and a
 `tools/builds.py init` (see `docs/PROTOCOL.md` §14). On another PC: clone the same repo and set the
 same key; if the app sits in a different folder there, also set `builds_app.<project> = <folder>`.
 
+## 0.8 Switch on the Inspector? (0.37.0, only if they have Claude write code)
+
+Ask **one question**: *"Should the Inspector look over every piece of code I write, and note anything
+messy for us to decide on before it is uploaded?"* Options: **"Yes"** and **"Not now"**. **No answer means
+off.** On yes, ask where its folder should live, offering a default (beside their other backups if you can
+find them, otherwise `~/.claude/lanes-inspector`); create it and write `inspector = on` and
+`inspector_home = <folder>` to `lanes.conf`. Say in one line that `inspector = off` switches it off again at
+any time. What it does: `docs/PROTOCOL.md` §16.
+
 ## 1. Scan
 
 ```bash
