@@ -105,3 +105,9 @@ role = DEV
 # inspector_root = /your/clone/root               (where it looks for code copied between projects)
 # inspector_notes_local = on  (keep the notes on this PC only, never committed; for public repos)
 # inspector_multi = staging   (repos that hold one folder per project; notes kept per folder)
+
+# THE PLUGIN'S LOOK (0.41.0).
+# The first session after installing puts the green-monitor-starburst style on the
+# Windows Terminal profile it runs in, once, with a backup; /lanes:theme restore
+# undoes it. Set this to off on a PC where that is not wanted. $LANES_THEME=0 too.
+# theme = off

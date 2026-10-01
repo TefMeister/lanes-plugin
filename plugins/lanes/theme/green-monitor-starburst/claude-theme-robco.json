@@ -1,0 +1,8 @@
+{
+  "name": "RobCo",
+  "base": "dark-ansi",
+  "overrides": {
+    "userMessageBackground": "rgb(0, 0, 3)",
+    "userMessageBackgroundHover": "rgb(0, 0, 3)"
+  }
+}

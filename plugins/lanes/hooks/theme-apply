@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# SessionStart hook: the FIRST session after the plugin is installed puts the plugin's look on the
+# terminal - green monitor, starburst behind the text, a light rolling down the screen - and tells
+# the user in one line (tools/theme.py apply). Once per machine: the state file makes it silent after
+# that, whatever it decided. A profile that already has a look of its own is left alone.
+#
+# LANES_THEME=0, or `theme = off` in lanes.conf, turns it off. Silent on every failure path.
+set -uo pipefail
+[ "${LANES_THEME:-1}" = "0" ] && exit 0
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+STATE_DIR="${LANES_STATE_DIR:-$HOME/.claude/lanes}"
+[ -f "$STATE_DIR/theme-state.json" ] && exit 0
+CONF="${LANES_CONFIG:-$HOME/.claude/lanes.conf}"
+if [ -f "$CONF" ] && grep -qiE '^[[:space:]]*theme[[:space:]]*=[[:space:]]*(off|no|false|0)' "$CONF"; then exit 0; fi
+
+PY=""
+for cand in python3 python py; do
+  command -v "$cand" >/dev/null 2>&1 || continue
+  "$cand" -c "" >/dev/null 2>&1 || continue
+  PY="$cand"; break
+done
+[ -n "$PY" ] || exit 0
+
+out="$("$PY" "$PLUGIN_ROOT/tools/theme.py" apply ${LANES_THEME_NO_FONT:+--no-font} 2>/dev/null)"
+[ -n "$out" ] || exit 0
+{
+  printf '%s\n' "$out"
+  echo "Tell the user what the THEME lines above mean, in one or two plain sentences, before other work: if the look was applied, that their terminal now has the plugin's green monitor look and Claude Code needs a restart for its own colours to follow, and that /lanes:theme restore puts everything back; if it was not, why."
+} | "$PY" "$SCRIPT_DIR/emit_context.py"
+exit 0
