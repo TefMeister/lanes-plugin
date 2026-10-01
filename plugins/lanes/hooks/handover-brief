@@ -28,6 +28,6 @@ done
 
 {
   "$PY" "$TOOL" start --write 2>/dev/null
-  echo "Every lane's write-up ends with the HANDOVER line (python \"\${CLAUDE_PLUGIN_ROOT}/tools/handover.py\" check). NOT SAVED at the end of a session means: save first, then end."
+  echo "Every lane's write-up ends with the close-out box (python \"\${CLAUDE_PLUGIN_ROOT}/tools/handover.py\" close), pasted unchanged under the gate/model box. NOT SAVED at the end of a session means: save first, then end."
 } | "$PY" "$EMIT"
 exit 0
