@@ -140,4 +140,13 @@ out=$(LANES_CONFIG="$TP/nowhere.conf" "$PY" "$TOOL" close 2>&1); rc=$?
 assert_contains "| 🔦 **UNKNOWN** |" "$out" "the box says UNKNOWN rather than SAVED when it could not look"
 [ "$rc" = "2" ] && ok "close exits 2 when it could not run" || fail "close exits 2 when it could not run (got $rc)"
 
+echo "a damaged clone is named as damaged, not as having no remote (0.41.2)"
+q git clone -q "$T/remote-clean" "$T/A/clones/demo-broken"
+# a fetch that died half-way leaves exactly this: a remote ref pointing at a commit that never arrived
+mkdir -p "$T/A/clones/demo-broken/.git/refs/remotes/origin"
+echo 0123456789abcdef0123456789abcdef01234567 > "$T/A/clones/demo-broken/.git/refs/remotes/origin/main"
+out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" check 2>&1)
+assert_contains "demo-broken (live root): damaged clone" "$out" "the broken clone is called damaged"
+assert_not_contains "demo-broken (live root): no remote" "$out" "and not blamed on a missing remote"
+
 [ "$FAILED" = "0" ] && echo "handover-fixture: ALL PASSED" || { echo "handover-fixture: FAILED"; exit 1; }
