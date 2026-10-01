@@ -56,8 +56,12 @@ EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b")
 UUID_RE = re.compile(r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b",
                      re.IGNORECASE)
 
-SKIP_SUFFIXES = (".png", ".jpg", ".jpeg", ".gif", ".ico", ".zip", ".dll", ".exe", ".pyc")
+SKIP_SUFFIXES = (".png", ".jpg", ".jpeg", ".gif", ".ico", ".zip", ".dll", ".exe", ".pyc", ".ttf")
 SKIP_DIRS = {".git", "__pycache__", "fixture-board", "build", "node_modules"}
+# A font licence must be reproduced unchanged, and its copyright notice names the font's author with
+# the contact address they chose to publish. That is their choice, not a leak (0.41.0, the OFL that
+# ships with the plugin's look). Only these exact file names are skipped, and only licence text.
+LICENCE_FILES = ("OFL.txt",)
 
 
 def tracked_files(root):
@@ -179,6 +183,8 @@ def main():
             continue
         if any(part in SKIP_DIRS for part in path.replace("\\", "/").split("/")):
             continue
+        if os.path.basename(path) in LICENCE_FILES:
+            continue          # a licence's own copyright notice, reproduced unchanged (see above)
         if os.path.abspath(path) == os.path.abspath(__file__):
             continue          # this file names the patterns it looks for
         try:

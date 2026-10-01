@@ -28,7 +28,7 @@ stops the first-run apply.
   with its licence, `OFL.txt`. "Share" is a Reserved Font Name of its creator.
 - The starburst and the icon are our own drawings, made in the spirit of the Claude logo; this is a
   fan-made look, **not** made by, endorsed by or connected to Anthropic.
-- Style designed by Tefa, written by Claude.
+- Style designed by TefMeister, written by Claude.
 
 If we used your work and you are not credited here, or credited wrongly, please open an issue and we
 will fix it as soon as possible.
