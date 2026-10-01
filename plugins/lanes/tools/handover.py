@@ -190,7 +190,14 @@ def repo_state(repo):
     # commits on no remote branch at all: catches a branch that was never pushed, not only a stale upstream
     ok, n = git(["rev-list", "--count", "HEAD", "--not", "--remotes"], repo)
     unpushed = int(n) if ok and n.isdigit() else 0
-    note = "" if ok else "no remote"
+    if ok:
+        note = ""
+    else:
+        # 0.41.2: a clone that HAS a remote but cannot count against it is damaged (a fetch that died
+        # half-way left a ref pointing at a commit that never arrived - seen 2026-10-01), and
+        # "no remote" sent the reader looking in the wrong place
+        has_remote, remotes = git(["remote"], repo)
+        note = "damaged clone (run git fsck in it, or clone it afresh)" if has_remote and remotes.strip() else "no remote"
     return untracked, changed, unpushed, note, head
 
 
@@ -301,6 +308,31 @@ def age_text(when):
     return "%d days ago" % (s // SECONDS_PER_DAY)
 
 
+FETCH_REASON = ""   # "" / "unreachable" / "damaged", set by fetch_board (0.41.2)
+LS_REMOTE_TIMEOUT_S = 20
+
+
+def fetch_board(board):
+    """Fetch the board. When that fails, say whether GitHub was unreachable or this PC's own copy is
+    damaged (GitHub answers a plain listing, yet the fetch dies): the first is a network blip, the second
+    stays red until someone repairs the clone, and the two were reported in the same words until 0.41.2."""
+    global FETCH_REASON
+    fetched, _ = git(["fetch", "-q", "origin"], board, timeout=FETCH_TIMEOUT_S)
+    if fetched:
+        FETCH_REASON = ""
+    else:
+        answers, _ = git(["ls-remote", "--exit-code", "--heads", "origin"], board, timeout=LS_REMOTE_TIMEOUT_S)
+        FETCH_REASON = "damaged" if answers else "unreachable"
+    return fetched, FETCH_REASON
+
+
+def fetch_failed_line():
+    if FETCH_REASON == "damaged":
+        return ("HANDOVER: (GitHub answers, but this PC's copy of the board could not fetch: the clone is "
+                "probably damaged. Run git fsck in it, or clone it afresh; the line above may be old)")
+    return "HANDOVER: (GitHub could not be reached just now; the line above may be old)"
+
+
 def parse_heartbeat(text):
     out = {}
     for line in text.splitlines():
@@ -314,7 +346,7 @@ def others(board, me, fetched=None):
     """What every other PC wrote on the board, read from GitHub (origin/main), never from this disk.
     Returns (fetched, [dict per other PC]); a dict with 'error' could not be read."""
     if fetched is None:
-        fetched, _ = git(["fetch", "-q", "origin"], board, timeout=FETCH_TIMEOUT_S)
+        fetched, _ = fetch_board(board)
     ref = board_ref(board)
     ok, listing = git(["ls-tree", "--name-only", ref, HEARTBEAT_DIR + "/"], board)
     names = [l for l in listing.splitlines() if l.endswith(".txt")] if ok else []
@@ -350,7 +382,7 @@ def others_report(board, me):
     if not lines:
         lines.append("HANDOVER: no other PC has reported on the board yet.")
     if not fetched:
-        lines.append("HANDOVER: (GitHub could not be reached just now; the line above may be old)")
+        lines.append(fetch_failed_line())
     return lines
 
 
@@ -406,7 +438,7 @@ def close_box(conf, session):
         lines.append("| 📦 %s %s | nothing to push |" % (word, plural(rest, "repo", "repos")))
     lines.append("| 🔍 Inspector | %s |" % inspector_cell(session))
     has_board = bool(board) and os.path.isdir(board)
-    fetched = git(["fetch", "-q", "origin"], board, timeout=FETCH_TIMEOUT_S)[0] if has_board else False
+    fetched = fetch_board(board)[0] if has_board else False
     held = claims_held(board, me) if has_board else []
     lines.append("| 🔒 Claim | %s |" % (", ".join(h + " still held" for h in held) + " ⚠️" if held else "none held"))
     if has_board:
@@ -419,7 +451,10 @@ def close_box(conf, session):
         if not pcs:
             lines.append("| 🖥️ Other PC | has not reported yet |")
         if not fetched:
-            lines.append("| 🖥️ GitHub | could not be reached just now, the row above may be old |")
+            if FETCH_REASON == "damaged":
+                lines.append("| 🖥️ GitHub | answers, but this PC's copy of the board could not fetch: probably a damaged clone (git fsck) |")
+            else:
+                lines.append("| 🖥️ GitHub | could not be reached just now, the row above may be old |")
     else:
         lines.append("| 🖥️ Other PC | no board to read it from |")
     return green, lines
