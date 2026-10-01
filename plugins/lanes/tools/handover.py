@@ -43,6 +43,9 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 STATUS_WORKERS = 8                                  # clones read at once; git status is disk-bound
+SECONDS_PER_MINUTE, SECONDS_PER_HOUR, SECONDS_PER_DAY = 60, 3600, 86400
+AGE_IN_HOURS_UP_TO_H = 48                           # "21 h ago" up to two days, then "3 days ago"
+STATE_MAX_CHARS = 300                               # the NOT SAVED detail kept in the board file
 
 ROOT_SUFFIXES = ("-pd", "-gr", "-sr", "-gs")      # the lane roots beside the live one (PROTOCOL section 3)
 IGNORED_PATH_PARTS = ("inspector/", "__pycache__/")  # kept on one PC on purpose
@@ -193,11 +196,11 @@ def age_text(when):
     s = (datetime.now(timezone.utc) - when.astimezone(timezone.utc)).total_seconds()
     if s < 0:
         s = 0
-    if s < 3600:
-        return "%d min ago" % (s // 60)
-    if s < 48 * 3600:
-        return "%d h ago" % (s // 3600)
-    return "%d days ago" % (s // 86400)
+    if s < SECONDS_PER_HOUR:
+        return "%d min ago" % (s // SECONDS_PER_MINUTE)
+    if s < AGE_IN_HOURS_UP_TO_H * SECONDS_PER_HOUR:
+        return "%d h ago" % (s // SECONDS_PER_HOUR)
+    return "%d days ago" % (s // SECONDS_PER_DAY)
 
 
 def parse_heartbeat(text):
@@ -253,7 +256,7 @@ def write_heartbeat(board, me, role, event, green, problem_lines):
         except OSError:
             pass
     os.makedirs(hb_dir, exist_ok=True)
-    state = "SAVED" if green else "NOT SAVED: " + "; ".join(l.strip() for l in problem_lines[1:])[:300]
+    state = "SAVED" if green else "NOT SAVED: " + "; ".join(l.strip() for l in problem_lines[1:])[:STATE_MAX_CHARS]
     now = datetime.now().astimezone().strftime(TIME_FMT)
     body = ("# Written by the lanes plugin (tools/handover.py), one file per PC. Never edited by hand.\n"
             "machine = %s\nrole = %s\nlast_saved = %s\nevent = %s\nstate = %s\n" % (me, role, now, event, state))
