@@ -41,6 +41,18 @@
         "hooks": [
           {
             "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" handover-brief",
+            "shell": "bash",
+            "timeout": 90,
+            "statusMessage": "Handover light: is everything on GitHub?",
+            "async": false
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" ideas-brief",
             "shell": "bash",
             "timeout": 30,
@@ -147,6 +159,17 @@
       }
     ],
     "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" handover-end",
+            "shell": "bash",
+            "timeout": 90,
+            "statusMessage": "Handover light: reporting how this session ended"
+          }
+        ]
+      },
       {
         "hooks": [
           {

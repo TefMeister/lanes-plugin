@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# SessionEnd hook: report on the board how this session ended - SAVED, or NOT SAVED and what was left -
+# so the OTHER PC is told at its next session start (tools/handover.py end --write).
+# Nothing here can block a session from ending; every failure path is silent.
+#
+# LANES_HANDOVER=0 turns it off.
+set -uo pipefail
+[ "${LANES_HANDOVER:-1}" = "0" ] && exit 0
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+TOOL="${PLUGIN_ROOT}/tools/handover.py"
+[ -f "$TOOL" ] || exit 0
+[ -f "${LANES_CONFIG:-$HOME/.claude/lanes.conf}" ] || exit 0
+
+PY=""
+for cand in python3 python py; do
+  command -v "$cand" >/dev/null 2>&1 || continue
+  "$cand" -c "" >/dev/null 2>&1 || continue
+  PY="$cand"; break
+done
+[ -n "$PY" ] || exit 0
+
+"$PY" "$TOOL" end --write >/dev/null 2>&1
+exit 0

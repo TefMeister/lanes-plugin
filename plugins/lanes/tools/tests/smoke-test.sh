@@ -692,6 +692,16 @@ else
   fail "menu-o-matic-fixture.sh failed"
 fi
 
+echo "handover.py - the handover light: is it safe to carry on from the other PC? (0.39.0)"
+if out=$(bash "$HERE/handover-fixture.sh" 2>&1); then
+  ok "$(printf '%s
+' "$out" | tail -n 1)"
+else
+  printf '%s
+' "$out" | grep FAIL
+  fail "handover-fixture.sh failed"
+fi
+
 echo
 if [ "$FAILED" -eq 0 ]; then
   echo "smoke-test: all assertions passed"

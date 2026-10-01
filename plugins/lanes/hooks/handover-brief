@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# SessionStart hook: the handover light. Is everything on this PC on GitHub, and when did the other
+# PC last save and how did it end? Three plain lines at the top of every session (tools/handover.py).
+# Silent on every failure path: a hook that can be the reason a session opens with an error gets
+# switched off within a week.
+#
+# LANES_HANDOVER=0 turns it off.
+set -uo pipefail
+[ "${LANES_HANDOVER:-1}" = "0" ] && exit 0
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+TOOL="${PLUGIN_ROOT}/tools/handover.py"
+EMIT="${SCRIPT_DIR}/emit_context.py"
+
+[ -f "$TOOL" ] && [ -f "$EMIT" ] || exit 0
+[ -f "${LANES_CONFIG:-$HOME/.claude/lanes.conf}" ] || exit 0   # the plugin is asleep on this PC
+
+# Pick an interpreter that actually RUNS, not merely one that is on PATH: on Windows,
+# python3 and python can be Store stubs that exist, print an advert and exit non-zero.
+PY=""
+for cand in python3 python py; do
+  command -v "$cand" >/dev/null 2>&1 || continue
+  "$cand" -c "" >/dev/null 2>&1 || continue
+  PY="$cand"; break
+done
+[ -n "$PY" ] || exit 0
+
+{
+  "$PY" "$TOOL" start --write 2>/dev/null
+  echo "Every lane's write-up ends with the HANDOVER line (python \"\${CLAUDE_PLUGIN_ROOT}/tools/handover.py\" check). NOT SAVED at the end of a session means: save first, then end."
+} | "$PY" "$EMIT"
+exit 0

@@ -830,3 +830,45 @@ Inspector is off the line says so, rather than disappearing.
 
 Checked by `tools/tests/inspector-fixture.sh`, `tools/tests/inspector_faults_test.py` and
 `tools/tests/inspector_summary_test.py`, all run by the smoke test. Design: `docs/specs/inspector-idea.md`.
+
+## 10. The handover light — is it safe to carry on from the other PC? (0.39.0, 2026-10-01)
+
+Two PCs share one GitHub account and hand work back and forth. GitHub is the only meeting point, and git
+never overwrites anything quietly: a push either lands or is refused. What is NOT guarded by git is what
+never reached it, and what was read before it was fetched.
+
+### What happened
+
+On 2026-10-01 a check across every clone on one PC found five helper scripts from the day before that
+existed on that disk and nowhere else: written by a reader, never added, no error anywhere. Two days
+earlier a session summary had said the other PC "had not been on for days" — it was this PC's own clone
+of the board that had not been pulled. Both are the same gap: nothing was checking, so nothing was known.
+
+### The rules
+
+- **Every session opens with the handover light** (`hooks/handover-brief`, `tools/handover.py start`):
+  1. `HANDOVER: SAVED` or `HANDOVER: NOT SAVED` — every clone in every lane root; a file never added, a
+     change not committed, or a commit on no remote branch at all makes it red and names the repo.
+  2. `HANDOVER: <PC> (<role>) last saved <when>, <how long ago>, and ended SAVED / NOT SAVED: …` — one
+     line per other PC, **read from GitHub (`origin/main`), never from this disk**.
+  3. with `handover.py fresh [ROOT]`: `FRESH` or `STALE` for one clone root, after fetching every repo in
+     it; `--pull` brings it up, fast-forward only. Each lane's pre-flight pull is where this belongs.
+- **Every session ends by reporting itself** (`hooks/handover-end`, `handover.py end --write`): one small
+  file on the board, `handover/<machine>.txt`, committed on its own and pushed. That is how the other PC
+  is told "ended NOT SAVED: staging: 5 files never added" before it starts work.
+- **Every lane's write-up ends with the HANDOVER line**, pasted unchanged from `handover.py check`, beside
+  the Inspector's line. `NOT SAVED` at the end of a session is an instruction: save first, then end. **No
+  line, no trust** — the same contract as the save table.
+- **Two things are kept on one PC on purpose and never count:** the Inspector's local notes (`inspector/`)
+  and Python caches. Anything else untracked is red. Build leftovers belong in `.gitignore`, not in the
+  light's blind spot.
+- The tool never pulls, merges or resets anything in `check`, `start` or `end`; its only write is that one
+  board file, and a refused push is reported, never forced. Output names repos, roots by lane and PCs by
+  their plugin names — never a path or a computer's real name.
+
+### How it is checked
+
+`tools/tests/handover-fixture.sh`: two throwaway PCs sharing a throwaway remote. Red names the dirty clone
+and not the clean one; the Inspector's notes do not count; green after saving; the end report reaches the
+remote and the other PC reads it from there; a clone behind the remote is STALE and `--pull` makes it FRESH;
+no setup at all gives a plain line and exit 2, never a crash. `release.sh` runs it.
