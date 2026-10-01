@@ -664,6 +664,19 @@ def session_summary(session):
         return "🔍 Inspector: off on this PC (`inspector = on` in lanes.conf switches it on)."
     if not session:
         return "🔍 Inspector: on, but this session's id is unknown, so nothing can be counted."
+    counts, projects, checked = session_counts(session)
+    if not counts["found"]:
+        if not checked:
+            return "🔍 Inspector: on, no code was written in this session."
+        return f"🔍 Inspector: looked over {checked} file edit(s) this session and found nothing messy."
+    where = f" in {', '.join(sorted(projects))}" if projects else ""
+    return (f"🔍 Inspector this session{where}: {counts['found']} found · {counts['fixed']} fixed · "
+            f"{counts['keep']} kept on purpose · {counts['later']} left for later · {counts['waiting']} unanswered "
+            f"({checked} file edit(s) looked over).")
+
+
+def session_counts(session):
+    """(counts, projects, edits looked over) for one session, shared by the long line and the box cell."""
     counts = {"found": 0, "fixed": 0, "keep": 0, "later": 0, "waiting": 0}
     projects = set()
     tag = f"session:{session}"
@@ -687,14 +700,24 @@ def session_summary(session):
             checked = int(json.load(f).get("checked", 0))
     except (OSError, ValueError):
         pass
+    return counts, projects, checked
+
+
+def session_cells(session):
+    """The same count as session_summary, short enough for one cell of the close-out box
+    (handover.py close, 0.40.0). Never raises: the box must print whatever state the Inspector is in."""
+    if not enabled():
+        return "off (`inspector = on` in lanes.conf switches it on)"
+    if not session:
+        return "on, but this session's id is unknown"
+    counts, projects, checked = session_counts(session)
     if not counts["found"]:
         if not checked:
-            return "🔍 Inspector: on, no code was written in this session."
-        return f"🔍 Inspector: looked over {checked} file edit(s) this session and found nothing messy."
-    where = f" in {', '.join(sorted(projects))}" if projects else ""
-    return (f"🔍 Inspector this session{where}: {counts['found']} found · {counts['fixed']} fixed · "
-            f"{counts['keep']} kept on purpose · {counts['later']} left for later · {counts['waiting']} unanswered "
-            f"({checked} file edit(s) looked over).")
+            return "on, no code was written"
+        return f"looked over {checked} file edit{'' if checked == 1 else 's'}, nothing messy"
+    text = (f"{counts['found']} found · {counts['fixed']} fixed · {counts['keep']} kept · "
+            f"{counts['later']} for later · {counts['waiting']} unanswered")
+    return text + (" ⚠️" if counts["waiting"] else "")
 
 
 def stats(repo, prefix=""):

@@ -42,6 +42,9 @@ seed() {  # seed <remote> <workdir>: one pushed commit on main
 }
 mkremote "$T/remote-board"; mkremote "$T/remote-clean"; mkremote "$T/remote-dirty"
 seed "$T/remote-board" "$T/seed-board"; seed "$T/remote-clean" "$T/seed-clean"; seed "$T/remote-dirty" "$T/seed-dirty"
+# the board holds one project whose claim PC A still holds (the close-out box must say so)
+( cd "$T/seed-board" && mkdir -p status && printf 'LIVE: /pd 2026-10-01 10:00 PCA\nOPEN (2026-10-01):\n' > status/demo.md \
+  && q git add status && q git commit -q -m "claim" && q git push -q )
 
 # PC A: a live root with the board and two project clones, plus a -pd root with one clone
 mkdir -p "$T/A/clones" "$T/A/clones-pd"
@@ -59,6 +62,22 @@ printf 'board = %s\nmachine_name = PCB\nrole = HOME\n' "$TP/B/clones/board" > "$
 
 # HANDOVER_DEBUG=1 shows the throwaway setup when an assertion is a mystery
 [ -n "${HANDOVER_DEBUG:-}" ] && { echo "--- conf:"; cat "$T/A/lanes.conf"; echo "--- clones:"; ls "$T/A/clones" "$T/A/clones-pd"; }
+
+echo "start: remembers where every repo stood, so close can later say what this session pushed"
+out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" start --session=fixture-s1 2>&1)
+assert_contains "NOT SAVED" "$out" "start is red while something is unsaved"
+[ -f "$T/A/lanes-sessions/handover-fixture-s1.json" ] && ok "the session's snapshot is written beside lanes.conf" || fail "no snapshot written"
+
+echo "close: the close-out box while something is unsaved"
+out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" close --session=fixture-s1 2>&1); rc=$?
+assert_contains "| 🔦 **NOT SAVED** | **DEMO-DIRTY: 1 FILE NEVER ADDED, 1 COMMIT NOT PUSHED** |" "$out" "the headline names the repo and what is wrong"
+assert_contains "| 📦 demo-dirty | ⚠️ 1 file never added, 1 commit not pushed |" "$out" "the dirty repo gets a warning row"
+assert_contains "| 📦 the other 3 repos | nothing to push |" "$out" "the clean repos are one row"
+assert_contains "| 🔍 Inspector | off" "$out" "the Inspector row says it is off rather than vanishing"
+assert_contains "| 🔒 Claim | /pd demo still held ⚠️ |" "$out" "a claim this PC still holds is a warning row"
+assert_contains "| 🖥️ Other PC | has not reported yet |" "$out" "the other PC row says nothing was reported yet"
+[ "$rc" = "1" ] && ok "exit 1 when red" || fail "exit 1 when red (got $rc)"
+assert_not_contains "$TP" "$out" "no path in the box"
 
 echo "check: a dirty clone is red, a clean one is not named, the Inspector's notes do not count"
 out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" check 2>&1); rc=$?
@@ -92,6 +111,19 @@ assert_contains "event = start" "$hb" "PC B's own start report reached the remot
 out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" start 2>&1)
 assert_contains "PCB (HOME) last saved" "$out" "and PC A sees PC B's report"
 
+echo "close: green, names what this session pushed, the claim released, the other PC's last save"
+( cd "$T/seed-board" && q git pull -q --rebase && printf 'OPEN (2026-10-01):\n' > status/demo.md && q git commit -q -am "release" && q git push -q )
+out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" close --session=fixture-s1 2>&1); rc=$?
+assert_contains "| 🔦 **SAVED** | **EVERYTHING ON THIS PC IS ON GITHUB** |" "$out" "the green headline"
+assert_contains "| 📦 demo-dirty | pushed · 1 new commit |" "$out" "the repo this session pushed is a row, with how much"
+assert_not_contains "| 📦 demo-clean |" "$out" "a repo that did not move has no row of its own"
+assert_contains "| 📦 the other 3 repos | nothing to push |" "$out" "the rest are one row"
+assert_contains "| 🔒 Claim | none held |" "$out" "no claim held once it is released"
+assert_contains "| 🖥️ PCB (HOME) | last saved 0 min ago, ended SAVED |" "$out" "the other PC's last save, read from the remote"
+[ "$rc" = "0" ] && ok "exit 0 when green" || fail "exit 0 when green (got $rc)"
+out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" close --session=never-started 2>&1)
+assert_contains "| 📦 all 4 repos | nothing to push |" "$out" "with no snapshot, nothing is claimed as pushed"
+
 echo "fresh: a clone behind GitHub is STALE, --pull brings it up"
 ( cd "$T/seed-clean" && echo c > c.txt && q git add c.txt && q git commit -q -m more && q git push -q )
 out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" fresh "$TP/A/clones-pd" 2>&1); rc=$?
@@ -104,5 +136,8 @@ echo "no board: says so, never crashes"
 out=$(LANES_CONFIG="$TP/nowhere.conf" "$PY" "$TOOL" check 2>&1); rc=$?
 assert_contains "could not run" "$out" "a PC with no plugin setup gets a plain line"
 [ "$rc" = "2" ] && ok "exit 2 when it could not run" || fail "exit 2 when it could not run (got $rc)"
+out=$(LANES_CONFIG="$TP/nowhere.conf" "$PY" "$TOOL" close 2>&1); rc=$?
+assert_contains "| 🔦 **UNKNOWN** |" "$out" "the box says UNKNOWN rather than SAVED when it could not look"
+[ "$rc" = "2" ] && ok "close exits 2 when it could not run" || fail "close exits 2 when it could not run (got $rc)"
 
 [ "$FAILED" = "0" ] && echo "handover-fixture: ALL PASSED" || { echo "handover-fixture: FAILED"; exit 1; }

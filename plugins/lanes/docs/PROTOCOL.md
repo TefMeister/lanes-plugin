@@ -245,6 +245,44 @@ small two-row table near the end of the reply, gate in the header row, bold, wit
 Keep the icons fixed so the box is recognisable at a glance. Several next steps get one `MODEL` row
 each, with the step named in a few words.
 
+### The close-out box under it (0.40.0)
+
+Until 0.39.1 the report ended with three pieces in three styles: a hand-written save table (one row per
+repo pushed), the Inspector's sentence, and the HANDOVER line in capitals. The user asked for the end of
+the report to be refurbished now that all three exist. It is now **one table in the same shape as the
+gate/model box**, printed by `tools/handover.py close` from facts, so no row can be faked, and pasted
+unchanged right under the gate/model box:
+
+```
+| 🔦 **SAVED** | **EVERYTHING ON THIS PC IS ON GITHUB** |
+| --- | --- |
+| 📦 lanes-plugin | pushed · 2 new commits |
+| 📦 the other 61 repos | nothing to push |
+| 🔍 Inspector | 3 found · 3 fixed · 0 kept · 0 for later · 0 unanswered |
+| 🔒 Claim | none held |
+| 🖥️ PC1 (HOME) | last saved 21 h ago, ended SAVED |
+```
+
+- **The headline word is the signal, and the box prints after every session.** Before, the save table's
+  *absence* meant "nothing was pushed, go save"; that inference needed the table to be left out of every
+  read-only reply, and it only spoke for this session's clone root. Green `SAVED` now means every clone
+  in every lane root is on GitHub; red `NOT SAVED` names the repo in the headline and means "save first,
+  then end". A box that could not look says `UNKNOWN`, never `SAVED`.
+- **Pushed rows come from a snapshot, not from memory.** `handover.py start` (the session-start hook)
+  writes every repo's HEAD per session to `lanes-sessions/` beside `lanes.conf`; `close` lists each clean
+  repo whose HEAD moved since, with how many new commits. The handover light's own board reports are
+  not counted. With no snapshot nothing is claimed as pushed.
+- **A problem repo gets a ⚠️ row**, a held claim gets a ⚠️ row, an unanswered Inspector note puts ⚠️ in
+  its row: everything that still wants something from the person carries the same mark.
+- **The Inspector's row prints even when it says "off"**: its absence would hide whether the Inspector is
+  taking part (0.38.0, user-directed).
+- **Under the box, one plain line each** for anything left unsaved on purpose and why, and the gate check
+  result if an `OPEN` block was edited. Those are judgements; the box holds only facts.
+- `handover.py check` still prints the old one-line form for scripts and hooks.
+
+Checked by `tools/tests/handover-fixture.sh` (red and green boxes, the pushed row with its count, the
+claim row both ways, the other PC's row, no path in the output, `UNKNOWN` with no setup).
+
 ### The reply's own headings carry fixed icons too (0.19.0)
 
 The gate and model box got icons in 0.5.1 because people skim. The rest of the reply did not, so a
@@ -821,12 +859,14 @@ the call through: a broken guard that blocks every commit is worse than none.
 past the hold (hence the `fix now` limit); lazy `keep` verdicts that cost usage and give nothing; false
 alarms, since it is a pattern checker. Answer each note against the code, not against the wish to upload.
 
-**The end-of-session line (0.38.0).** So it is visible whether the Inspector is an active part of the work,
-every lane session ends its report with one line from `tools/inspector.py summary`: notes found in this
-session's code, how many were fixed (left the code), kept on purpose, left for later, and still unanswered,
-plus how many file edits it looked over. It counts by the Claude Code session id (`$CLAUDE_CODE_SESSION_ID`,
-the same id the hook stamps on each note). Releasing a lane's claim also shows the line on screen. When the
-Inspector is off the line says so, rather than disappearing.
+**The end-of-session count (0.38.0; a row of the close-out box since 0.40.0).** So it is visible whether
+the Inspector is an active part of the work, every lane session ends its report with its count: notes
+found in this session's code, how many were fixed (left the code), kept on purpose, left for later, and
+still unanswered. Since 0.40.0 it is the `🔍 Inspector` row of the close-out box (`handover.py close`,
+§5); `tools/inspector.py summary` still prints the long one-line form, with the file edits looked over.
+It counts by the Claude Code session id (`$CLAUDE_CODE_SESSION_ID`, the same id the hook stamps on each
+note). Releasing a lane's claim also shows the line on screen. When the Inspector is off the row says so,
+rather than disappearing.
 
 Checked by `tools/tests/inspector-fixture.sh`, `tools/tests/inspector_faults_test.py` and
 `tools/tests/inspector_summary_test.py`, all run by the smoke test. Design: `docs/specs/inspector-idea.md`.
@@ -856,9 +896,10 @@ of the board that had not been pulled. Both are the same gap: nothing was checki
 - **Every session ends by reporting itself** (`hooks/handover-end`, `handover.py end --write`): one small
   file on the board, `handover/<machine>.txt`, committed on its own and pushed. That is how the other PC
   is told "ended NOT SAVED: staging: 5 files never added" before it starts work.
-- **Every lane's write-up ends with the HANDOVER line**, pasted unchanged from `handover.py check`, beside
-  the Inspector's line. `NOT SAVED` at the end of a session is an instruction: save first, then end. **No
-  line, no trust** — the same contract as the save table.
+- **Every lane's write-up ends with the close-out box** (`handover.py close`, since 0.40.0; §5 shows it),
+  pasted unchanged under the gate/model box: `SAVED` / `NOT SAVED` as the headline, then what this
+  session pushed, the Inspector's count, any claim still held, and the other PC's last save. `NOT SAVED`
+  at the end of a session is an instruction: save first, then end. **No box, no trust.**
 - **Two things are kept on one PC on purpose and never count:** the Inspector's local notes (`inspector/`)
   and Python caches. Anything else untracked is red. Build leftovers belong in `.gitignore`, not in the
   light's blind spot.
