@@ -34,6 +34,7 @@ you have at the start of every session: *what can I actually do right now?*
 | `/menu` | Menu-o-matiC, Move-o-matiC and State-o-matiC | You play a game's menus and a short route once while it records; after that it repeats them by itself, and can tell menu, loading, cutscene and gameplay apart. |
 | `/setup` | Setup | First-run setup: your name, this PC's name, and optional tools. |
 | `/update` | Update | Gets the newest version of the plugin, after asking you. |
+| `/theme` | Theme | The plugin's look (see below): puts it on, or puts your terminal back the way it was. |
 | `/pt` | Plugin Test | Tests the plugin itself. |
 
 Type them as `/lanes:<name>`, for example `/lanes:pd`.
@@ -85,6 +86,17 @@ debuggers, Blender, build tools, VR. Say no once and it never asks again.
 looked over: anything messy is noted for a decision before it is uploaded. It never edits code.
 Setup asks; it stays off otherwise.
 
+**The look (new in 0.41.0).** This is how the plugin ships: after you install it and restart Claude
+Code, the first session puts an old green monitor on your terminal, with a faint starburst behind the
+text and a light that slowly runs down the screen.
+
+![The plugin's look, moving](https://raw.githubusercontent.com/TefMeister/terminal-themes/main/preview/green-monitor-starburst.gif)
+
+It changes only the Windows Terminal profile Claude Code is running in, backs the settings up first,
+and leaves a profile alone if you already gave it a look of your own. `/lanes:theme restore` puts
+everything back; `theme = off` in `lanes.conf` stops it. It needs Windows Terminal. The style, its
+tuning numbers and more styles live in [terminal-themes](https://github.com/TefMeister/terminal-themes).
+
 **Needs:** Claude Code, Git, Python 3.
 
 **Check it first.** Don't take our word that it is safe. [`AUDIT.md`](AUDIT.md) is a request you
@@ -100,7 +112,7 @@ what is new and never installs without asking. The full manual is in
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.40.0`, early public release |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.41.0`, early public release |
 
 ## Modding games?
 

@@ -188,6 +188,50 @@ REAL_RAFTER="absent"
 [ "$REAL_RBEFORE" = "$REAL_RAFTER" ] && ok "the real refusal log was never touched" \
                                      || fail "this test disturbed $REAL_RLOG"
 
+echo "theme-apply: the first session puts the plugin's look on the profile it runs in, once, and restore undoes it (0.41.0)"
+TH="$(mktemp -d)"
+THP="$(cygpath -m "$TH" 2>/dev/null || echo "$TH")"
+mkdir -p "$TH/wt" "$TH/claude" "$TH/state"
+printf '// Windows Terminal keeps comments here\n{\n  "defaultProfile": "{aaaa}",\n  "profiles": { "list": [\n    { "guid": "{aaaa}", "name": "Plain", "colorScheme": "Campbell", },\n    { "guid": "{bbbb}", "name": "Themed", "experimental.pixelShaderPath": "C:/their/own.hlsl" }\n  ] },\n  "schemes": []\n}\n' > "$TH/wt/settings.json"
+printf '{\n  "theme": "dark"\n}\n' > "$TH/claude/settings.json"
+export LANES_STATE_DIR="$THP/state" LANES_WT_SETTINGS="$THP/wt/settings.json" LANES_CLAUDE_DIR="$THP/claude" LANES_THEME_NO_FONT=1 WT_PROFILE_ID="{aaaa}"
+unset LANES_CONFIG
+out=$(bash "$HERE/../../hooks/theme-apply" 2>&1)
+assert_contains "now has the plugin's look" "$out" "the hook says the look went on"
+assert_contains "restart" "$out" "and that Claude Code's own colours follow after a restart"
+grep -q 'starburst.hlsl' "$TH/wt/settings.json" && ok "the profile points at the shader" || fail "no shader path in the profile"
+grep -q '"name": "RobCo"' "$TH/wt/settings.json" && ok "the RobCo scheme was added" || fail "no RobCo scheme"
+grep -q 'their/own.hlsl' "$TH/wt/settings.json" && ok "the other profile's own look is untouched" || fail "the other profile was changed"
+[ -f "$TH/wt/settings.json.lanes-backup" ] && ok "the terminal's settings were backed up first" || fail "no backup"
+grep -q '"custom:robco"' "$TH/claude/settings.json" && ok "Claude Code's theme is RobCo" || fail "Claude Code's theme was not set"
+[ -f "$TH/claude/themes/robco.json" ] && ok "the RobCo theme file is in place" || fail "no robco.json"
+[ -f "$TH/state/theme/green-monitor-starburst/starburst.png" ] && ok "the style's files were copied to a folder that survives updates" || fail "style not copied"
+assert_not_contains "$THP" "$out" "no path in what the user is told"
+out=$(bash "$HERE/../../hooks/theme-apply" 2>&1)
+[ -z "$out" ] && ok "once applied, the hook is silent" || fail "the hook repeats itself: $out"
+out=$("$PY" "$HERE/../../tools/theme.py" restore 2>&1)
+assert_contains "back as they were" "$out" "restore says so"
+grep -q 'starburst.hlsl' "$TH/wt/settings.json" && fail "the shader path is still there after restore" || ok "the profile is back to plain"
+grep -q '"colorScheme": "Campbell"' "$TH/wt/settings.json" && ok "its old scheme is back" || fail "the old scheme did not come back"
+grep -q '"theme": "dark"' "$TH/claude/settings.json" && ok "Claude Code's old theme is back" || fail "Claude Code's theme did not come back"
+[ -f "$TH/state/theme-state.json" ] && fail "the state file survived restore" || ok "restore cleared the state, so a later apply works again"
+WT_PROFILE_ID="{bbbb}" out=$(bash "$HERE/../../hooks/theme-apply" 2>&1)
+assert_contains "already has a look of its own" "$out" "a profile that already has a shader is left alone"
+grep -q 'their/own.hlsl' "$TH/wt/settings.json" && ok "and really was left alone" || fail "the existing look was replaced"
+rm -f "$TH/state/theme-state.json"
+out=$(LANES_THEME=0 bash "$HERE/../../hooks/theme-apply" 2>&1)
+[ -z "$out" ] && ok "LANES_THEME=0 switches the hook off" || fail "LANES_THEME=0 did not switch it off"
+printf 'theme = off\n' > "$TH/lanes.conf"
+out=$(LANES_CONFIG="$THP/lanes.conf" bash "$HERE/../../hooks/theme-apply" 2>&1)
+[ -z "$out" ] && ok "theme = off in lanes.conf switches it off" || fail "theme = off did not switch it off"
+out=$(LANES_WT_SETTINGS="$THP/nowhere.json" bash "$HERE/../../hooks/theme-apply" 2>&1)
+assert_contains "needs Windows Terminal" "$out" "with no Windows Terminal it says so"
+out=$(LANES_WT_SETTINGS="$THP/nowhere.json" bash "$HERE/../../hooks/theme-apply" 2>&1)
+[ -z "$out" ] && ok "and says it once" || fail "the no-terminal line repeats"
+unset LANES_STATE_DIR LANES_WT_SETTINGS LANES_CLAUDE_DIR LANES_THEME_NO_FONT WT_PROFILE_ID
+rm -rf "$TH"
+grep -q 'theme-apply' "$HERE/../../hooks/hooks.json" && ok "the theme hook is registered for session start" || fail "hooks.json does not run theme-apply"
+
 echo
 if [ "$FAILED" -eq 0 ]; then echo "hooks-test: all assertions passed"; else echo "hooks-test: FAILURES above"; fi
 exit "$FAILED"

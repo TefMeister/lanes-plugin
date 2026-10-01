@@ -240,6 +240,9 @@ Recorded rather than hidden, in the same spirit as the confidence tags above.
   Jesse Vincent (MIT), which solved the cmd/bash polyglot problem first.
 - Built and proven on a long-running flat-to-VR game-modding estate, where the failures that
   shaped every rule here actually happened.
+- The plugin's look (`theme/`) uses **Share Tech Mono** by **Ralph du Carrois / Carrois Type Design**
+  (SIL Open Font License 1.1, included unchanged with its licence) and Windows Terminal's pixel-shader
+  feature. Full credits in `theme/green-monitor-starburst/README.md`.
 
 If you think you should be credited here and are not, open an issue and it will be fixed.
 

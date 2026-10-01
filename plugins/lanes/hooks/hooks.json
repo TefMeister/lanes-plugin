@@ -101,6 +101,18 @@
         "hooks": [
           {
             "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" theme-apply",
+            "shell": "bash",
+            "timeout": 30,
+            "statusMessage": "First run: putting the plugin's look on the terminal",
+            "async": false
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook inspector-hook.py",
             "shell": "bash",
             "timeout": 20,

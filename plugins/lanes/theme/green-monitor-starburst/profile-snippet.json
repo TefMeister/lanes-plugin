@@ -1,0 +1,37 @@
+{
+    "_comment": "Paste the profile into profiles -> list and the scheme into schemes in Windows Terminal's settings.json. Replace <FOLDER> with where you put these files, using forward slashes.",
+    "profile": {
+        "name": "Green Monitor Claude",
+        "commandline": "claude.exe",
+        "colorScheme": "RobCo",
+        "cursorShape": "filledBox",
+        "padding": "16",
+        "font": { "face": "Share Tech Mono", "size": 14 },
+        "icon": "<FOLDER>/icons/matrix-claude.png",
+        "experimental.pixelShaderPath": "<FOLDER>/styles/green-monitor-starburst/starburst.hlsl",
+        "experimental.pixelShaderImagePath": "<FOLDER>/styles/green-monitor-starburst/starburst.png"
+    },
+    "scheme": {
+        "name": "RobCo",
+        "background": "#000000",
+        "foreground": "#8CF2A8",
+        "cursorColor": "#A6FFBF",
+        "selectionBackground": "#1E5A33",
+        "black": "#000000",
+        "red": "#D8EC50",
+        "brightRed": "#EEFF7E",
+        "green": "#3DFF7A",
+        "brightGreen": "#93FFB2",
+        "yellow": "#A8F52E",
+        "brightYellow": "#B4EC3C",
+        "blue": "#26CC96",
+        "brightBlue": "#5CEBBE",
+        "purple": "#1FA85E",
+        "brightPurple": "#4ED68A",
+        "cyan": "#3BE8C8",
+        "brightCyan": "#86FFE3",
+        "white": "#9CC9A8",
+        "brightWhite": "#E4FFEA",
+        "brightBlack": "#4E7D5C"
+    }
+}
