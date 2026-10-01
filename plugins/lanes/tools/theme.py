@@ -70,6 +70,14 @@ SHADER_KEY = "experimental.pixelShaderPath"
 IMAGE_KEY = "experimental.pixelShaderImagePath"
 
 
+def start_folder():
+    """Where a NEW profile opens. Without this Windows Terminal starts Claude in system32, which is
+    no use to anyone (0.41.1). The Desktop, if there is one (asked for 2026-10-01); the home folder
+    otherwise."""
+    desktop = os.path.join(os.path.expanduser("~"), "Desktop")
+    return desktop if os.path.isdir(desktop) else os.path.expanduser("~")
+
+
 def say(text):
     print("THEME: " + text)
 
@@ -192,7 +200,8 @@ def apply(force=False, with_font=True):
     if profile is None:
         profile = next((p for p in plist if p.get("name") == PROFILE_NAME), None)
     if profile is None:
-        profile = {"name": PROFILE_NAME, "guid": "{%s}" % uuid.uuid4(), "commandline": "claude"}
+        profile = {"name": PROFILE_NAME, "guid": "{%s}" % uuid.uuid4(), "commandline": "claude",
+                   "startingDirectory": fwd(start_folder())}
         plist.append(profile)
         created = True
     if profile.get(SHADER_KEY) and not force and not created:
@@ -231,7 +240,7 @@ def apply(force=False, with_font=True):
                  "profile_guid": profile.get("guid"), "profile_created": created, "scheme_added": scheme_added,
                  "previous": previous, "claude_theme_previous": claude_prev, "font": font, "style_home": style_home})
     if created:
-        say("added a \"%s\" profile to Windows Terminal with the plugin's look (this session is not running in Windows Terminal, so no open profile was changed). Open a new tab with it." % PROFILE_NAME)
+        say("the plugin comes with one look, and it was added to Windows Terminal as a tab type called \"%s\" (this session is not running in Windows Terminal, so no open tab was changed). To see it: open Windows Terminal, click the small down arrow next to the + on the tab bar, and pick it. It opens on the Desktop." % PROFILE_NAME)
     else:
         say("this terminal profile now has the plugin's look: green monitor, starburst, rolling light. Font: %s." % font)
     say(claude_note)

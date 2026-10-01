@@ -23,6 +23,8 @@ done
 
 ok()   { printf '  ok    %s\n' "$1"; }
 fail() { printf '  FAIL  %s\n' "$1"; FAILED=1; }
+assert_contains()     { case "$2" in *"$1"*) ok "$3" ;; *) fail "$3 (expected: $1)";; esac; }
+assert_not_contains() { case "$2" in *"$1"*) fail "$3 (did NOT expect: $1)" ;; *) ok "$3";; esac; }
 
 # run_hook <script> <json> -> sets RC and OUT (stdout+stderr)
 run_hook() {
@@ -228,6 +230,13 @@ out=$(LANES_WT_SETTINGS="$THP/nowhere.json" bash "$HERE/../../hooks/theme-apply"
 assert_contains "needs Windows Terminal" "$out" "with no Windows Terminal it says so"
 out=$(LANES_WT_SETTINGS="$THP/nowhere.json" bash "$HERE/../../hooks/theme-apply" 2>&1)
 [ -z "$out" ] && ok "and says it once" || fail "the no-terminal line repeats"
+# 0.41.1: a profile the plugin has to CREATE (no WT_PROFILE_ID, so not running inside Windows Terminal)
+# gets a start folder, or the tab would open in system32
+printf '{ "profiles": { "list": [ { "guid": "{cccc}", "name": "Plain" } ] }, "schemes": [] }\n' > "$TH/wt/fresh.json"
+rm -rf "$TH/state"; mkdir -p "$TH/state"
+out=$(env -u WT_PROFILE_ID LANES_WT_SETTINGS="$THP/wt/fresh.json" bash "$HERE/../../hooks/theme-apply" 2>&1)
+grep -q '"startingDirectory"' "$TH/wt/fresh.json" && ok "a created Green Monitor Claude profile has a start folder" || fail "the created profile has no startingDirectory (it would open in system32)"
+grep -qi 'system32' "$TH/wt/fresh.json" && fail "the start folder is system32" || ok "and it is not system32"
 unset LANES_STATE_DIR LANES_WT_SETTINGS LANES_CLAUDE_DIR LANES_THEME_NO_FONT WT_PROFILE_ID
 rm -rf "$TH"
 grep -q 'theme-apply' "$HERE/../../hooks/hooks.json" && ok "the theme hook is registered for session start" || fail "hooks.json does not run theme-apply"

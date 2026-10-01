@@ -92,8 +92,11 @@ text and a light that slowly runs down the screen.
 
 ![The plugin's look, moving](https://raw.githubusercontent.com/TefMeister/terminal-themes/main/preview/green-monitor-starburst.gif)
 
-It changes only the Windows Terminal profile Claude Code is running in, backs the settings up first,
-and leaves a profile alone if you already gave it a look of your own. `/lanes:theme restore` puts
+The plugin comes with this one look. If Claude Code is running inside Windows Terminal, it goes on
+the tab you are in. If not, it is added as a new tab type called **Green Monitor Claude**: open
+Windows Terminal, click the small down arrow next to the + on the tab bar, and pick it. That tab
+starts Claude Code on your Desktop. It backs the terminal's settings up first, and leaves a profile
+alone if you already gave it a look of your own. `/lanes:theme restore` puts
 everything back; `theme = off` in `lanes.conf` stops it. It needs Windows Terminal. The style, its
 tuning numbers and more styles live in [terminal-themes](https://github.com/TefMeister/terminal-themes).
 
@@ -112,7 +115,7 @@ what is new and never installs without asking. The full manual is in
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.41.0`, early public release |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.41.1`, early public release |
 
 ## Modding games?
 
