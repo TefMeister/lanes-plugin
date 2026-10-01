@@ -19,6 +19,9 @@ The tool is `python "${CLAUDE_PLUGIN_ROOT}/tools/theme.py"`; read its `--help` o
   Share Tech Mono font for this user, writes the RobCo theme for Claude Code and selects it. Every
   previous value is kept, and the terminal's settings file is backed up first. **A profile that
   already has a pixel shader is left alone**: say so, and that `apply force` replaces it.
+- When the tool says it ADDED a tab type (the session was not inside Windows Terminal), tell the
+  user in plain words: the plugin comes with one look; open Windows Terminal, click the small down
+  arrow next to the + on the tab bar, pick "Green Monitor Claude"; it opens on the Desktop.
 - **`apply force`** → `theme.py apply --force`. Only when the user asked for the replacement.
 - **`restore`** → `theme.py restore`. Puts the profile and Claude Code's theme back exactly as they
   were; the font and the backup stay.
