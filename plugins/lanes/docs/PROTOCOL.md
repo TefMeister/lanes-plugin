@@ -158,6 +158,11 @@ test could have produced a positive one.**
 
 ## 5. Reporting
 
+**Layout (0.42.1, 2026-10-03, user-directed): the two boxes go at the TOP of the write-up and the text after them,
+ending on the "what I need from you" block.** The person reads the end of the reply in the terminal; with the boxes
+last, the instructions sat above two tall tables and had to be scrolled up to. Order: gate/model box → close-out box
+(+ its one-line notes) → what was done → what it means → anything worth knowing → what is needed from the person, last.
+
 End every session by saying what the next step **requires**, in capitals, unprompted:
 
 ```
