@@ -800,6 +800,13 @@ mint, or what differs in the copy. `builds.py` treats `mint_copy.<project>` as t
   `check`) lists every script line in the project repo that names the clean install, in any spelling. Fix
   each in the same session; a deliberate read-only line may carry `mint-ok`.
 
+- **A live session runs the app from the copy whenever one exists (0.42.0).** `mint.py where <project>`
+  says which folder: the copy, or the original when the project carries `work_in_original.<project> = <why>`.
+  That line is for projects still at the reverse-engineering stage, where the work happens in the game's
+  own folder until hands-on fine tuning begins; remove it then. The person's words: *"always run /lm in the
+  [game] copy version of the game if it is present - with some reverse engineering ones we'll work in the
+  original game folders until actually fine tuning things hands on."*
+
 Checked by `tools/tests/mint-fixture.sh`.
 
 ## 16. The Inspector: every code edit is looked over (0.37.0, 2026-09-30)
