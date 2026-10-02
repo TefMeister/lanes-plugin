@@ -430,10 +430,37 @@ def cmd_status(a):
     return 0
 
 
+def cmd_where(a):
+    """Which folder a live session runs the app from (0.42.0). The private copy, whenever one exists,
+    unless the project is marked `work_in_original.<project> = <why>` (reverse-engineering stage,
+    before hands-on fine tuning). Prints one line a session can act on; exit 0 = a folder was named."""
+    v = conf_get(f"mint_vanilla.{a.project}")
+    c = conf_get(f"mint_copy.{a.project}")
+    why = conf_get(f"work_in_original.{a.project}")
+    if why:
+        print(f"ORIGINAL  {v or '(original folder not set in lanes.conf)'}")
+        print(f"  why: work_in_original.{a.project} = {why}")
+        print("  (reverse-engineering stage: work in the game's own folder until hands-on fine tuning;"
+              " remove that line to move to the copy)")
+        return 0
+    if c and os.path.isdir(c):
+        print(f"COPY      {c}")
+        print("  run, deploy and launch from this folder; start its own exe, never through the store"
+              " (the store starts the original)")
+        return 0
+    if c:
+        print(f"MISSING   {c}")
+        print("  a copy is set in lanes.conf but the folder is not there; say so before launching")
+        return 1
+    print(f"NO-COPY   {v or '(no folder set)'}")
+    print("  no private copy is set for this project; the original folder is the only one")
+    return 0
+
+
 def main():
     p = argparse.ArgumentParser(description="keep the clean install mint; mod in a private copy")
     sub = p.add_subparsers(dest="cmd", required=True)
-    for name in ("guide", "fingerprint", "status"):
+    for name in ("guide", "fingerprint", "status", "where"):
         sub.add_parser(name).add_argument("project")
     c = sub.add_parser("check")
     c.add_argument("project")
@@ -449,7 +476,8 @@ def main():
                    help="write steam_appid.txt so the copy starts itself instead of Steam starting the real one")
     a = p.parse_args()
     return {"guide": cmd_guide, "fingerprint": cmd_fingerprint, "check": cmd_check,
-            "copy": cmd_copy, "status": cmd_status, "scripts": cmd_scripts}[a.cmd](a) or 0
+            "copy": cmd_copy, "status": cmd_status, "scripts": cmd_scripts,
+            "where": cmd_where}[a.cmd](a) or 0
 
 
 if __name__ == "__main__":

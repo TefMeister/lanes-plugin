@@ -229,6 +229,7 @@ machines.**
    `builds.py which <project>` says which numbered build the app folder holds, and whether a newer
    one is waiting from the other PC.
 5b. **Check the clean install is mint (0.27.0): if `mint_vanilla.<project>` is set in `lanes.conf`, run `python "${CLAUDE_PLUGIN_ROOT}/tools/mint.py" check <project>`. Not mint means something wrote into the untouched install; say so plainly before any test. Everything of ours goes into the private copy (`mint_copy.<project>`), never into the clean install. Not set up, and the project keeps showing results that make no sense after reinstalls? Offer `/lanes:mint` in one line.
+5c. **Run the app from its private copy whenever one exists (0.42.0):** `python "${CLAUDE_PLUGIN_ROOT}/tools/mint.py" where <project>` names the folder. `COPY` → launch, deploy and test there, starting the copy's own exe (never through the store, which starts the original). `ORIGINAL` → the project is marked `work_in_original.<project> = <why>` in `lanes.conf`: still at the reverse-engineering stage, so work in the game's own folder until hands-on fine tuning begins, then remove the line. `MISSING` → the copy is set but gone; say so before launching. Say in one line which folder this session uses.
 6. **State the gate in one line** before you start.
 6b. **Name the model this session needs, beside that gate line, before driving anything** (0.12.0).
    One plain line: the tier the work in front of you needs, and whether it matches the model

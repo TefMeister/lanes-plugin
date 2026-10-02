@@ -87,6 +87,8 @@ role = DEV
 # mint_vanilla.my-project = /path/to/the/clean/install
 # mint_copy.my-project = /path/to/the/private/copy
 # mint_normal.my-project = settings.ini             (files the app rewrites itself; one per line)
+# work_in_original.my-project = still reverse engineering   (0.42.0: /lm and /ms run the app from
+#   mint_copy whenever it is set; this line keeps a project in its own folder until hands-on fine tuning)
 
 # HOW MANY REPOS THAT ROOT SHOULD HOLD.
 # /gs prints a loud PARTIAL ESTATE banner when it finds fewer, because a

@@ -77,6 +77,14 @@ echo mod > "$T/copy/mod.dll"
 out=$(mint check proj --copy)
 has "added: mod.dll" "$out" "check --copy lists our changes in the copy"
 
+echo "where a live session runs the app (0.42.0)"
+has "COPY" "$(mint where proj)" "with a copy set, where names the copy"
+printf 'work_in_original.proj = still reverse engineering
+' >> "$T/lanes.conf"
+has "ORIGINAL" "$(mint where proj)" "work_in_original sends it to the game's own folder"
+sed -i '/^work_in_original.proj/d' "$T/lanes.conf"
+has "COPY" "$(mint where proj)" "removing the line moves it back to the copy"
+
 echo "builds.py works in the copy and never writes into the clean install"
 git init -q --bare -b main "$T/remote.git"; git clone -q "$T/remote.git" "$T/builds" 2>/dev/null
 git -C "$T/builds" commit -q --allow-empty -m start && git -C "$T/builds" push -q -u origin main 2>/dev/null
