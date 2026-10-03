@@ -339,7 +339,7 @@ or registry key before changing it.
    work. If this session's own work turned baffling part-way, say so here too. This is the **second**
    time the session says a model — pre-flight step 6b named the tier for the work it was about to do;
    this one is for whoever picks up next. `docs/PROTOCOL.md` §5.
-9. **End the report with the close-out box** (0.40.0): run `python "${CLAUDE_PLUGIN_ROOT}/tools/handover.py" close` and paste the whole table unchanged, right under the gate/model box. Its headline is `SAVED` or `NOT SAVED` for every clone on this PC; its rows are what this session pushed, the Inspector's count (printed even when it says "off"), any claim still held, and when the other PC last saved. `NOT SAVED` is not a status to report, it is work left to do: save, then run it again. Under the box, one plain line each for anything left unsaved on purpose and why, and the gate check result if an `OPEN` block was edited. `docs/PROTOCOL.md` §5 and §10.
+9. **End the report with the close-out box** (0.40.0): run `python "${CLAUDE_PLUGIN_ROOT}/tools/handover.py" close` and paste the whole table unchanged, first, with the gate/model box right under it (0.42.2). Its headline is `SAVED` or `NOT SAVED` for every clone on this PC; its rows are what this session pushed, the Inspector's count (printed even when it says "off"), any claim still held, and when the other PC last saved. `NOT SAVED` is not a status to report, it is work left to do: save, then run it again. Under the box, one plain line each for anything left unsaved on purpose and why, and the gate check result if an `OPEN` block was edited. `docs/PROTOCOL.md` §5 and §10.
 
 ---
 
