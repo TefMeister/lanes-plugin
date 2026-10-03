@@ -160,8 +160,8 @@ test could have produced a positive one.**
 
 **Layout (0.42.1, 2026-10-03, user-directed): the two boxes go at the TOP of the write-up and the text after them,
 ending on the "what I need from you" block.** The person reads the end of the reply in the terminal; with the boxes
-last, the instructions sat above two tall tables and had to be scrolled up to. Order: gate/model box → close-out box
-(+ its one-line notes) → what was done → what it means → anything worth knowing → what is needed from the person, last.
+last, the instructions sat above two tall tables and had to be scrolled up to. Order (0.42.2): close-out box (+ its
+one-line notes) → gate/model box, right above the text → what was done → what it means → anything worth knowing → what is needed from the person, last.
 
 End every session by saying what the next step **requires**, in capitals, unprompted:
 
@@ -256,7 +256,8 @@ Until 0.39.1 the report ended with three pieces in three styles: a hand-written 
 repo pushed), the Inspector's sentence, and the HANDOVER line in capitals. The user asked for the end of
 the report to be refurbished now that all three exist. It is now **one table in the same shape as the
 gate/model box**, printed by `tools/handover.py close` from facts, so no row can be faked, and pasted
-unchanged right under the gate/model box:
+unchanged, first, with the gate/model box right under it (0.42.2: the gate/model box sits between the close-out box
+and the text, so the next step is read together with the instructions):
 
 ```
 | 🔦 **SAVED** | **EVERYTHING ON THIS PC IS ON GITHUB** |
