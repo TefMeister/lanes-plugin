@@ -919,5 +919,8 @@ the place a session looks when a problem keeps coming back.
 - **When stuck:** before a third attempt at the same problem, `session-log.py search <symptom words>
   --project <project>`. Earlier sessions often met the same thing; their summaries say what was tried and
   what the person saw.
+- **Breakthroughs are marked IMPORTANT** (0.45.0): when the person says it finally works, or the session plainly
+  cracked something after a long hunt, write that log with `--important`, unasked. `session-log.py important`
+  lists only those. Never for routine progress, or the mark stops meaning anything.
 - **Text, not screenshots:** a few hundred bytes each, searchable, and readable later without image cost.
 

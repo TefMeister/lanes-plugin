@@ -5,6 +5,8 @@
                                                           <session_logs>/<project>/YYYY-MM-DD_HHMM_<slug>.md
     python session-log.py list <project> [--last N]       that project's logs, newest first (default 10)
     python session-log.py search <words> [--project P]    every log that mentions all the words, newest first
+    python session-log.py write <project> <slug> --important   the same, marked as a BREAKTHROUGH (0.45.0)
+    python session-log.py important [--project P]          only the breakthroughs, newest first
 
 WHY (0.44.0)
   The write-up at the end of a session is the clearest account of what happened: what was changed, what the
@@ -18,6 +20,12 @@ WHERE
   `session_logs = <folder>` in lanes.conf. When that folder is a git clone, every write is committed and pushed
   (only the new file is staged, then pull --rebase, then push), so the logs reach the other PC. Keep the repo
   PRIVATE: summaries talk about work in progress. Not set = the tool says so and does nothing.
+
+IMPORTANT (0.45.0)
+  A log that records a real step forward - the person says it finally works, or a cause is found after a long
+  hunt - is written with --important: its file name carries IMPORTANT_ and it opens with a star line, so the
+  breakthroughs stand out in the folder and `important` lists them alone. Mark it without being asked whenever
+  the person says so or the session plainly cracked something; never for routine progress.
 
 WHEN STUCK
   Before trying a fix for the third time, run `search` with the symptom's words. Earlier sessions often met the
@@ -33,6 +41,8 @@ KEY = "session_logs"
 DEFAULT_LAST = 10                      # how many logs `list` prints when not told
 SLUG_MAX = 48                          # characters kept from a slug
 GIT_TIMEOUT_S = 60
+IMPORTANT_TAG = "IMPORTANT"           # in the file name of a breakthrough log
+IMPORTANT_LINE = "**⭐ IMPORTANT - a breakthrough that moved the project forward.**"
 
 
 def conf_path():
@@ -77,7 +87,7 @@ def logs_root():
     return os.path.expanduser(root)
 
 
-def write(project, slug, body):
+def write(project, slug, body, important=False):
     root = logs_root()
     if not root:
         return 1
@@ -87,16 +97,16 @@ def write(project, slug, body):
     now = datetime.datetime.now()
     folder = os.path.join(root, clean(project))
     os.makedirs(folder, exist_ok=True)
-    name = f"{now:%Y-%m-%d_%H%M}_{clean(slug)}.md"
-    path = os.path.join(folder, name)
+    stem = f"{now:%Y-%m-%d_%H%M}_" + (IMPORTANT_TAG + "_" if important else "") + clean(slug)
+    path = os.path.join(folder, stem + ".md")
     n = 2
     while os.path.exists(path):                          # two in one minute: never overwrite
-        path = os.path.join(folder, f"{now:%Y-%m-%d_%H%M}_{clean(slug)}-{n}.md")
+        path = os.path.join(folder, f"{stem}-{n}.md")
         n += 1
     machine = read_conf().get("machine_name", "")
     head = f"<!-- {now:%Y-%m-%d %H:%M}{' on ' + machine if machine else ''} -->\n"
     with open(path, "w", encoding="utf-8", newline="\n") as f:
-        f.write(head + body.rstrip() + "\n")
+        f.write(head + (IMPORTANT_LINE + "\n\n" if important else "") + body.rstrip() + "\n")
     rel = os.path.relpath(path, root).replace(os.sep, "/")
     print(f"session-log: saved {rel}")
     if os.path.isdir(os.path.join(root, ".git")):
@@ -133,6 +143,18 @@ def list_logs(project, last):
     return 0
 
 
+def important(project):
+    root = logs_root()
+    if not root or not os.path.isdir(root):
+        return 1
+    hits = [(fn, proj) for fn, proj, _ in all_logs(root, project) if f"_{IMPORTANT_TAG}_" in fn]
+    for fn, proj in hits:
+        print(f"{proj}/{fn}")
+    if not hits:
+        print("session-log: no breakthroughs logged" + (f" for {project}" if project else "") + " yet.")
+    return 0
+
+
 def search(words, project):
     root = logs_root()
     if not root or not os.path.isdir(root):
@@ -158,7 +180,9 @@ def search(words, project):
 
 def main(argv):
     if len(argv) >= 3 and argv[0] == "write":
-        return write(argv[1], argv[2], sys.stdin.read())
+        return write(argv[1], argv[2], sys.stdin.read(), important="--important" in argv[3:])
+    if argv and argv[0] == "important":
+        return important(argv[argv.index("--project") + 1] if "--project" in argv else None)
     if len(argv) >= 2 and argv[0] == "list":
         last = DEFAULT_LAST
         if "--last" in argv:
