@@ -38,7 +38,7 @@ git -C "$T/logs" commit -q --allow-empty -m start && git -C "$T/logs" push -q -u
 echo "stray" > "$T/logs/not-mine.txt"
 printf 'session_logs = %s\nmachine_name = PC9\n' "$T/logs" > "$LANES_CONFIG"
 
-out=$(printf 'Did the shake test.\nTefa: no shake.\n' | "$PY" "$TOOL" write "my game" "shake test" 2>&1)
+out=$(printf 'Did the shake test.\nUser: no shake.\n' | "$PY" "$TOOL" write "my game" "shake test" 2>&1)
 has "saved my-game/" "$out" "write: saved under the project's folder"
 has "pushed" "$out" "write: pushed to the clone's remote"
 f=$(ls "$T/logs/my-game/" | head -1)
@@ -58,7 +58,7 @@ out=$("$PY" "$TOOL" list "my game" 2>&1)
 has "my-game/" "$out" "list: shows the project's logs"
 hasnt "other/" "$out" "list: only that project"
 out=$("$PY" "$TOOL" search no shake 2>&1)
-has "Tefa: no shake." "$out" "search: finds the line"
+has "User: no shake." "$out" "search: finds the line"
 out=$("$PY" "$TOOL" search hunch --project "my game" 2>&1)
 has "no log mentions" "$out" "search --project: stays in that project"
 
