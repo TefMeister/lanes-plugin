@@ -78,6 +78,11 @@ role = DEV
 # project's PROJECT.conf (a different drive or Steam library, say).
 # builds_app.my-project = /path/to/the/app
 
+# SESSION LOGS (0.44.0): every session's write-up is saved here, one folder per project, one dated file
+# per summary (tools/session-log.py). If the folder is a git clone, each new file is committed and pushed.
+# Keep that repo PRIVATE. Unset means nothing is kept.
+# session_logs = /path/to/your-session-logs-repo
+
 # HOW MANY REPOS THAT ROOT SHOULD HOLD.
 # /gs prints a loud PARTIAL ESTATE banner when it finds fewer, because a
 # hygiene tool that silently understates is worse than no hygiene tool.

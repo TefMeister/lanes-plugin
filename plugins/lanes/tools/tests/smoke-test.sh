@@ -682,6 +682,16 @@ else
   fail "menu-o-matic-fixture.sh failed"
 fi
 
+echo "session-log.py - every session summary kept, one folder per project (0.44.0)"
+if out=$(bash "$HERE/session-log-fixture.sh" 2>&1); then
+  ok "$(printf '%s
+' "$out" | tail -n 1)"
+else
+  printf '%s
+' "$out" | grep FAIL
+  fail "session-log-fixture.sh failed"
+fi
+
 echo "handover.py - the handover light: is it safe to carry on from the other PC? (0.39.0)"
 if out=$(bash "$HERE/handover-fixture.sh" 2>&1); then
   ok "$(printf '%s
