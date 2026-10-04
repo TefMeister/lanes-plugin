@@ -778,42 +778,15 @@ what changed. `result` fills in what was seen. `which` says which build the app 
 
 Checked by `tools/tests/builds-fixture.sh` (two PCs on one remote, including a same-number race).
 
-## 15. Keep the app in mint condition; mod a private copy (0.27.0, 2026-09-27)
+## 15. (retired) Mint: the private copy of the app (0.27.0 to 0.42.2; removed in 0.43.0, 2026-10-04)
 
-**What it is for.** A bug followed a game through three "clean" reinstalls. Every file that was not the
-game's own was moved out and the store verified the rest, and the bug stayed; only uninstalling,
-deleting the leftover folder and installing again removed it. A partial clean cannot prove itself
-clean, so a test against it proves nothing either. The person's words: *"keep the vanilla game in mint
-condition"*.
-
-**How it works.** `/lanes:mint` and `tools/mint.py`. After a complete reinstall, `fingerprint` records a
-hash of every file of the clean install (on this PC only). `copy` makes the private working copy and
-checks every file against the original; `check` says in seconds whether the clean install is still
-mint, or what differs in the copy. `builds.py` treats `mint_copy.<project>` as the app folder.
-
-**The rules.**
-
-- **Nothing of ours is ever written into the clean install.** The tool only reads it; `builds.py restore`
-  refuses it as a target.
-- **Only a complete reinstall counts as clean.** Verifying in the store does not remove extra files.
-- **The copy never leaves the PC.** It is the game's own files, and sharing them is illegal. The tool
-  refuses a git repository, a cloud-synced folder or the clean install as its destination, and writes a
-  `NOT-FOR-SHARING.txt` notice into it.
-- **Every step that removes or installs anything is the person's yes**, one step at a time.
-- **The project's own scripts point at the copy too (0.27.1).** `mint.py` and `builds.py` guard
-  themselves, but a project's deploy step, asset installer or game driver knows nothing of mint; on the
-  day the copy was made, four of them still named the real game. `mint.py scripts <project>` (also run by
-  `check`) lists every script line in the project repo that names the clean install, in any spelling. Fix
-  each in the same session; a deliberate read-only line may carry `mint-ok`.
-
-- **A live session runs the app from the copy whenever one exists (0.42.0).** `mint.py where <project>`
-  says which folder: the copy, or the original when the project carries `work_in_original.<project> = <why>`.
-  That line is for projects still at the reverse-engineering stage, where the work happens in the game's
-  own folder until hands-on fine tuning begins; remove it then. The person's words: *"always run /lm in the
-  [game] copy version of the game if it is present - with some reverse engineering ones we'll work in the
-  original game folders until actually fine tuning things hands on."*
-
-Checked by `tools/tests/mint-fixture.sh`.
+From 0.27.0 the plugin could keep the app's real install untouched and do all modding in a private copy
+of it (`/lanes:mint`, `tools/mint.py`, `mint_*` keys in `lanes.conf`). The person who asked for it took it
+out on 2026-10-04, unsure whether it was breaking things; by then the project it was made for had already
+gone back to modding the real install. Modding happens in the app's own folder again, and `builds.py`
+uses `builds_app.<project>` (or the project's own setting) as the app folder. Leftover `mint_*` and
+`work_in_original.*` lines in `lanes.conf` are ignored; delete them. A copy folder made earlier is
+the app's own files: it stays on that PC, and only the person decides whether to delete it.
 
 ## 16. The Inspector: every code edit is looked over (0.37.0, 2026-09-30)
 
