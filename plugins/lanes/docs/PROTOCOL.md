@@ -899,3 +899,25 @@ of the board that had not been pulled. Both are the same gap: nothing was checki
 and not the clean one; the Inspector's notes do not count; green after saving; the end report reaches the
 remote and the other PC reads it from there; a clone behind the remote is STALE and `--pull` makes it FRESH;
 no setup at all gives a plain line and exit 2, never a crash. `release.sh` runs it.
+
+## 17. Every session summary is kept, one folder per project (0.44.0, 2026-10-04)
+
+The write-up at the end of a session is the clearest record of what happened: what was changed, what the
+person saw, what is being waited on. It used to scroll away with the terminal. A user asked for every one to
+be kept, "dated and time stamped, in their own folders for each different project", and for those logs to be
+the place a session looks when a problem keeps coming back.
+
+- **Where:** `session_logs = <folder>` in lanes.conf. Each summary becomes
+  `<folder>/<project>/YYYY-MM-DD_HHMM_<slug>.md`, stamped with the time and this PC's name. Two in the same
+  minute get `-2`, never an overwrite. Work that is not one project goes in a shared folder (`_shared`).
+- **Pushed:** when the folder is a git clone, only the new file is staged, then pull --rebase and push, so the
+  other PC has it. Keep that repo private; summaries describe unfinished work. Put the clone inside a lane
+  root so the close-out box checks it too.
+- **When:** every write-up that ends with the close-out box, written before `handover.py close` runs.
+  Plain words, a few lines: what was done, what the person saw (their words where they gave them), what is
+  waited on.
+- **When stuck:** before a third attempt at the same problem, `session-log.py search <symptom words>
+  --project <project>`. Earlier sessions often met the same thing; their summaries say what was tried and
+  what the person saw.
+- **Text, not screenshots:** a few hundred bytes each, searchable, and readable later without image cost.
+
