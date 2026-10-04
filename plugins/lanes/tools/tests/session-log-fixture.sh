@@ -62,7 +62,18 @@ has "User: no shake." "$out" "search: finds the line"
 out=$("$PY" "$TOOL" search hunch --project "my game" 2>&1)
 has "no log mentions" "$out" "search --project: stays in that project"
 
-# 5. empty stdin: nothing written
+# 5. --important: a breakthrough stands out, and `important` lists only those (0.45.0)
+out=$("$PY" "$TOOL" important 2>&1)
+has "no breakthroughs logged" "$out" "important: none yet, says so"
+out=$(printf 'It finally works.\n' | "$PY" "$TOOL" write "my game" "cracked it" --important 2>&1)
+has "_IMPORTANT_cracked-it.md" "$out" "--important: IMPORTANT_ in the file name"
+f=$(ls "$T/logs/my-game/" | grep IMPORTANT_ | head -1)
+has "IMPORTANT - a breakthrough" "$(cat "$T/logs/my-game/$f")" "--important: opens with the star line"
+out=$("$PY" "$TOOL" important 2>&1)
+has "IMPORTANT_cracked-it" "$out" "important: lists the breakthrough"
+hasnt "shake-test" "$out" "important: leaves ordinary logs out"
+
+# 6. empty stdin: nothing written
 out=$(printf '' | "$PY" "$TOOL" write "my game" empty 2>&1)
 has "nothing on stdin" "$out" "empty summary: nothing written"
 
