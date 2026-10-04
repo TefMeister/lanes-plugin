@@ -150,8 +150,7 @@ nothing to do. Name anything it `SKIPPED` or `FAILED` in the write-up.
 3. **Drain your lane's `inbox/`** — by explicit filename list, never by glob. Record what `ls`
    returned *before* folding anything in, and delete only those names. A concurrent session can drop
    a file inside that window, and a glob deletes it unread with nothing in git to show it existed.
-4. **Claim each job** before touching it. On a project with `mint_vanilla.<project>` set, `/pd` never writes into
-   that folder or the private copy either; it may run `mint.py check <project>`, which only reads (0.27.0).
+4. **Claim each job** before touching it.
 4a. **Show the project's fresh ideas first**, if an ideas repo is set up: `/lanes:ideas` → "When a
    session starts work on a project". Print the numbered list, carry on, and drop nothing until the
    person answers with numbers.

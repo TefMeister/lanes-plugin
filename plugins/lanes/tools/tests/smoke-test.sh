@@ -666,16 +666,6 @@ else
   fail "ideas-fixture.sh failed"
 fi
 
-echo "mint.py - the clean install stays untouched; modding happens in a private copy (0.27.0)"
-if out=$(bash "$HERE/mint-fixture.sh" 2>&1); then
-  ok "$(printf '%s
-' "$out" | tail -n 1)"
-else
-  printf '%s
-' "$out" | grep FAIL
-  fail "mint-fixture.sh failed"
-fi
-
 echo "builds.py - every change a numbered build, on every PC (0.26.0)"
 if out=$(bash "$HERE/builds-fixture.sh" 2>&1); then
   ok "$(printf '%s\n' "$out" | tail -n 1)"
