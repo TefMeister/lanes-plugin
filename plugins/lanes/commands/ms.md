@@ -77,7 +77,9 @@ TELL ME: <the one or two things you need back: a number, yes/no, a screenshot, h
 - **Every swap is a new numbered build** (0.26.0), the same as `/lm`: after the change and before the
   next block, `builds.py snap <project> "<title>" --note "<what and why>"`; when they report what they
   saw, `builds.py result <project> <N> "<their words>"`. Tell them the number in the next block, so
-  "b007 did X" is something they can say back.
+  "b007 did X" is something they can say back. Snap with `--feature "<feature>"` so each feature's builds
+  get their own folder, and before changing any file the app itself shipped, save the original first:
+  `builds.py vanilla <project> <path>` (0.46.0, `docs/PROTOCOL.md` §14).
 
 Take as long as the work needs between their turns. During their turn, do nothing to the app.
 

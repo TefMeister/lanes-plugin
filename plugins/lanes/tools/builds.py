@@ -3,14 +3,17 @@
 
     builds.py init    <project> --app DIR --ours NAME [--ours NAME ...] [--series 0.1.0]
                       [--skip NAME ...] [--local-only PATH ...]
-    builds.py snap    <project> "<title>" --note "<what changed and why>" [--result "<what was seen>"]
-                      [--source DIR] [--no-push]
+    builds.py snap    <project> "<title>" --note "<what changed and why>" [--feature "<feature>"]
+                      [--result "<what was seen>"] [--source DIR] [--no-push]
     builds.py result  <project> <N> "<what was seen>"      fill in a result later
-    builds.py list    <project>
+    builds.py list    <project> [--feature "<feature>"]
+    builds.py features <project>                           every feature folder: how many builds, the newest
     builds.py which   <project>                            which build the app folder holds right now
     builds.py restore <project> <N> [--yes] [--why "..."]  put build N back into the app folder
     builds.py back    <project> <N> "<why>"                the app folder went back to build N ON PURPOSE
     builds.py check                                        session start: silent unless a folder drifted
+    builds.py vanilla <project> PATH [PATH ...] [--fill]   save the app's ORIGINAL file(s) before changing them
+    builds.py vanilla-restore <project> [--yes]            take ours out, put the originals back: the plain app
 
 WHY (0.26.0)
   The person asked for it twice: "keep each version saved ... so we can roll back steps", then "a new
@@ -52,6 +55,11 @@ GOING BACK ON PURPOSE (0.32.0)
   than the noted newest has been saved; a build saved AFTER the note is still reported, because that one
   may really be missing on this PC.
 
+ONE FOLDER PER FEATURE + THE ORIGINALS (0.46.0; docs/PROTOCOL.md section 14)
+  `snap --feature "Ladder climb"` saves into <project>/Ladder climb/; numbers stay one sequence across folders.
+  `vanilla` saves the app's untouched file into <project>/_vanilla/ BEFORE a mod changes it (kept on the PC, only
+  the hash list is pushed); `vanilla-restore` gives back the plain app at any time. See builds_vanilla.py.
+
 Nothing is ever deleted by this tool, except that `restore` removes the `ours` items from the app folder
 before copying the chosen build in - and it first saves the app folder as a build if it does not match one.
 """
@@ -63,6 +71,8 @@ import shutil
 import subprocess
 import sys
 import time
+
+import builds_vanilla as vanilla
 
 # ---- settings (named numbers, one place) --------------------------------------------------------
 BIG_FILE_MB = 95                       # above this a file goes up as a release asset, not into git
@@ -208,10 +218,20 @@ def version_re(series):
 
 
 def builds(root, project, conf):
+    """(number, folder) for every build; a build in a feature folder is named "<feature>/<build>"."""
     pdir = os.path.join(root, project)
     vre = version_re(conf["series"])
-    out = [(int(m.group(1)), n) for n in os.listdir(pdir) if (m := vre.match(n))]
+    out = []
+    for n in os.listdir(pdir):
+        if (m := vre.match(n)):
+            out.append((int(m.group(1)), n))
+        elif not n.startswith(("_", ".")) and os.path.isdir(os.path.join(pdir, n)):   # a feature folder
+            out.extend((int(m.group(1)), f"{n}/{b}") for b in os.listdir(os.path.join(pdir, n)) if (m := vre.match(b)))
     return sorted(out)
+
+
+def feature_of(name):
+    return name.rpartition("/")[0]
 
 
 def safe_title(t):
@@ -221,9 +241,10 @@ def safe_title(t):
 def write_ignore_and_stubs(root, project, build_dir, conf, tag_hint):
     """Keep local-only files out of git; send big files to a release asset and leave a stub."""
     ignore, big = [], []
-    for rel in read_manifest(build_dir):
+    originals = vanilla.read(root, project)
+    for rel, digest in read_manifest(build_dir).items():
         full = os.path.join(build_dir, rel)
-        if is_local_only(rel, conf):
+        if is_local_only(rel, conf) or originals.get(rel) == digest:   # an untouched app file is never published
             ignore.append(rel)
         elif os.path.isfile(full) and os.path.getsize(full) > BIG_FILE_MB * 1024 * 1024:
             ignore.append(rel)
@@ -284,12 +305,14 @@ def commit_and_push(root, project, message):
 def move_to_free_number(root, project, conf, name):
     """The build folder is not committed. If its number is taken now, rename it to the next free one."""
     vre = version_re(conf["series"])
-    num = int(vre.match(name).group(1))
+    feature, _, base = name.rpartition("/")
+    num = int(vre.match(base).group(1))
     taken = [(b, n) for b, n in builds(root, project, conf) if n != name]
     if not any(b == num for b, _ in taken):
         return name
     new_num = max(b for b, _ in taken) + 1
-    new_name = vre.sub(f"v{conf['series']}-b{new_num:03d} - ", name)
+    new_base = vre.sub(f"v{conf['series']}-b{new_num:03d} - ", base)
+    new_name = f"{feature}/{new_base}" if feature else new_base
     pdir = os.path.join(root, project)
     os.rename(os.path.join(pdir, name), os.path.join(pdir, new_name))
     changes = os.path.join(pdir, new_name, "CHANGES.md")
@@ -326,7 +349,7 @@ def save_build(root, project, conf, name, when, note, result, push=True):
     return name, "NOT PUSHED - run `git push` in the builds repo"
 
 
-def snapshot(root, project, conf, title, note, result, source):
+def snapshot(root, project, conf, title, note, result, source, feature=""):
     if not conf["ours"]:
         sys.exit("builds.py: PROJECT.conf lists nothing under `ours`.")
     src = source or conf["app"]
@@ -336,6 +359,8 @@ def snapshot(root, project, conf, title, note, result, source):
     existing = builds(root, project, conf)
     num = existing[-1][0] + 1 if existing else 1
     name = f"v{conf['series']}-b{num:03d} - {safe_title(title)}"
+    if feature and safe_title(feature):
+        name = f"{safe_title(feature)}/{name}"
     dest = os.path.join(root, project, name)
     os.makedirs(dest)
     now = {}
@@ -353,7 +378,7 @@ def snapshot(root, project, conf, title, note, result, source):
     changed = sorted(p for p in set(now) & set(prev) if now[p] != prev[p])
     when = time.strftime("%Y-%m-%d %H:%M")
     ignored = write_ignore_and_stubs(root, project, dest, conf, name)
-    lines = [f"# {name}", "", f"- **When:** {when}",
+    lines = [f"# {name}", "", f"- **When:** {when}", f"- **Feature:** {feature_of(name) or '(none)'}",
              f"- **Copied from:** {'the app folder' if not source else 'a folder given with --source'}",
              f"- **Previous build:** {prev_name or '(first)'}",
              f"- **What changed and why:** {note}", f"- **Result:** {result or NOT_TESTED}",
@@ -372,7 +397,7 @@ def snapshot(root, project, conf, title, note, result, source):
 def cmd_snap(a):
     root = builds_root()
     conf = read_project(root, a.project)
-    name, when = snapshot(root, a.project, conf, a.title, a.note, a.result, a.source)
+    name, when = snapshot(root, a.project, conf, a.title, a.note, a.result, a.source, a.feature)
     name, state = save_build(root, a.project, conf, name, when, a.note, a.result, push=not a.no_push)
     print(f"github: {state}  ({name})")
 
@@ -405,8 +430,20 @@ def cmd_result(a):
 def cmd_list(a):
     root = builds_root()
     conf = read_project(root, a.project)
+    want = safe_title(a.feature) if a.feature else None
     for _, n in builds(root, a.project, conf):
-        print(n)
+        if want is None or feature_of(n) == want:
+            print(n)
+
+
+def cmd_features(a):
+    root = builds_root()
+    conf = read_project(root, a.project)
+    groups = {}
+    for num, n in builds(root, a.project, conf):
+        groups.setdefault(feature_of(n) or "(no feature)", []).append((num, n))
+    for feat, items in sorted(groups.items()):
+        print(f"{feat}: {len(items)} build(s), newest {items[-1][1].rpartition('/')[2]}")
 
 
 def app_state(conf):
@@ -538,6 +575,7 @@ def cmd_check(_a):
             if project in named:
                 msgs.append(f"- {project}: the app folder lanes.conf names for it is not there any more.")
             continue            # PROJECT.conf's folder may simply be the other PC's: not this PC's business
+        msgs.extend(vanilla.check_lines(root, project, conf["app"]))
         saved = builds(root, project, conf)
         if not saved:
             continue
@@ -610,9 +648,64 @@ def cmd_restore(a):
             target = os.path.join(conf["app"], rel)
             os.makedirs(os.path.dirname(target), exist_ok=True)
             shutil.copy2(full, target)
+    done, _ = vanilla.put_back(root, a.project, conf["app"], only_missing=True)
+    if done:
+        print(f"  {len(done)} original app file(s) put back where no build file replaces them")
     print(f"  done: the app folder holds {name}")
     if a.why:
         print(f"  noted as on purpose: {write_held(root, a.project, conf, a.number, a.why)}")
+
+
+def ours_hashes(root, project, conf):
+    """rel -> every hash that file had in any saved build: a file matching one is ours, not the original."""
+    out = {}
+    for _, n in builds(root, project, conf):
+        for rel, h in read_manifest(os.path.join(root, project, n)).items():
+            out.setdefault(rel, set()).add(h)
+    return out
+
+
+def cmd_vanilla(a):
+    root = builds_root()
+    conf = read_project(root, a.project)
+    if not conf["app"] or not os.path.isdir(conf["app"]):
+        sys.exit(f"builds.py: app folder not found. Set `builds_app.{a.project} = <path>` in lanes.conf.")
+    if not a.paths and not a.fill:
+        sys.exit("builds.py: name the file(s) about to be changed, or --fill.")
+    pull(root)
+    lines, changed = vanilla.save(root, a.project, conf["app"], a.paths, ours_hashes(root, a.project, conf), a.fill)
+    print("\n".join(lines) if lines else "  nothing to save")
+    if changed:
+        print(f"github: {commit_and_push(root, a.project, f'{a.project}: originals saved before a change')} "
+              "(the hash list only; the files stay on this PC)")
+
+
+def cmd_vanilla_restore(a):
+    root = builds_root()
+    conf = read_project(root, a.project)
+    pull(root)
+    originals = vanilla.read(root, a.project)
+    state = app_state(conf)
+    best = closest(root, a.project, conf, state)
+    unsaved = bool(state) and (best is None or best[2])
+    print(f"back to the plain app: take every file of ours out ({len(state)} now), put {len(originals)} original(s) back")
+    if not a.yes:
+        print("  dry run - add --yes to do it" + (" (the current app folder is saved as a build first)" if unsaved else ""))
+        return
+    if unsaved:
+        note = "Automatic: the app folder matched no saved build, so it was kept before going back to the plain app."
+        saved, when = snapshot(root, a.project, conf, "before vanilla-restore", note, "", None)
+        print(f"  github: {save_build(root, a.project, conf, saved, when, note, '')[1]}")
+    for item in conf["ours"]:
+        p = os.path.join(conf["app"], item)
+        if os.path.isdir(p):
+            shutil.rmtree(p)
+        elif os.path.isfile(p):
+            os.remove(p)
+    done, lacking = vanilla.put_back(root, a.project, conf["app"])
+    print(f"  done: files of ours taken out, {len(done)} original(s) put back")
+    for rel in lacking:
+        print(f"  NOT ON THIS PC: the original of {rel} (repair the app to get it)")
 
 
 def cmd_init(a):
@@ -656,6 +749,7 @@ def main():
     p.add_argument("--note", required=True)
     p.add_argument("--result", default="")
     p.add_argument("--source")
+    p.add_argument("--feature", default="", help="save it in this feature's folder, e.g. \"Ladder climb\"")
     p.add_argument("--no-push", action="store_true")
     p.set_defaults(fn=cmd_snap)
     p = sub.add_parser("result")
@@ -663,10 +757,23 @@ def main():
     p.add_argument("number", type=int)
     p.add_argument("text")
     p.set_defaults(fn=cmd_result)
-    for name, fn in (("list", cmd_list), ("which", cmd_which)):
+    p = sub.add_parser("list")
+    p.add_argument("project")
+    p.add_argument("--feature", default="")
+    p.set_defaults(fn=cmd_list)
+    for name, fn in (("which", cmd_which), ("features", cmd_features)):
         p = sub.add_parser(name)
         p.add_argument("project")
         p.set_defaults(fn=fn)
+    p = sub.add_parser("vanilla")
+    p.add_argument("project")
+    p.add_argument("paths", nargs="*")
+    p.add_argument("--fill", action="store_true", help="also save every original the shared list names")
+    p.set_defaults(fn=cmd_vanilla)
+    p = sub.add_parser("vanilla-restore")
+    p.add_argument("project")
+    p.add_argument("--yes", action="store_true")
+    p.set_defaults(fn=cmd_vanilla_restore)
     p = sub.add_parser("check")
     p.set_defaults(fn=cmd_check)
     p = sub.add_parser("restore")
