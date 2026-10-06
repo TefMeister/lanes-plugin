@@ -293,6 +293,11 @@ or registry key before changing it.
   `python "${CLAUDE_PLUGIN_ROOT}/tools/builds.py" snap <project> "<short title>" --note "<what and why>"`,
   and once a result is seen, `builds.py result <project> <N> "<what was seen>"`. Never overwrite a build;
   the smallest change is a new number. It is pushed at once, so the other PC can test the same build.
+- **One folder per feature, and the app's originals saved first** (0.46.0). Give every snap the feature it
+  belongs to, `--feature "<feature>"` (e.g. "Ladder climb", "Running stop"), so each feature's builds sit in
+  their own folder. **Before changing any file the app itself shipped** (overwriting, editing or deleting one,
+  not adding a new file of ours), save its original first: `builds.py vanilla <project> <path>`. So
+  `builds.py vanilla-restore <project> --yes` can always give back a plain, working app (`docs/PROTOCOL.md` §14).
 - **Check the shape of any file before you add to it** (`tools/code-shape-scan.py`). If it is over
   the size budget, the split is the first job; see `docs/PROTOCOL.md` §6.
 - **⚠ Before you build a lever, say which step runs LAST**, and make it prove its own effect —

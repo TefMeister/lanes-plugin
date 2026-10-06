@@ -776,7 +776,29 @@ what changed. `result` fills in what was seen. `which` says which build the app 
   `restore ... --why "..."`) writes one line to `<project>/HELD.txt`, and `check` stays silent while the
   folder holds that build. A build saved after the note is still reported: that one may really be missing.
 
-Checked by `tools/tests/builds-fixture.sh` (two PCs on one remote, including a same-number race).
+- **One folder per feature (0.46.0).** The person, 2026-10-06: *"make separate builds of every different feature
+  we work on, so all the ladder climb stuff is stored in a different place than running stop and so on, so it's
+  easier to navigate different features within the mod"*. `snap --feature "Ladder climb"` saves the build as
+  `<project>/Ladder climb/v<series>-bNNN - <title>/`. The numbers stay ONE sequence across every folder, so a
+  number still names exactly one build, and `which`, `restore`, `result` and `check` find it wherever it is.
+  `features <project>` lists the folders; `list <project> --feature "..."` lists one. Each feature's source
+  belongs in its own file too (§6), so a feature can be read, tested and taken out on its own.
+- **The app's originals are saved before anything of ours changes them (0.46.0).** The same day: *"add a folder
+  that saves all the vanilla files before you change anything within them ... so reverting back to a working game
+  is always doable, even late into modding"*. Builds keep every version of OUR files; a file of the app's own that
+  a mod overwrites was kept nowhere. Now: before overwriting, editing or deleting any file the app shipped,
+  `builds.py vanilla <project> <path>` copies it to `<project>/_vanilla/`. The first copy wins and is never
+  overwritten; a file that already matches one of our builds is refused (it is not the original any more).
+  **The copies never leave the PC** (they are the app's own files): the folder's `.gitignore` keeps them out and
+  only the hash list is pushed, and any build file identical to a saved original is kept out of git as well.
+  The other PC hears at session start that an original is saved elsewhere but not on it, and `vanilla --fill`
+  saves it there while that PC's file is still untouched. `vanilla-restore <project> --yes` takes every file of
+  ours out and puts every original back: a plain, working app at any point (the folder is saved as a build
+  first if it matches none). `restore` also puts an original back when the build it restores no longer
+  replaces it.
+
+Checked by `tools/tests/builds-fixture.sh` (two PCs on one remote, including a same-number race, feature
+folders and the originals; 75 checks).
 
 ## 15. (retired) Mint: the private copy of the app (0.27.0 to 0.42.2; removed in 0.43.0, 2026-10-04)
 
