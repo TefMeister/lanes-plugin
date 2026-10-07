@@ -70,6 +70,10 @@ TELL ME: <the one or two things you need back: a number, yes/no, a screenshot, h
 - **Read numbers from the log yourself.** Ask their eyes only for what a log cannot say: how it feels,
   whether it looks right.
 - **Screenshots:** they paste one or give a file path. Read it. If a picture decides the step, ask for it.
+- **✅ When a step has them holding something** (controllers up, a pose, the rifle on one spot) and the
+  session has what it needs, the NEXT reply opens with `✅ **You can stop**` on its own line, before
+  anything is read or explained (0.50.0). They cannot tell when "enough" has arrived; the tick is the
+  only signal. If the capture failed and they must keep holding, say that in one line instead.
 - **After "done":** read the log, say in one or two plain lines what it means, do the code or data
   work that follows without narrating it, then print the next `NEXT` block.
 - **When a build must be swapped:** step 1 is "close the app", the swap happens in your turn, and the
