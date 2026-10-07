@@ -113,7 +113,7 @@ def vs_cpp_tools():
 def resolve():
     """Any drive: people install big apps away from C: (seen on E: 2026-10-07)."""
     rel = os.path.join("Blackmagic Design", "DaVinci Resolve", "Resolve.exe")
-    roots = [PROGRAMFILES] + [f"{d}:\\" for d in "CDEFGH"] + [f"{d}:\Program Files" for d in "DEFGH"]
+    roots = [PROGRAMFILES] + [d + ":/" for d in "CDEFGH"] + [d + ":/Program Files" for d in "DEFGH"]
     return any(os.path.isfile(os.path.join(r, rel)) for r in roots)
 
 
