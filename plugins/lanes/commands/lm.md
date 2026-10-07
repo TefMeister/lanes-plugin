@@ -320,6 +320,16 @@ or registry key before changing it.
   write-up**, so a corrupted save later has an explanation. Wait for the process to exit on its own
   before swapping a build.
 
+## 5b. ⚡ Drive menus FAST (0.49.0, asked for by a user watching a live session)
+
+Waiting is the person's time. Between menu key presses wait **0.2–0.5 s**, not seconds; wait longer only where a screen
+is actually loading (and then poll for it, do not sleep a fixed minute). Skip intros and cutscenes with the keys the app
+offers (often any key). Look at the screen only where it matters: **before a choice that destroys or overwrites
+something** (new game, delete, overwrite save) and after a step whose result you are unsure of. Menus that animate in
+move their buttons: look once the panel has settled before clicking. Driving the app directly like this is the default;
+Menu-o-matiC (`/lanes:menu`) is there for recorded routes, not a requirement. Write each quick route you prove into the
+app's control profile so the next session drives it from the first second.
+
 ## 6. Before the session ends
 
 1. **Write it up** — what was done, what it means, and a confidence tag on every durable claim.

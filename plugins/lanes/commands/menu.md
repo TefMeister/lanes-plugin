@@ -10,6 +10,9 @@ session walks the same menus dozens of times.
 The tool is `python "${CLAUDE_PLUGIN_ROOT}/tools/menu-o-matic/menu_o_matic.py"`, below `mom`. Its own `README.md`
 beside it explains the route format. Windows only; needs Pillow (`python -m pip install pillow`).
 
+> Fast direct driving (short gaps between presses, looks only before destructive choices) is the default in `/lm`
+> (`commands/lm.md` §5b); this tool is for routes worth recording.
+
 ## Which lane may use it
 
 - **`/lm`**: yes, all of it, including routes that launch the app (typing `/lm` is the go-ahead to launch).
