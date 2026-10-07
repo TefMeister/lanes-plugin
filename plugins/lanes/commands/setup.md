@@ -75,6 +75,32 @@ find them, otherwise `~/.claude/lanes-inspector`); create it and write `inspecto
 `inspector_home = <folder>` to `lanes.conf`. Say in one line that `inspector = off` switches it off again at
 any time. What it does: `docs/PROTOCOL.md` §16.
 
+## 0.9 A synced transfer folder for files that must not go on GitHub? (0.47.0, only if they use two or more PCs)
+
+Some files a project needs on both PCs must never be uploaded to GitHub: the app's own files, extracted
+assets, recordings, and builds too big for a repo. Say this in plain words, then suggest a **MEGA** account
+(**https://mega.io**, free tier available) as the most seamless way to carry them: its desktop app keeps one
+folder in step on every PC, so a session only has to save a file there and it turns up on the other PC by itself.
+Any other sync service with a desktop app works the same way; MEGA is a suggestion, not a requirement.
+
+⚠️ **Say this plainly, every time it is offered:** the folder is for moving files between **your own** PCs only.
+Sharing game files (or any copyrighted files) with other people is illegal, and the folder must never be used for that.
+
+Ask **one question**: *"Would you like steps to set up a synced folder that I will save these files into?"*
+Options: **"Yes, give me the steps"** and **"Not now"**. On yes:
+
+1. You create the folder (ask where; a roomy drive is best) with two folders inside: **`Videos`** (recordings) and
+   **`Game Files`** (app files, extracted assets, big builds; one folder per project inside it).
+2. **User:** install the MEGA desktop app from **https://mega.io/desktop** and sign in (their own hands: an account
+   and a password are theirs alone; never ask for or type a password).
+3. **User:** in the MEGA app, Settings → **Sync** → **Add sync**: the local folder from step 1, and a new MEGA folder
+   with the same name. On the other PC, link that PC's folder to the **same** MEGA folder.
+4. You write `transfer = <folder>` to `lanes.conf`, drop a small test file in each subfolder, and check that the
+   app picked them up (its log, or the user's word that they show on the MEGA website). Delete the test files after.
+
+From then on, sessions save anything that must travel between PCs but must not be committed into that folder,
+sorted into the right subfolder, and say in their write-up what they put there.
+
 ## 1. Scan
 
 ```bash
