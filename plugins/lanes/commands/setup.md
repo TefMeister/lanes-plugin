@@ -101,6 +101,14 @@ Options: **"Yes, give me the steps"** and **"Not now"**. On yes:
 From then on, sessions save anything that must travel between PCs but must not be committed into that folder,
 sorted into the right subfolder, and say in their write-up what they put there.
 
+## 0.10 Videos: DaVinci Resolve and FFmpeg (0.48.0, only if they record or share their work)
+
+If the person records test runs or makes progress videos, offer the catalog's section 8 group: **DaVinci Resolve**
+(free) as the editor they cut videos in, and **FFmpeg** with it, which is what Claude uses on the recordings (cutting,
+joining, still frames, converting files the free Resolve will not open). Say plainly that Resolve runs without FFmpeg,
+but the free version cannot open some recordings, so the two are best installed together. Resolve is downloaded by
+the person (a short sign-up form on Blackmagic's site); FFmpeg Claude can install with winget.
+
 ## 1. Scan
 
 ```bash
@@ -115,7 +123,7 @@ Do not ask again about a tool they skipped unless they ask.
 ## 2. One group at a time
 
 Go through the groups in the catalog's order: **core → building → reverse engineering → driving
-apps → 3D → VR**. For each group with anything missing, ask **one question** (AskUserQuestion,
+apps → 3D → VR → recording and editing videos**. For each group with anything missing, ask **one question** (AskUserQuestion,
 multi-select). List each missing tool as an option labelled with what it is for, then add these
 choices:
 

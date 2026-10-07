@@ -114,3 +114,14 @@ never from `/lanes:setup`. Links are here so they are all in one place.
 
 **Credits:** every tool above belongs to its authors. This file only points at them. If a link or a
 credit is wrong, open an issue and it will be fixed.
+
+## 8. Recording and editing videos
+
+For turning test runs into progress videos. OBS records the game window during tests (the session drives it); these
+two are for cutting and converting the recordings afterwards.
+
+| Tool | What it lets a session do | Official link | Claude installs it | How to check |
+| --- | --- | --- | --- | --- |
+| **DaVinci Resolve** (free version) | The video editor **you** cut the recordings in: trimming, titles, music. The free version is enough. Claude does not drive it (scripting it from outside needs the paid Studio version). | https://www.blackmagicdesign.com/products/davinciresolve | **you**: the download asks for a short sign-up form first | `C:\Program Files\Blackmagic Design\DaVinci Resolve\Resolve.exe` |
+| **FFmpeg** | What **Claude** uses on the recordings: check them, cut clips, join them, pull out still frames, and convert files the free Resolve will not open (for example some HEVC or 10-bit recordings, or MKV files) into ones it will. Resolve itself runs without it; install both together. | https://ffmpeg.org/download.html (Windows builds by gyan.dev, linked from there) | `winget install --id Gyan.FFmpeg -e` | `ffmpeg -version` |
+
