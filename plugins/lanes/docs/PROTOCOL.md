@@ -333,6 +333,24 @@ project starts here", not "this is a game".
 
 _Asked for by the maintainer on 2026-10-07._
 
+**One more fixed icon (0.50.0, 2026-10-08): the tick that ends a hold.**
+
+```
+✅ **You can stop**   - the FIRST line of the reply, the moment the session has what it needed from a held test
+```
+
+Some tests need the person to hold something until the session has captured enough: controllers up,
+the rifle on the sky, a pose, a button, a window in a certain state. From their side there is no way
+to tell when "enough" has arrived; they hold until told, and a reply that opens with analysis keeps
+them holding through all of it. So the tick comes first and alone, before any reading or thinking is
+written down, and it means exactly one thing: lower the controllers, let go, relax -- the rest of the
+reply needs nothing more from your hands. Print it even when the next question follows at once; the
+question is for their eyes or their words, not their arms. If the capture failed and the hold must
+go on, say that instead, in one line, so the hold is never silent.
+
+_Asked for by the maintainer on 2026-10-08, after holding a rifle on the sky in the headset while the
+session saved pictures and said nothing about when it had enough._
+
 ---
 
 ## 6. Code shape — small files, named numbers (0.7.0, 2026-09-17)
@@ -624,6 +642,11 @@ so the two cannot drift apart.
 Name the comparisons explicitly, one line each, in the order you want them. Then invite anything
 else they noticed — a wearer's unprompted "it barely shows on the left side" has repeatedly been
 worth more than the measurement that was actually requested.
+
+**If the step asks them to HOLD something** -- a pose, a button, the controllers up, a camera on one
+spot -- say in the step how long, and the moment the session has what it needs, print `✅ **You can
+stop**` as the first line of the reply (0.50.0; the icon list in §5). Never let a hold end only
+because they gave up.
 
 ---
 
