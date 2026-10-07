@@ -319,6 +319,20 @@ to fill the extra visual weight, the icons have made the reply worse, not better
 
 _Asked for by the maintainer on 2026-09-20, marking the headings that still had none._
 
+**Two more fixed icons (0.48.0, 2026-10-07):**
+
+```
+🎬 **Recorded**   - what was recorded this session, how long, and where the file went
+🎮 <project>      - in front of each project's name whenever a reply lists more than one project
+```
+
+A recording is something the person will want to find and use (progress videos), so it gets its own
+heading instead of hiding under 🔧. And when a reply covers several projects, 🎮 in front of each name
+lets the eye jump from one project to the next. Use 🎮 for any project, game or not; the icon marks "a
+project starts here", not "this is a game".
+
+_Asked for by the maintainer on 2026-10-07._
+
 ---
 
 ## 6. Code shape — small files, named numbers (0.7.0, 2026-09-17)

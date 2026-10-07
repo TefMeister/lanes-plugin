@@ -110,6 +110,14 @@ def vs_cpp_tools():
         return False
 
 
+def resolve():
+    return os.path.isfile(os.path.join(PROGRAMFILES, "Blackmagic Design", "DaVinci Resolve", "Resolve.exe"))
+
+
+def ffmpeg():
+    return on_path("ffmpeg") or any_glob(os.path.join(WINGET_PKGS, "Gyan.FFmpeg*", "*", "bin", "ffmpeg.exe"))
+
+
 def blender():
     return any_glob(os.path.join(PROGRAMFILES, "Blender Foundation", "*", "blender.exe")) or on_path("blender")
 
@@ -268,11 +276,14 @@ def catalog():
         ("vr", "steamvr", "SteamVR", lambda: steam_app_installed(250820), False, True),
         ("vr", "virtualdesktop", "Virtual Desktop Streamer", lambda: process_running("VirtualDesktop.Streamer.exe")
          or os.path.isdir(os.path.join(PROGRAMFILES, "Virtual Desktop Streamer")), False, True),
+        ("video", "resolve", "DaVinci Resolve (free)", resolve, False, True),
+        ("video", "ffmpeg", "FFmpeg", ffmpeg, False, False),
     ]
 
 
 GROUP_TITLES = {"core": "1. Core", "build": "2. Building mod code", "re": "3. Reverse engineering",
-                "drive": "4. Driving an app unattended", "3d": "5. 3D and assets", "vr": "6. VR"}
+                "drive": "4. Driving an app unattended", "3d": "5. 3D and assets", "vr": "6. VR",
+                "video": "8. Recording and editing videos"}
 
 
 def load_state():
