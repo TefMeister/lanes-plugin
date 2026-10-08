@@ -86,10 +86,10 @@ looked over: anything messy is noted for a decision before it is uploaded. It ne
 Setup asks; it stays off otherwise.
 
 **The look (new in 0.41.0).** This is how the plugin ships: after you install it and restart Claude
-Code, the first session puts an old green monitor on your terminal, with a faint starburst behind the
-text and a light that slowly runs down the screen.
+Code, the first session puts an old green monitor on your terminal, with the Lanes banner in dim green behind
+the text and a light that slowly runs down the screen.
 
-![The plugin's look, moving](https://raw.githubusercontent.com/TefMeister/terminal-themes/main/preview/green-monitor-starburst.gif)
+![The plugin's look](https://raw.githubusercontent.com/TefMeister/terminal-themes/main/preview/green-monitor-lanes.png)
 
 The plugin comes with this one look. If Claude Code is running inside Windows Terminal, it goes on
 the tab you are in. If not, it is added as a new tab type called **Green Monitor Claude**: open
@@ -114,7 +114,7 @@ what is new and never installs without asking. The full manual is in
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.50.0`, early public release |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.51.0`, early public release |
 
 ## Modding games?
 

@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
-"""theme.py - the look the plugin ships with: an old green monitor, a faint starburst behind the
-text and a light that slowly runs down the screen (0.41.0, 2026-10-01, user-directed).
+"""theme.py - the look the plugin ships with: an old green monitor, the Lanes banner faint behind the
+text and a light that slowly runs down the screen (0.41.0, 2026-10-01; banner since 0.51.0, 2026-10-08,
+user-directed - it was a starburst before).
 
     python theme.py apply [--force] [--no-font]   put the look on the Windows Terminal profile Claude
                                                   Code is running in (or add a "Green Monitor Claude"
                                                   profile when not run from Windows Terminal)
     python theme.py restore                       put back exactly what was there before
     python theme.py status                        what was done, and where the backup is
+    python theme.py upgrade                       move a profile still showing the old starburst look
+                                                  to the banner (the start-up hook runs this once)
 
 Exit 0 = done or nothing to do, 1 = could not (the reason is printed), 2 = not applicable here.
 
 WHY
   The plugin's author wanted everyone who installs it to get the same screen they work in: the
-  green-monitor-starburst style from the terminal-themes repo. The first session after the install
+  green-monitor-lanes style from the terminal-themes repo. The first session after the install
   applies it by itself (hooks/theme-apply) and says so in one line. Everything it touches is written
   down so `restore` can undo it, and the terminal's settings file is backed up first.
 
@@ -48,7 +51,11 @@ LOCALAPPDATA = os.environ.get("LOCALAPPDATA", os.path.join(HOME, "AppData", "Loc
 STATE_DIR = os.environ.get("LANES_STATE_DIR") or os.path.join(HOME, ".claude", "lanes")
 STATE_FILE = os.path.join(STATE_DIR, "theme-state.json")
 CLAUDE_DIR = os.environ.get("LANES_CLAUDE_DIR") or os.path.join(HOME, ".claude")
-STYLE = "green-monitor-starburst"
+STYLE = "green-monitor-lanes"
+SHADER_FILE = "lanes.hlsl"
+IMAGE_FILE = "lanes.png"
+# looks the plugin shipped before; a profile still showing one of these is moved to the current look
+OLD_STYLES = {"green-monitor-starburst": "starburst.hlsl"}
 STYLE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "theme", STYLE)
 PROFILE_NAME = "Green Monitor Claude"
 SCHEME_NAME = "RobCo"
@@ -221,8 +228,8 @@ def apply(force=False, with_font=True):
     profile["cursorShape"] = "filledBox"
     profile["padding"] = "16"
     profile["icon"] = fwd(os.path.join(style_home, "matrix-claude.png"))
-    profile[SHADER_KEY] = fwd(os.path.join(style_home, "starburst.hlsl"))
-    profile[IMAGE_KEY] = fwd(os.path.join(style_home, "starburst.png"))
+    profile[SHADER_KEY] = fwd(os.path.join(style_home, SHADER_FILE))
+    profile[IMAGE_KEY] = fwd(os.path.join(style_home, IMAGE_FILE))
     schemes = data.setdefault("schemes", [])
     scheme_added = False
     if not any(s.get("name") == SCHEME_NAME for s in schemes):
@@ -242,9 +249,40 @@ def apply(force=False, with_font=True):
     if created:
         say("the plugin comes with one look, and it was added to Windows Terminal as a tab type called \"%s\" (this session is not running in Windows Terminal, so no open tab was changed). To see it: open Windows Terminal, click the small down arrow next to the + on the tab bar, and pick it. It opens on the Desktop." % PROFILE_NAME)
     else:
-        say("this terminal profile now has the plugin's look: green monitor, starburst, rolling light. Font: %s." % font)
+        say("this terminal profile now has the plugin's look: green monitor, the Lanes banner, rolling light. Font: %s." % font)
     say(claude_note)
     say("backup of the terminal's settings: %s. `python theme.py restore` puts everything back." % os.path.basename(backup))
+    return 0
+
+
+def upgrade():
+    """0.51.0: the shipped look changed from the starburst to the Lanes banner. A profile still showing
+    the old shipped look gets the new one; a look the user picked since is left alone. Either way the
+    state is moved on, so this happens once."""
+    state = read_state()
+    if not state or not state.get("applied") or STYLE in (state.get("style_home") or ""):
+        return 0
+    path = state.get("settings", "")
+    try:
+        data = load_jsonc(path)
+    except (OSError, ValueError):
+        return 0
+    profile = find_profile(data, state.get("profile_guid", ""))
+    shader = ((profile or {}).get(SHADER_KEY) or "").replace("\\", "/")
+    old = any(shader.endswith("/%s/%s" % (name, f)) for name, f in OLD_STYLES.items())
+    style_home = copy_style()
+    if old:
+        profile[SHADER_KEY] = fwd(os.path.join(style_home, SHADER_FILE))
+        profile[IMAGE_KEY] = fwd(os.path.join(style_home, IMAGE_FILE))
+        try:
+            save_json(path, data)
+        except OSError as e:
+            say("could not write the terminal's settings file (%s); the old look stays." % e)
+            return 1
+    state["style_home"] = style_home
+    write_state(state)
+    if old:
+        say("the plugin's look has a new picture: the Lanes banner now sits behind the text instead of the starburst. Everything else is the same; `python theme.py restore` still puts your old settings back.")
     return 0
 
 
@@ -367,6 +405,8 @@ def main(argv):
         return restore()
     if cmd == "status":
         return status()
+    if cmd == "upgrade":
+        return upgrade()
     print(__doc__)
     return 2
 
