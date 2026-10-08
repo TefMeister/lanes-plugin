@@ -351,6 +351,11 @@ LANES_CONFIG="$NR/lanes.conf" "$PY" "$TOOLS/display-name.py" clear >/dev/null
 out=$(LANES_CONFIG="$NR/lanes.conf" CLAUDE_PLUGIN_ROOT="$HERE/../.." bash "$HERE/../../hooks/name-rule")
 assert_contains '\"User\"' "$out" "and after clearing it, the person is User again"
 grep -q '"name-rule"\|name-rule' "$HERE/../../hooks/hooks.json" && ok "the naming hook is registered for session start" || fail "hooks.json does not run name-rule"
+
+echo "the BeG0nE rider hook is registered and silent with nothing configured"
+grep -q "begone-ride" "$HERE/../../hooks/hooks.json" && ok "hooks.json runs begone-ride" || fail "hooks.json does not run begone-ride"
+out=$(LANES_CONFIG="/nonexistent/lanes.conf" LANES_BEGONE="" bash "$HERE/../../hooks/begone-ride" 2>&1); rc=$?
+[ "$rc" = "0" ] && [ -z "$out" ] && ok "begone-ride says nothing and exits 0 without a clone" || fail "begone-ride without a clone: rc=$rc out=$out"
 rm -rf "$NR"
 
 # The shipped plugin itself must be clean. This is the assertion that matters.
