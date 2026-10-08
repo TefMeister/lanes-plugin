@@ -8,8 +8,8 @@
         "padding": "16",
         "font": { "face": "Share Tech Mono", "size": 14 },
         "icon": "<FOLDER>/icons/matrix-claude.png",
-        "experimental.pixelShaderPath": "<FOLDER>/styles/green-monitor-starburst/starburst.hlsl",
-        "experimental.pixelShaderImagePath": "<FOLDER>/styles/green-monitor-starburst/starburst.png"
+        "experimental.pixelShaderPath": "<FOLDER>/styles/green-monitor-lanes/lanes.hlsl",
+        "experimental.pixelShaderImagePath": "<FOLDER>/styles/green-monitor-lanes/lanes.png"
     },
     "scheme": {
         "name": "RobCo",

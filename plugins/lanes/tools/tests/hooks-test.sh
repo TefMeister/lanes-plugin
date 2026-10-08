@@ -201,19 +201,19 @@ unset LANES_CONFIG
 out=$(bash "$HERE/../../hooks/theme-apply" 2>&1)
 assert_contains "now has the plugin's look" "$out" "the hook says the look went on"
 assert_contains "restart" "$out" "and that Claude Code's own colours follow after a restart"
-grep -q 'starburst.hlsl' "$TH/wt/settings.json" && ok "the profile points at the shader" || fail "no shader path in the profile"
+grep -q 'lanes.hlsl' "$TH/wt/settings.json" && ok "the profile points at the shader" || fail "no shader path in the profile"
 grep -q '"name": "RobCo"' "$TH/wt/settings.json" && ok "the RobCo scheme was added" || fail "no RobCo scheme"
 grep -q 'their/own.hlsl' "$TH/wt/settings.json" && ok "the other profile's own look is untouched" || fail "the other profile was changed"
 [ -f "$TH/wt/settings.json.lanes-backup" ] && ok "the terminal's settings were backed up first" || fail "no backup"
 grep -q '"custom:robco"' "$TH/claude/settings.json" && ok "Claude Code's theme is RobCo" || fail "Claude Code's theme was not set"
 [ -f "$TH/claude/themes/robco.json" ] && ok "the RobCo theme file is in place" || fail "no robco.json"
-[ -f "$TH/state/theme/green-monitor-starburst/starburst.png" ] && ok "the style's files were copied to a folder that survives updates" || fail "style not copied"
+[ -f "$TH/state/theme/green-monitor-lanes/lanes.png" ] && ok "the style's files were copied to a folder that survives updates" || fail "style not copied"
 assert_not_contains "$THP" "$out" "no path in what the user is told"
 out=$(bash "$HERE/../../hooks/theme-apply" 2>&1)
 [ -z "$out" ] && ok "once applied, the hook is silent" || fail "the hook repeats itself: $out"
 out=$("$PY" "$HERE/../../tools/theme.py" restore 2>&1)
 assert_contains "back as they were" "$out" "restore says so"
-grep -q 'starburst.hlsl' "$TH/wt/settings.json" && fail "the shader path is still there after restore" || ok "the profile is back to plain"
+grep -q 'lanes.hlsl' "$TH/wt/settings.json" && fail "the shader path is still there after restore" || ok "the profile is back to plain"
 grep -q '"colorScheme": "Campbell"' "$TH/wt/settings.json" && ok "its old scheme is back" || fail "the old scheme did not come back"
 grep -q '"theme": "dark"' "$TH/claude/settings.json" && ok "Claude Code's old theme is back" || fail "Claude Code's theme did not come back"
 [ -f "$TH/state/theme-state.json" ] && fail "the state file survived restore" || ok "restore cleared the state, so a later apply works again"
@@ -237,6 +237,23 @@ rm -rf "$TH/state"; mkdir -p "$TH/state"
 out=$(env -u WT_PROFILE_ID LANES_WT_SETTINGS="$THP/wt/fresh.json" bash "$HERE/../../hooks/theme-apply" 2>&1)
 grep -q '"startingDirectory"' "$TH/wt/fresh.json" && ok "a created Green Monitor Claude profile has a start folder" || fail "the created profile has no startingDirectory (it would open in system32)"
 grep -qi 'system32' "$TH/wt/fresh.json" && fail "the start folder is system32" || ok "and it is not system32"
+# 0.51.0: a PC still showing the old shipped starburst is moved to the banner once; a look of its own is kept
+rm -rf "$TH/state"; mkdir -p "$TH/state"
+printf '{ "profiles": { "list": [ { "guid": "{dddd}", "name": "Old", "experimental.pixelShaderPath": "C:/x/theme/green-monitor-starburst/starburst.hlsl", "experimental.pixelShaderImagePath": "C:/x/theme/green-monitor-starburst/starburst.png" } ] }, "schemes": [] }
+' > "$TH/wt/old.json"
+printf '{ "applied": true, "settings": "%s", "profile_guid": "{dddd}", "style_home": "C:/x/theme/green-monitor-starburst" }
+' "$THP/wt/old.json" > "$TH/state/theme-state.json"
+out=$(LANES_WT_SETTINGS="$THP/wt/old.json" bash "$HERE/../../hooks/theme-apply" 2>&1)
+assert_contains "new picture" "$out" "a PC on the old starburst hears the picture changed"
+grep -q 'green-monitor-lanes/lanes.hlsl' "$TH/wt/old.json" && ok "its profile now shows the banner" || fail "the old starburst profile was not moved over"
+out=$(LANES_WT_SETTINGS="$THP/wt/old.json" bash "$HERE/../../hooks/theme-apply" 2>&1)
+[ -z "$out" ] && ok "the move happens once" || fail "the upgrade repeats: $out"
+printf '{ "profiles": { "list": [ { "guid": "{eeee}", "name": "Mine", "experimental.pixelShaderPath": "C:/their/own.hlsl" } ] }, "schemes": [] }
+' > "$TH/wt/mine.json"
+printf '{ "applied": true, "settings": "%s", "profile_guid": "{eeee}", "style_home": "C:/x/theme/green-monitor-starburst" }
+' "$THP/wt/mine.json" > "$TH/state/theme-state.json"
+out=$(LANES_WT_SETTINGS="$THP/wt/mine.json" bash "$HERE/../../hooks/theme-apply" 2>&1)
+grep -q 'their/own.hlsl' "$TH/wt/mine.json" && ok "a look picked since is kept on upgrade" || fail "the upgrade replaced a look of their own"
 unset LANES_STATE_DIR LANES_WT_SETTINGS LANES_CLAUDE_DIR LANES_THEME_NO_FONT WT_PROFILE_ID
 rm -rf "$TH"
 grep -q 'theme-apply' "$HERE/../../hooks/hooks.json" && ok "the theme hook is registered for session start" || fail "hooks.json does not run theme-apply"

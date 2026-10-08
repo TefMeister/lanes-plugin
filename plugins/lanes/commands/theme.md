@@ -1,8 +1,8 @@
 ---
-description: (Theme) The look the plugin ships with - an old green monitor, a faint starburst behind the text and a light rolling down the screen, in Windows Terminal. The first session after installing puts it on by itself; this command puts it on again, replaces a look you had before, or puts everything back the way it was. Safe beside every other lane.
+description: (Theme) The look the plugin ships with - an old green monitor, the Lanes banner faint behind the text and a light rolling down the screen, in Windows Terminal. The first session after installing puts it on by itself; this command puts it on again, replaces a look you had before, or puts everything back the way it was. Safe beside every other lane.
 ---
 
-`/lanes:theme` is the plugin's look: the `green-monitor-starburst` style from the
+`/lanes:theme` is the plugin's look: the `green-monitor-lanes` style from the
 [terminal-themes](https://github.com/TefMeister/terminal-themes) repo, shipped inside the plugin so
 everyone who installs it gets the same screen. It runs in **Windows Terminal** (the shader and the
 rolling light are its pixel-shader feature); elsewhere it says so and changes nothing.

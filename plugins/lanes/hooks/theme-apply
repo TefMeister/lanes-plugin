@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # SessionStart hook: the FIRST session after the plugin is installed puts the plugin's look on the
-# terminal - green monitor, starburst behind the text, a light rolling down the screen - and tells
+# terminal - green monitor, the Lanes banner behind the text, a light rolling down the screen - and tells
 # the user in one line (tools/theme.py apply). Once per machine: the state file makes it silent after
 # that, whatever it decided. A profile that already has a look of its own is left alone.
 #
@@ -10,7 +10,12 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 STATE_DIR="${LANES_STATE_DIR:-$HOME/.claude/lanes}"
-[ -f "$STATE_DIR/theme-state.json" ] && exit 0
+UPGRADE=""
+if [ -f "$STATE_DIR/theme-state.json" ]; then
+  # 0.51.0: the shipped picture changed; a PC still on the old one is moved over once (theme.py upgrade)
+  grep -q 'green-monitor-starburst' "$STATE_DIR/theme-state.json" || exit 0
+  UPGRADE=1
+fi
 CONF="${LANES_CONFIG:-$HOME/.claude/lanes.conf}"
 if [ -f "$CONF" ] && grep -qiE '^[[:space:]]*theme[[:space:]]*=[[:space:]]*(off|no|false|0)' "$CONF"; then exit 0; fi
 
@@ -22,6 +27,13 @@ for cand in python3 python py; do
 done
 [ -n "$PY" ] || exit 0
 
+if [ -n "$UPGRADE" ]; then
+  out="$("$PY" "$PLUGIN_ROOT/tools/theme.py" upgrade 2>/dev/null)"
+  [ -n "$out" ] || exit 0
+  { printf '%s
+' "$out"; echo "Tell the user in one plain sentence what the THEME line above means."; } | "$PY" "$SCRIPT_DIR/emit_context.py"
+  exit 0
+fi
 out="$("$PY" "$PLUGIN_ROOT/tools/theme.py" apply ${LANES_THEME_NO_FONT:+--no-font} 2>/dev/null)"
 [ -n "$out" ] || exit 0
 {
