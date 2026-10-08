@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# SessionStart hook (0.52.0): BeG0nE rides every session. If a BeG0nE clone is configured (`begone = ...` in
+# lanes.conf or $LANES_BEGONE), start its background rider when it is not already running and put one line in
+# front of the session: how many VR sessions and behaviour patterns it holds, and the last one filed. The rider
+# idles until a VR mod starts logging, so it costs nothing during ordinary work. Silent with nothing configured,
+# and silent on every failure path: a hook that can be the reason a session opens with an error gets switched
+# off within a week.
+#
+# LANES_BEGONE_RIDE=0 turns it off.
+set -uo pipefail
+[ "${LANES_BEGONE_RIDE:-1}" = "0" ] && exit 0
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+TOOL="${PLUGIN_ROOT}/tools/begone.py"
+EMIT="${SCRIPT_DIR}/emit_context.py"
+
+[ -f "$TOOL" ] && [ -f "$EMIT" ] || exit 0
+
+PY=""
+for cand in python3 python py; do
+  command -v "$cand" >/dev/null 2>&1 || continue
+  "$cand" -c "" >/dev/null 2>&1 || continue
+  PY="$cand"; break
+done
+[ -n "$PY" ] || exit 0
+
+"$PY" "$TOOL" brief 2>/dev/null | "$PY" "$EMIT"
+exit 0

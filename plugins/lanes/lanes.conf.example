@@ -113,3 +113,11 @@ role = DEV
 # Videos\ (recordings) and Game Files\<project>\ (app files, extracted assets, big builds).
 # For your own PCs only: sharing game files with other people is illegal.
 # transfer = /path/to/your/transfer/folder
+
+# BEG0NE RIDES ALONG (0.52.0).
+# A clone of the BeG0nE repo (github.com/TefMeister/BeG0nE). With this set, every session start
+# makes sure its background rider is running: it idles until a VR mod wired to BeG0nE's
+# jitterlog.h starts a VR session, then files what the mod did with the headset pose, the camera
+# and the controllers, with the cause of any stepping named. Costs nothing during ordinary work.
+# Overridden by $LANES_BEGONE. Unset means the hook stays quiet.
+# begone = /path/to/your/BeG0nE-clone
