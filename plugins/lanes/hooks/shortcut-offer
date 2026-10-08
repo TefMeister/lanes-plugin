@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# SessionStart hook (0.53.0): once the plugin's look is on this PC, offer - ONCE - a shortcut on the Desktop named
+# "Lanes" that opens Claude Code in that look (tools/shortcut.py). Runs right after theme-apply, so on a fresh
+# install the offer comes in the very first session; on a PC that already had the look, in the first session
+# after the update. Silent once shortcut-state.json exists (made, declined, or not applicable), when the look is
+# not on (nothing to open), when LANES_SHORTCUT=0 or `shortcut = off` in lanes.conf, and on every failure path.
+set -uo pipefail
+[ "${LANES_SHORTCUT:-1}" = "0" ] && exit 0
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+STATE_DIR="${LANES_STATE_DIR:-$HOME/.claude/lanes}"
+[ -f "$STATE_DIR/shortcut-state.json" ] && exit 0
+[ -f "$STATE_DIR/theme-state.json" ] || exit 0
+grep -q '"applied": true' "$STATE_DIR/theme-state.json" || exit 0
+CONF="${LANES_CONFIG:-$HOME/.claude/lanes.conf}"
+if [ -f "$CONF" ] && grep -qiE '^[[:space:]]*shortcut[[:space:]]*=[[:space:]]*(off|no|false|0)' "$CONF"; then exit 0; fi
+
+PY=""
+for cand in python3 python py; do
+  command -v "$cand" >/dev/null 2>&1 || continue
+  "$cand" -c "" >/dev/null 2>&1 || continue
+  PY="$cand"; break
+done
+[ -n "$PY" ] || exit 0
+
+MSG='LANES SHORTCUT: the plugin look is on this PC and there is no desktop shortcut for it yet. Before other work, offer the user - in one or two plain sentences, once - a shortcut on their Desktop named "Lanes" that opens Claude Code exactly as this terminal looks now (same font, colours, banner and rolling light), starting in the folder this session runs in. Ask with AskUserQuestion: "Make the shortcut" / "No thanks". Yes: python "${CLAUDE_PLUGIN_ROOT}/tools/shortcut.py" create (add --folder <dir> if they name another start folder) and say where it landed. No: python "${CLAUDE_PLUGIN_ROOT}/tools/shortcut.py" decline, so it is not asked again. /lanes:theme shortcut makes one later.'
+printf '%s\n' "$MSG" | "$PY" "$SCRIPT_DIR/emit_context.py"
+exit 0

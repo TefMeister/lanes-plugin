@@ -107,6 +107,10 @@ role = DEV
 # undoes it. Set this to off on a PC where that is not wanted. $LANES_THEME=0 too.
 # theme = off
 
+# The desktop shortcut named Lanes (0.53.0): once the look is on, the next session offers it
+# once; /lanes:theme shortcut makes one any time. Set this to off to never be offered. $LANES_SHORTCUT=0 too.
+# shortcut = off
+
 # THE TRANSFER FOLDER (0.47.0).
 # A folder kept in step between your PCs by a sync app (MEGA suggested; /lanes:setup offers the steps).
 # Sessions save here what must reach the other PC but must never go on GitHub, sorted into

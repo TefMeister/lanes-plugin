@@ -125,6 +125,18 @@
         "hooks": [
           {
             "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" shortcut-offer",
+            "shell": "bash",
+            "timeout": 10,
+            "statusMessage": "Offering the Lanes desktop shortcut",
+            "async": false
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook inspector-hook.py",
             "shell": "bash",
             "timeout": 20,

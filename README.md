@@ -95,7 +95,8 @@ The plugin comes with this one look. If Claude Code is running inside Windows Te
 the tab you are in. If not, it is added as a new tab type called **Green Monitor Claude**: open
 Windows Terminal, click the small down arrow next to the + on the tab bar, and pick it. That tab
 starts Claude Code on your Desktop. It backs the terminal's settings up first, and leaves a profile
-alone if you already gave it a look of your own. `/lanes:theme restore` puts
+alone if you already gave it a look of your own. Once the look is on, the next session offers (once) a shortcut named **Lanes** on your
+Desktop that opens Claude Code in exactly this look; `/lanes:theme shortcut` makes one any time. `/lanes:theme restore` puts
 everything back; `theme = off` in `lanes.conf` stops it. It needs Windows Terminal. The style, its
 tuning numbers and more styles live in [terminal-themes](https://github.com/TefMeister/terminal-themes).
 
@@ -114,7 +115,7 @@ what is new and never installs without asking. The full manual is in
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.52.0`, early public release |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.53.0`, early public release |
 
 ## Modding games?
 

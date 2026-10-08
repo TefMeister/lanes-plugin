@@ -259,5 +259,46 @@ rm -rf "$TH"
 grep -q 'theme-apply' "$HERE/../../hooks/hooks.json" && ok "the theme hook is registered for session start" || fail "hooks.json does not run theme-apply"
 
 echo
+echo "shortcut-offer: once the look is on, a desktop shortcut named Lanes is offered once; the tool makes it (0.53.0)"
+SH="$(mktemp -d)"; SHP="$(cd "$SH" && pwd -W 2>/dev/null || pwd)"
+mkdir -p "$SH/state" "$SH/desk"
+export LANES_STATE_DIR="$SHP/state" LANES_DESKTOP="$SHP/desk" LANES_WT_EXE="C:/fake/wt.exe"
+out=$(bash "$HERE/../../hooks/shortcut-offer" 2>&1)
+[ -z "$out" ] && ok "with no look on this PC the hook stays silent" || fail "the hook offered a shortcut with no look to open"
+printf '{ "applied": false, "reason": "no Windows Terminal on this PC" }\n' > "$SH/state/theme-state.json"
+out=$(bash "$HERE/../../hooks/shortcut-offer" 2>&1)
+[ -z "$out" ] && ok "a look that could not be applied gives no offer" || fail "offered although the look is not on"
+printf '{ "applied": true, "profile_guid": "{dddd}", "style_home": "%s/state/theme/green-monitor-lanes" }\n' "$SHP" > "$SH/state/theme-state.json"
+out=$(bash "$HERE/../../hooks/shortcut-offer" 2>&1)
+assert_contains 'LANES SHORTCUT' "$out" "with the look on, the offer is made"
+assert_contains 'Desktop' "$out" "and it is for the Desktop"
+assert_contains 'shortcut.py' "$out" "and it names the tool"
+out=$("$PY" "$HERE/../../tools/shortcut.py" create --dry-run --folder "$SHP/work" 2>&1)
+assert_contains '-p "{dddd}"' "$out" "the shortcut opens the profile the look is on"
+assert_contains 'claude' "$out" "and starts Claude Code"
+assert_contains "$SHP/desk" "$out" "on the Desktop"
+assert_contains 'Lanes.lnk' "$out" "named Lanes"
+assert_contains 'dry run' "$out" "a dry run makes nothing"
+[ -f "$SH/desk/Lanes.lnk" ] && fail "the dry run made a file" || ok "no file was made"
+[ -f "$HERE/../../theme/green-monitor-lanes/lanes.ico" ] && ok "the icon ships with the style" || fail "lanes.ico is missing from the style"
+out=$("$PY" "$HERE/../../tools/shortcut.py" decline 2>&1)
+assert_contains 'not be offered again' "$out" "no is remembered"
+out=$(bash "$HERE/../../hooks/shortcut-offer" 2>&1)
+[ -z "$out" ] && ok "after a no the hook stays silent" || fail "the offer repeated after a no"
+out=$("$PY" "$HERE/../../tools/shortcut.py" status 2>&1)
+assert_contains 'declined' "$out" "status says it was declined"
+rm -f "$SH/state/shortcut-state.json"
+out=$(LANES_SHORTCUT=0 bash "$HERE/../../hooks/shortcut-offer" 2>&1)
+[ -z "$out" ] && ok "LANES_SHORTCUT=0 switches the offer off" || fail "LANES_SHORTCUT=0 did not switch it off"
+printf 'shortcut = off\n' > "$SH/lanes.conf"
+out=$(LANES_CONFIG="$SHP/lanes.conf" bash "$HERE/../../hooks/shortcut-offer" 2>&1)
+[ -z "$out" ] && ok "shortcut = off in lanes.conf switches it off" || fail "shortcut = off did not switch it off"
+out=$("$PY" "$HERE/../../tools/shortcut.py" remove 2>&1)
+assert_contains 'nothing to remove' "$out" "remove with nothing on record says so"
+unset LANES_STATE_DIR LANES_DESKTOP LANES_WT_EXE
+rm -rf "$SH"
+grep -q 'shortcut-offer' "$HERE/../../hooks/hooks.json" && ok "the shortcut hook is registered for session start" || fail "hooks.json does not run shortcut-offer"
+
+echo
 if [ "$FAILED" -eq 0 ]; then echo "hooks-test: all assertions passed"; else echo "hooks-test: FAILURES above"; fi
 exit "$FAILED"
