@@ -32,3 +32,5 @@ stops the first-run apply.
 
 If we used your work and you are not credited here, or credited wrongly, please open an issue and we
 will fix it as soon as possible.
+
+`lanes.ico` (0.53.0) is `matrix-claude.png` as a Windows icon file, for the desktop shortcut `tools/shortcut.py` makes.

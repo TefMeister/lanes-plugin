@@ -45,7 +45,11 @@ description: (Update) Checks GitHub for a newer version of the lanes plugin, say
    anything else goes wrong.
 
    On success, say plainly that it is updated and that they need to restart Claude Code for it to
-   take effect. If a command fails, show its error in plain words and give them the commands to run
+   take effect. Then, if the plugin's look is on this PC and there is no desktop shortcut yet
+   (`python "${CLAUDE_PLUGIN_ROOT}/tools/shortcut.py" status` says "no shortcut yet"), offer one in one plain
+   sentence - a shortcut named **Lanes** on the Desktop that opens Claude Code exactly as this terminal looks -
+   with AskUserQuestion ("Make the shortcut" / "No thanks"): yes runs `shortcut.py create`, no runs
+   `shortcut.py decline` so it is not asked again (0.53.0). If a command fails, show its error in plain words and give them the commands to run
    themselves with `! `. Do not retry in a loop.
 
 5. **"Not now"**:

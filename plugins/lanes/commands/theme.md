@@ -23,6 +23,12 @@ The tool is `python "${CLAUDE_PLUGIN_ROOT}/tools/theme.py"`; read its `--help` o
   user in plain words: the plugin comes with one look; open Windows Terminal, click the small down
   arrow next to the + on the tab bar, pick "Green Monitor Claude"; it opens on the Desktop.
 - **`apply force`** → `theme.py apply --force`. Only when the user asked for the replacement.
+- **`shortcut`** → `python "${CLAUDE_PLUGIN_ROOT}/tools/shortcut.py" create` (0.53.0). Puts a shortcut named
+  **Lanes** on the Desktop that opens Claude Code in this look: Windows Terminal, the profile the look is on, the
+  same font, colours, banner and rolling light, starting in the folder this session runs in (`--folder <dir>` for
+  another). The first session after the look goes on offers it once by itself (hook `shortcut-offer`); after that
+  only this command makes one. `shortcut remove` takes it away, `shortcut status` says where it is.
+  `shortcut = off` in `lanes.conf` (or `LANES_SHORTCUT=0`) stops the offer.
 - **`restore`** → `theme.py restore`. Puts the profile and Claude Code's theme back exactly as they
   were; the font and the backup stay.
 
