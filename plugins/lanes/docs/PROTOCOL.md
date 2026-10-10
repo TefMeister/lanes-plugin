@@ -357,6 +357,20 @@ go on, say that instead, in one line, so the hold is never silent.
 _Asked for by the maintainer on 2026-10-08, after holding a rifle on the sky in the headset while the
 session saved pictures and said nothing about when it had enough._
 
+**The same tick for the app itself (0.56.0, 2026-10-10): say when it may be closed.**
+
+```
+✅ **You can quit the game now.**   - the FIRST line of the reply, the moment the session no longer needs the app open
+```
+
+When the person runs the app (a headset test, `/ms`), they cannot tell whether the session still wants it open to
+read its log, or whether closing it would lose something. So: while the app is needed, the request ends with "keep it
+running"; and the moment it is not (the log is read, or a change needs a restart), the reply opens with the tick on its
+own line, adding the reason in a few words when there is one ("the fixes need a restart"). Say "game" or the app's
+own name, whatever the person calls it. Never leave them guessing either way.
+
+_Asked for by the maintainer on 2026-10-10: "it is such a relief to know that something is ok to turn off."_
+
 ---
 
 ## 6. Code shape — small files, named numbers (0.7.0, 2026-09-17)
