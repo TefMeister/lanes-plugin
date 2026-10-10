@@ -289,6 +289,17 @@ and the text, so the next step is read together with the instructions):
 Checked by `tools/tests/handover-fixture.sh` (red and green boxes, the pushed row with its count, the
 claim row both ways, the other PC's row, no path in the output, `UNKNOWN` with no setup).
 
+### Talk, don't file: a short answer is just a few plain lines (0.57.0, 2026-10-10)
+
+The headings, icons, numbers and boxes below are for **write-ups**: the end of a session, a test result, anything the
+person will come back to. Everything else is conversation. A reply that is one short answer (a yes or no, an opinion,
+a quick fact, "got it, waiting for you") is two or three plain lines with no headings, circles, numbers or boxes, the
+way you would answer a person sitting next to you. Formatting a one-line answer as a report makes the exchange feel
+like paperwork and slows both sides down.
+
+_Asked for by the maintainer on 2026-10-10: "speaking to you is way more natural and i feel like i got a little too
+much into putting things in order i forgot to slow down a little."_
+
 ### The reply's own headings carry fixed icons too (0.19.0)
 
 The gate and model box got icons in 0.5.1 because people skim. The rest of the reply did not, so a
