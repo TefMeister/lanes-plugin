@@ -11,6 +11,13 @@ no stronger model than the one running.
 them **first**, before the rest of its work, unless the person has asked for something time-critical.
 Say in one plain line that you are doing it. Nobody has to type this command.
 
+**An idea that comes up DURING a session is filed straight away, by that session** (since 0.54.0).
+When the person says something that is an idea for later, a project already running included, file it
+right then with the steps below, between two pieces of work. Do not park it in `DUMP.md` for "the next
+session": the check only runs when a session starts, so a parked line waits until somebody happens to
+open a new one, and a long session can leave it there for a day. `DUMP.md` is the person's own channel
+(phone, GitHub); a session only writes there if it cannot reach the ideas repo at all, and then says so.
+
 Setup, once per machine: `ideas = /path/to/your-ideas-repo` in `~/.claude/lanes.conf`. No ideas repo
 yet? Copy `${CLAUDE_PLUGIN_ROOT}/template-ideas/` into a new **private** repo.
 
