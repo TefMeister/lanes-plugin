@@ -333,6 +333,12 @@ project starts here", not "this is a game".
 
 _Asked for by the maintainer on 2026-10-07._
 
+**The recorders (0.55.0, 2026-10-10):** `tools/obs-rec.py start <exe> <label> --game <project>` records only that window
+and its sound (Windows Graphics Capture + the program's own audio, never a screen capture), `stop` and `done` end it and
+put your OBS profile back. `tools/obs-autorec.py install` records any fullscreen game by itself. Both check the picture
+every 10 s while recording and reconnect to the window after 30 s of black, so a capture that missed the window at start-up
+does not run on black for the whole session.
+
 **One more fixed icon (0.50.0, 2026-10-08): the tick that ends a hold.**
 
 ```
