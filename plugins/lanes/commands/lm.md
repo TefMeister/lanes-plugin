@@ -287,6 +287,9 @@ or registry key before changing it.
 - **✅ A held test ends with a tick, not a guess.** When the person is holding something for a capture
   (headset on, controllers up, a pose), the first line of the reply once the capture is in is
   `✅ **You can stop**` (0.50.0, PROTOCOL §5). Then the reading, then the questions for their eyes.
+- **✅ Say when the app may be closed.** When the person is running it for you, end a request with "keep it
+  running" while you still need it, and open the reply with `✅ **You can quit the game now.**` the moment you do not
+  (0.56.0, PROTOCOL §5).
 - **Judge by eye where eyes are the right instrument.** A statistic that disagrees with what is
   plainly on screen is a broken statistic.
 - **Every install stays a dev build.** Never revert a change to make something usable again, and
