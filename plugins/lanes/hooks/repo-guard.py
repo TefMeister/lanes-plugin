@@ -36,21 +36,22 @@ REFUSE_API = ("Lanes: new GitHub repos are private by default. Add -F private=tr
               "or ask the person first if they want it public.")
 
 
+def new_repos_setting(path):
+    """The `new_repos = ...` value in one lanes.conf, lower-cased, or '' when unset or unreadable."""
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            text = f.read()
+    except OSError:
+        return ""
+    m = re.search(r"^\s*new_repos\s*=\s*(\S+)", text, re.M)
+    return m.group(1).strip().lower() if m else ""
+
+
 def conf_says_public():
     if (os.environ.get("LANES_NEW_REPOS") or "").strip().lower() == "public":
         return True
-    paths = ([os.environ["LANES_CONFIG"]] if os.environ.get("LANES_CONFIG")
-             else [os.path.expanduser("~/.claude/lanes.conf")])
-    for p in paths:
-        try:
-            with open(p, encoding="utf-8", errors="replace") as f:
-                for line in f:
-                    m = re.match(r"\s*new_repos\s*=\s*(\S+)", line)
-                    if m:
-                        return m.group(1).strip().lower() == "public"
-        except OSError:
-            continue
-    return False
+    path = os.environ.get("LANES_CONFIG") or os.path.expanduser("~/.claude/lanes.conf")
+    return new_repos_setting(path) == "public"
 
 
 def ask(reason):
