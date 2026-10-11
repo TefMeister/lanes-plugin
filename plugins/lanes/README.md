@@ -208,6 +208,7 @@ work is allowed through rather than blocked.
 | `/pd` lock | stops a second `/pd` starting on this machine while one is live |
 | live-claim guard | blocks `/pd` or `/lm` naming a job another same-lane session holds |
 | reader guard | refuses the `/lm` session's background reader any write to the board's status files |
+| private repos | new GitHub repos are private; the session asks you first which, if any, should be public, and a public one always needs your OK; `new_repos = public` turns it off (0.58.0) |
 
 **The reader guard is a hook, not a missing toolbox — said plainly.** The reader keeps its write
 tools so it can build in a staging area, so the control is a hook keyed on a documented payload
