@@ -22,6 +22,13 @@ START_TIMEOUT_S = 20
 RIDER = os.path.join("camera-jitter", "ride-along", "ride.py")
 INDEX = os.path.join("camera-jitter", "data", "INDEX.csv")
 PATTERNS = os.path.join("camera-jitter", "knowledge", "patterns.json")
+HEADER = os.path.join("camera-jitter", "ride-along", "jitterlog.h")
+# 0.59.0: the rule rides with the rider line, so it reaches every session that could build a VR mod.
+WIRE_RULE = ("RULE: every VR mod in early development has the jitter recorder wired in, without being asked: copy "
+             "BeG0nE's camera-jitter/ride-along/jitterlog.h into the mod and call jl_init at load, jl_vr_on/jl_vr_off "
+             "with the headset session, jl_pose_* where the head pose is read, jl_camera_* where the game camera takes "
+             "it, jl_present per frame out. A mod that reaches a headset without it gets it in that same session. "
+             "PROTOCOL section 18.")
 
 
 def conf_path():
@@ -97,6 +104,8 @@ def line(start=True):
         out += f" Last: {last}"
     if not sessions:
         out += " It idles until a mod wired to jitterlog.h starts a VR session."
+    if os.path.isfile(os.path.join(root, HEADER)):
+        out += "\n" + WIRE_RULE
     return out
 
 
