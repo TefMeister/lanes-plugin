@@ -1014,3 +1014,33 @@ the place a session looks when a problem keeps coming back.
   lists only those. Never for routine progress, or the mark stops meaning anything.
 - **Text, not screenshots:** a few hundred bytes each, searchable, and readable later without image cost.
 
+
+## 18. Every early VR mod carries the jitter recorder (0.59.0, 2026-10-11)
+
+Asked for by the maintainer after the first headset looks at three games in one evening, two of them jittery:
+*"please automatically turn it on for any game that is in early development and have that as a rule in the Lanes
+plugin as well"*.
+
+### The rule
+
+- **Every VR mod still in early development has BeG0nE's jitter recorder wired in, without being asked.** Copy
+  `camera-jitter/ride-along/jitterlog.h` from the BeG0nE clone into the mod's source, and call:
+  `jl_init(<project>, <runtime>)` at load; `jl_vr_on()` / `jl_vr_off()` when the headset session starts and stops;
+  `jl_pose_*()` where the head pose is read; `jl_camera_*()` where the game's camera takes it; `jl_present()` once
+  per frame sent out.
+- **A mod that reaches a headset without it gets it in that same session**, before or beside whatever else the
+  session was doing, and the build that carries it is recorded like any other.
+- It writes only while a headset session runs, so flat runs are untouched and nothing has to be switched on.
+- "Early development" means anything not yet in the finished group: when in doubt, wire it in.
+
+### Why
+
+A recording shows THAT a camera steps; only the three timing streams show WHY (renewed less often than the
+headset asks, a pose handed over twice, a frame behind). Without them every jitter report starts from nothing and
+costs the person another headset session. Wired in from the first headset build, the evidence is already there
+when they first say "jittery".
+
+### How it reaches the session
+
+The rule rides on the BeG0nE rider's session-start line (`tools/begone.py`), which every session prints when
+`begone = ...` is set in lanes.conf. No BeG0nE clone, no rule: there is nothing to wire in.

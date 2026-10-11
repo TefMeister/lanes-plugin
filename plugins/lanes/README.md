@@ -204,7 +204,7 @@ work is allowed through rather than blocked.
 | board summary | puts the one-line board in front of every new session |
 | owed check | greets this machine with work queued for it, and stays silent when there is none |
 | ideas check | when ideas are waiting in your ideas repo, has the session file them first; silent otherwise, and off until `ideas = ...` is set |
-| BeG0nE rider | starts BeG0nE's background rider and says what it holds; silent, and off, until `begone = ...` is set (0.52.0) |
+| BeG0nE rider | starts BeG0nE's background rider, says what it holds, and tells the session to wire the jitter recorder into every early VR mod; silent, and off, until `begone = ...` is set (0.52.0, rule 0.59.0) |
 | `/pd` lock | stops a second `/pd` starting on this machine while one is live |
 | live-claim guard | blocks `/pd` or `/lm` naming a job another same-lane session holds |
 | reader guard | refuses the `/lm` session's background reader any write to the board's status files |
