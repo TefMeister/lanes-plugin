@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# SessionStart hook: new GitHub repos are private by default, and the person is asked first about any
+# that should be public (0.58.0, 2026-10-11). hooks/repo-guard.py enforces it on the command itself.
+# `new_repos = public` in lanes.conf (or LANES_NEW_REPOS=public) switches both off. Silent on failure.
+set -uo pipefail
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+[ "$(printf '%s' "${LANES_NEW_REPOS:-}" | tr 'A-Z' 'a-z')" = "public" ] && exit 0
+CONF="${LANES_CONFIG:-$HOME/.claude/lanes.conf}"
+if [ -f "$CONF" ] && grep -Eiq '^[[:space:]]*new_repos[[:space:]]*=[[:space:]]*public' "$CONF"; then exit 0; fi
+
+PY=""
+for cand in python3 python py; do
+  command -v "$cand" >/dev/null 2>&1 || continue
+  "$cand" -c "" >/dev/null 2>&1 || continue
+  PY="$cand"; break
+done
+[ -n "$PY" ] || exit 0
+
+printf '%s' 'NEW REPOS ARE PRIVATE (lanes plugin): every GitHub repo you create is private by default (gh repo create ... --private). Before creating any, name each repo you are about to create and ask the person whether any of them should be public; use --public only for the ones they say. The same goes for turning an existing repo public.' \
+  | "$PY" "${SCRIPT_DIR}/emit_context.py"
+exit 0

@@ -299,6 +299,42 @@ unset LANES_STATE_DIR LANES_DESKTOP LANES_WT_EXE
 rm -rf "$SH"
 grep -q 'shortcut-offer' "$HERE/../../hooks/hooks.json" && ok "the shortcut hook is registered for session start" || fail "hooks.json does not run shortcut-offer"
 
+# ---------------------------------------------------------------- repo guard (0.58.0)
+echo "repo-guard"
+RG=$(mktemp -d); RGP=$(cygpath -m "$RG" 2>/dev/null || echo "$RG")
+export LANES_CONFIG="$RGP/lanes.conf"; : > "$RG/lanes.conf"
+rg_bash() { run_hook repo-guard.py "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":$(printf '%s' "$1" | "$PY" -c 'import json,sys;print(json.dumps(sys.stdin.read()))')}}"; }
+rg_bash 'gh repo create someone/new-game --private --clone'
+[ "$RC" = "0" ] && [ -z "$OUT" ] && ok "--private passes silently" || fail "--private should pass (rc=$RC, out=$OUT)"
+rg_bash 'gh repo create someone/new-game --clone'
+[ "$RC" = "2" ] && ok "no visibility flag is refused" || fail "no flag should be refused (rc=$RC)"
+assert_contains '--private' "$OUT" "the refusal says to add --private"
+rg_bash 'gh repo create someone/new-game --public'
+[ "$RC" = "0" ] && assert_contains '"permissionDecision": "ask"' "$OUT" "--public asks the person" || fail "--public should ask (rc=$RC)"
+rg_bash 'gh repo create a --private && gh repo create b --public'
+assert_contains '"ask"' "$OUT" "a public repo later in the same line still asks"
+rg_bash 'gh repo edit someone/x --visibility public --accept-visibility-change-consequences'
+assert_contains '"ask"' "$OUT" "turning a repo public asks"
+rg_bash 'gh api user/repos -f name=x'
+[ "$RC" = "2" ] && ok "an API repo create without private=true is refused" || fail "API create should be refused (rc=$RC)"
+rg_bash 'gh api user/repos -f name=x -F private=true'
+[ "$RC" = "0" ] && [ -z "$OUT" ] && ok "an API create with private=true passes" || fail "API private create should pass (rc=$RC)"
+rg_bash 'gh repo view someone/x; git push'
+[ "$RC" = "0" ] && [ -z "$OUT" ] && ok "other gh commands pass" || fail "other gh commands should pass (rc=$RC)"
+run_hook repo-guard.py 'this is not json'
+[ "$RC" = "0" ] && ok "bad input passes (never fails closed)" || fail "bad input must pass (rc=$RC)"
+printf 'new_repos = public\n' > "$RG/lanes.conf"
+rg_bash 'gh repo create someone/new-game'
+[ "$RC" = "0" ] && [ -z "$OUT" ] && ok "new_repos = public switches the guard off" || fail "new_repos = public should switch it off (rc=$RC)"
+out=$(LANES_CONFIG="$RG/lanes.conf" bash "$HOOKS/repo-rule" 2>&1)
+[ -z "$out" ] && ok "new_repos = public silences the session-start rule" || fail "repo-rule should be silent with new_repos = public"
+: > "$RG/lanes.conf"
+out=$(LANES_CONFIG="$RG/lanes.conf" CLAUDE_PLUGIN_ROOT=x bash "$HOOKS/repo-rule" 2>&1)
+assert_contains 'private by default' "$out" "the session-start rule is printed by default"
+unset LANES_CONFIG; rm -rf "$RG"
+grep -q 'repo-guard.py' "$HOOKS/hooks.json" && grep -q 'repo-rule' "$HOOKS/hooks.json" \
+  && ok "repo-guard and repo-rule are registered" || fail "hooks.json is missing repo-guard or repo-rule"
+
 echo
 if [ "$FAILED" -eq 0 ]; then echo "hooks-test: all assertions passed"; else echo "hooks-test: FAILURES above"; fi
 exit "$FAILED"

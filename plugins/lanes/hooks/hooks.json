@@ -17,6 +17,18 @@
         "hooks": [
           {
             "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" repo-rule",
+            "shell": "bash",
+            "timeout": 10,
+            "statusMessage": "Loading the private-repos rule",
+            "async": false
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" board-brief",
             "shell": "bash",
             "timeout": 20,
@@ -190,6 +202,17 @@
             "shell": "bash",
             "timeout": 60,
             "statusMessage": "Inspector: checking the commit"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook repo-guard.py",
+            "shell": "bash",
+            "timeout": 10
           }
         ]
       }
