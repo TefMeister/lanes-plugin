@@ -31,7 +31,7 @@ KEY = "machine_name"
 PREFIX = "PC"
 REGISTRY = "machines.txt"
 VALID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,23}$")
-PAT = re.compile(r"^\s*" + re.escape(KEY) + r"\s*=\s*(.*?)\s*$")
+PAT = re.compile(r"^\s*" + re.escape(KEY) + r"\s*=\s*(.*?)\s*(?:\s#.*)?$")
 REGISTRY_HEAD = ("# One name per PC that uses this board, written by the lanes plugin (tools/machine-name.py).\n"
                  "# Names only, never a computer's real name.\n")
 
@@ -43,7 +43,7 @@ def conf_candidates():
 
 
 def conf_get(key):
-    pat = re.compile(r"^\s*" + re.escape(key) + r"\s*=\s*(.*?)\s*$")
+    pat = re.compile(r"^\s*" + re.escape(key) + r"\s*=\s*(.*?)\s*(?:\s#.*)?$")
     for path in conf_candidates():
         if os.path.isfile(path):
             with open(path, encoding="utf-8", errors="replace") as f:

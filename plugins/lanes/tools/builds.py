@@ -95,7 +95,7 @@ def conf_candidates():
 
 
 def conf_get(key):
-    pat = re.compile(r"^\s*" + re.escape(key) + r"\s*=\s*(.*?)\s*$")
+    pat = re.compile(r"^\s*" + re.escape(key) + r"\s*=\s*(.*?)\s*(?:\s#.*)?$")
     for path in conf_candidates():
         if not os.path.isfile(path):
             continue
