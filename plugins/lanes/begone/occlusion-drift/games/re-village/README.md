@@ -20,7 +20,7 @@ Since 2026-10-01/02 it also takes over praydog's two-handed grip, worn and prove
   holding while your real hand stays on the rifle, through the bolt action and the reload animation. Praydog's own
   dock drops the moment the animation swings his hand spot away, which snapped the rifle to one-handed aim at every
   shot; that no longer happens.
-- **Auto-dock stays on.** The hand near the rifle grabs it, no button needed (Tefa's choice). `grip button 1` makes
+- **Auto-dock stays on.** The hand near the rifle grabs it, no button needed (the maintainer's choice). `grip button 1` makes
   the left grip button the only way to grip, live.
 - **The shot itself is covered.** Praydog re-runs his hand update inside the gun's shoot function; this file hooks
   the same function after him and puts its steering back before the bullet.
@@ -47,7 +47,7 @@ left-menu-button fix in its own file.
 
 ## Shipped
 
-**In the RE Village VR Scope mod v1.1.1 and v1.1.2 (2026-10-02), worn and confirmed by Tefa in the headset.** Since the split:
+**In the RE Village VR Scope mod v1.1.1 and v1.1.2 (2026-10-02), worn and confirmed by the maintainer in the headset.** Since the split:
 
 - The reference spot is frozen only once it can be trusted (held still 0.3 s, or within 10 cm of the captured rifle
   spot), and forgotten on a weapon change or after 5 s without a grip, so the rifle no longer points far right after a

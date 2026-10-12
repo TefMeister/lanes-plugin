@@ -1,5 +1,5 @@
 -- re8_vrz_begone_grip.lua -- BeG0nE for Resident Evil Village: the stacked two-handed grip and the drawn left
--- hand. VR only. Split out of the scope mod's re8_vrz_scope_left_grip.lua on 2026-10-01 (Tefa: "the Dr.BeGonE part
+-- hand. VR only. Split out of the scope mod's re8_vrz_scope_left_grip.lua on 2026-10-01 (the maintainer: "the Dr.BeGonE part
 -- extracted only for VR"); the code below is unchanged except: the 'grip sound' / 'grip anim' words moved with the
 -- probes to the scope's re8_vrz_scope_sounds_menu.lua, and the state line no longer counts silenced clicks.
 -- Still gated on the scope's rifle camera (st.clone_go), so today it only acts with the sniper rifle and the scope
@@ -10,9 +10,9 @@
 -- SOCKET" below. After a relaunch the rifle pointed far right: the first auto-dock froze the socket while the draw
 -- animation was still moving the hand, and every re-take for the rest of the session kept that wrong spot.
 --
--- re8_vrz_scope_left_grip.lua -- ONE left-hand grip spot on the rifle (2026-09-27, Tefa in the headset).
+-- re8_vrz_scope_left_grip.lua -- ONE left-hand grip spot on the rifle (2026-09-27, the maintainer in the headset).
 --
--- WHY: Tefa: "when the left hand is gripping the rifle, it has 3 different holding animations - one puts the hand on the
+-- WHY: the maintainer: "when the left hand is gripping the rifle, it has 3 different holding animations - one puts the hand on the
 -- rifle iron barrel when holding it at a certain angle, and then sometimes two hand positions seem to be fighting when
 -- holding the hand under the rifle". praydog's RE8VR::update_hand_ik (REFramework src/mods/vr/games/RE8VR.cpp) does not use
 -- a fixed grip spot: every frame it takes the game ANIMATION's left-hand joint relative to the right hand
@@ -46,7 +46,7 @@ local GRIP_PROBE_MIN_S = 0.1     -- seconds between probe lines
 
 local g = { on = false, pos = nil, rot = nil, probe = false, last = nil, last_t = 0.0, applied = 0, fingers = {} }
 
--- 2026-09-27 (Tefa, second wear): the hand stayed put, but "is still changing finger animations, like it was holding on
+-- 2026-09-27 (the maintainer, second wear): the hand stayed put, but "is still changing finger animations, like it was holding on
 -- to a different part" -- the finger curl comes from the game's animation too. So the captured grip also keeps the finger
 -- joints' local rotations, written back every frame after the IK solve. Names read live 2026-09-27 from the player's joints.
 local FINGER_JOINTS = { "L_Thumb1", "L_Thumb2", "L_Thumb3", "L_IndexF1", "L_IndexF2", "L_IndexF3", "L_MiddleF1", "L_MiddleF2",
@@ -139,7 +139,7 @@ local function fingers_apply()
     end
 end
 
--- ---- THE TWO FIXES (2026-10-01, Tefa: "make the gun not jump left when shooting two handed and also make the gun only
+-- ---- THE TWO FIXES (2026-10-01, the maintainer: "make the gun not jump left when shooting two handed and also make the gun only
 -- grippable by LG" -- LG is the left grip button).
 --
 -- praydog's RE8VR::update_hand_ik (stock REFramework a24c3459, the loader players install) decides the two-handed grip
@@ -162,7 +162,7 @@ end
 -- keeps its roll) -- the maths the loader's corrected build used from 2026-09-21 19:00 on. [hypothesis] that it feels the
 -- same as that build; the first wear says.
 local GRIP_NEEDS_BUTTON  = false   -- fix 2: the left grip button is the only way to dock. OFF by default since
-                                   -- 2026-10-02 00:40 (Tefa: "re-enable the hand docking the gun automatically but
+                                   -- 2026-10-02 00:40 (the maintainer: "re-enable the hand docking the gun automatically but
                                    -- remove the janking"); `grip button 1` turns it on live
 local GRIP_FREEZE_SOCKET = true    -- fix 1: steer against the socket frozen at the take
 local POSE_CHECK_WARN_M   = 0.003  -- metres: our recomputed right hand further than this from REFramework's = wrong
@@ -173,7 +173,7 @@ local DRIFT_LOG_STEP_DEG  = 1.0    -- log the animation moving the socket each t
 local GRIP_DOCK_M         = 0.10   -- metres: the hand this close to the FROZEN socket takes the grip (praydog's 10 cm)
 local GRIP_RELEASE_M      = 0.18   -- (stacked zone only now) metres
 local GRIP_RELEASE_DEG    = 70     -- (unused since 2026-10-02 afternoon, kept for the state line)
--- 2026-10-02 afternoon (Tefa: "i had to separate my hands a lot more to get the left hand to come off the gun"):
+-- 2026-10-02 afternoon (the maintainer: "i had to separate my hands a lot more to get the left hand to come off the gun"):
 -- the keep-test only measured the hand's DISTANCE from the right hand against an 18 cm band, plus a 70 deg angle,
 -- and praydog's own dock kept the grip too. Pulling the hand sideways barely counted. Now the grip lets go when the
 -- hand moves this far from WHERE IT WAS when the grip was taken, in distance OR in angle, whichever comes first.
@@ -181,15 +181,15 @@ local GRIP_RELEASE_DEG    = 70     -- (unused since 2026-10-02 afternoon, kept f
 local GRIP_LETGO_M        = 0.10   -- metres: the left hand closer/further than this from its distance at the take
 local GRIP_STEER_MIN_M    = 0.15   -- metres: a grip socket closer than this to the right hand (the pistol's is ~6 cm) is a
                                    -- support hand on a one-handed gun: the left hand is drawn on it but does NOT steer it
-                                   -- (Tefa, 2026-10-02 13:58: "with left hand on the pistol, i can steer it with left
+                                   -- (the maintainer, 2026-10-02 13:58: "with left hand on the pistol, i can steer it with left
                                    -- motion controller"). Two-handed guns (shotgun, rifle) sit at 39-46 cm.
 local GRIP_LETGO_DEG      = 25     -- degrees: the left hand swung this far around the right hand from its line at the take
 local SHOT_TRACE_PASSES   = 0      -- passes logged after each shot (3 per frame): the shot-jump instrument
 local REDOCK_KEEP_S       = 3.0    -- a grip re-taken within this many seconds of letting go keeps the socket frozen
                                    -- earlier (2026-10-02 00:45: after a shot the bolt animation swings the socket ~50 deg,
                                    -- the auto-dock drops and re-takes mid-animation, and a fresh freeze there snapped
-                                   -- the rifle sideways -- Tefa: "it over corrected")
--- ---- A TRUSTWORTHY SOCKET (2026-10-02 01:10, Tefa after a relaunch: the rifle pointed far right at strange angles).
+                                   -- the rifle sideways -- the maintainer: "it over corrected")
+-- ---- A TRUSTWORTHY SOCKET (2026-10-02 01:10, the maintainer after a relaunch: the rifle pointed far right at strange angles).
 -- The log: the first auto-dock after the relaunch froze the socket at (0.100, -0.437, 0.176) -- 48 cm from the right hand
 -- and still moving 1.9 deg per pass, the draw animation's hand, not the rifle's grip at (-0.367, -0.142, -0.001) -- and
 -- the re-take rule above kept that spot for every grip after it, 82 deg off the real socket. So a socket is FROZEN only
@@ -389,7 +389,7 @@ local function probe_tick(lp, lr, rp, rr)
         tostring(v.was_gripping_weapon), tostring(v.is_holding_left_grip), tostring(v.is_reloading)))
 end
 
--- ---- THE STACKED GRIP, in our own file (2026-09-27). Tefa's rule: players install praydog's REFramework and our mod only
+-- ---- THE STACKED GRIP, in our own file (2026-09-27). the maintainer's rule: players install praydog's REFramework and our mod only
 -- adds files. The stacked grip lived in our patched loader (grip-no-throw.patch, RE8VR::update_hand_ik, worn 2026-09-22:
 -- "the occlusion drift is no more"): with the LEFT GRIP BUTTON held and the left controller 3-35 cm above the right one
 -- (within 12 cm sideways to enter, 18 cm to leave), the left hand counts as holding the rifle -- drawn on the forestock --
@@ -419,7 +419,7 @@ end
 
 -- One pass, after REFramework's update_hand_ik. `final` = the PrepareRendering pass, the last of the frame, where the
 -- once-a-frame things (probe, timed capture) run.
--- 2026-10-02 00:30, Tefa after a script reset: "it still does it". The script had loaded and then logged nothing: it
+-- 2026-10-02 00:30, the maintainer after a script reset: "it still does it". The script had loaded and then logged nothing: it
 -- only acted while the scope's rifle camera was known to it (st.clone_go), and after a reset that is gone until the
 -- scope is rebuilt. The two fixes do not need the scope at all (they are about praydog's grip, for any long gun), so
 -- they now run whenever VR is on; the scope's rifle camera is only needed for the CAPTURED hand spot, which was
@@ -447,7 +447,7 @@ local function grip_pass(final)
     if wid ~= S.weapon then
         if S.weapon ~= nil then forget_frozen("the weapon changed") end
         S.weapon = wid
-        -- 2026-10-02 13:47 (Tefa's screenshots: the left hand floating open beside the pistol and the shotgun): the rifle
+        -- 2026-10-02 13:47 (the maintainer's screenshots: the left hand floating open beside the pistol and the shotgun): the rifle
         -- camera (st.clone_go) is made once and never cleared, so "the rifle camera exists" stayed true for EVERY weapon
         -- and every weapon's left hand was put on the rifle's captured forestock spot, 37 cm ahead of the right hand.
         -- The captured spot and finger pose now apply only when the weapon in hand IS the sniper rifle, by its name.
@@ -539,7 +539,7 @@ local function grip_pass(final)
         if S.need_clear and not near then S.need_clear = false end
         our_grip = allowed and (holding or (near and not S.need_clear))
     end
-    -- 2026-10-10 (Tefa: tilting the rifle or moving the right controller "breaks that reload animation and it doesn't
+    -- 2026-10-10 (the maintainer: tilting the rifle or moving the right controller "breaks that reload animation and it doesn't
     -- finish, the hand teleports back on the gun"): one line whenever the reload / button / dock / our grip changes, so the
     -- next run shows what cut the reload short.
     do
@@ -659,7 +659,7 @@ local function grip_pass(final)
     set_ik(v, v.right_hand_ik, v.right_hand_ik_transform, rp, rr_new)
     S.stage = "apply left hand"
     if reloading then
-        -- 2026-10-10 (Tefa, recording: "ethan's hand doesnt follow the reload animation, when i hold on to the gun with LG,
+        -- 2026-10-10 (the maintainer, recording: "ethan's hand doesnt follow the reload animation, when i hold on to the gun with LG,
         -- without LG held the reload animation is fine"): praydog's reload hand is placed against the right hand as HE posed
         -- it (rp_ik/rr_ik), but we just turned the right hand (rr_new), so the left hand came off the gun. Keep the
         -- animation's left hand exactly as it is relative to the right hand, re-attached to OUR right hand.
@@ -692,7 +692,7 @@ re.on_application_entry("UpdateMotion", function() run_pass(false) end)
 re.on_application_entry("LateUpdateBehavior", function() run_pass(false) end)
 re.on_pre_application_entry("PrepareRendering", function() run_pass(true) end)
 
--- ---- THE SHOT ITSELF (2026-10-02 00:40, Tefa after the first wear of the fixes: "the grip works, but the gun janks just
+-- ---- THE SHOT ITSELF (2026-10-02 00:40, the maintainer after the first wear of the fixes: "the grip works, but the gun janks just
 -- a little bit to the other side now"). re8_vr.lua hooks app.WeaponGunCore.shoot and, inside that hook, runs praydog's
 -- update_hand_ik once more BEFORE the bullet is made -- with the live animation socket, i.e. the old steering -- and our
 -- three passes only run later in the frame. So for the shot itself the gun stood where praydog put it. This hook sits on
