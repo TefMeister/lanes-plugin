@@ -167,6 +167,12 @@ nothing to do. Name anything it `SKIPPED` or `FAILED` in the write-up.
    means the split — move-only, backed up, proven to change nothing — is this session's job first.
    New probes go in their own files, tunable numbers get names, disproved probes go to `archive/`.
    `docs/PROTOCOL.md` §6.
+5a. **No screen-effects list in a game project's notes yet? Making it is a `/pd` job** (0.60.0). In VR every blur
+   and every effect painted on the screen goes off: motion blur, depth of field, grain, vignette, colour fringing,
+   lens flares and dirt, blood or rain on the screen, the low-health red tint, damage flashes, screen shake. Search
+   what the game ships (options, config and ini files, engine console settings, command-line switches, shader
+   and post-process names) and write down each effect, its switch, and how sure that is, so the live session only
+   has to flip them and look. `docs/PROTOCOL.md` §19.
 5b. **⚠ Before you build a lever, say which step runs LAST.** Write one line: *this runs at step N
    of M, the thing I want to change is decided at step K, N is before/after K.* If your change lands
    after the value is decided, you are annotating it, not fixing it — move upstream. Build it so it

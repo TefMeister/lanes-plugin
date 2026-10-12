@@ -42,6 +42,7 @@ If a file cannot be swapped while the app runs, say so and let them close it. Ne
 4. **Read the status file** (`OPEN` block first) and the project's own notes, including dead ends.
 5. **Show the project's fresh ideas**, if an ideas repo is set up (`/lanes:ideas`). The person is right
    there, so ask for the numbers and record them.
+5d. **Gameplay only** (0.60.0): before the first headset steps, the blur and screen effects go off (motion blur, depth of field, grain, vignette, blood or rain on the screen, low-health tint, screen shake): one of the first steps you hand the person is flipping the switches the notes list, or finding them together if there is no list yet. `docs/PROTOCOL.md` §19.
 5c. **Ask whether the game is in a window of the right size and they can still see this session** (`/lm` §4b), before the first steps, unless this project's route already stores their yes (`windowcheck --route`) and the window still matches. If it is not windowed yet, making it windowed IS the first job. Their answer settles it.
 6. **State the gate in one line,** and say in one line what you will try first and why it is the
    cheapest useful thing on the board. They may redirect; their choice wins.

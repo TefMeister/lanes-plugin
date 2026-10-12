@@ -265,6 +265,12 @@ done:
      A fullscreen or oversized game hides the Claude session from them, so they cannot follow or stop
      it. Nothing else begins until they have said yes (a user's rule, 2026-09-29).
    - **Once per project.** After they have said yes, store it (`mom windowcheck <window> --route <route.json> --confirmed`); later sessions only measure, and ask again only if the window changed size or turned fullscreen.
+4. **Gameplay only: switch off every blur and screen effect for VR** (0.60.0). Motion blur, depth of field,
+   film grain, vignette, colour fringing, lens flares and dirt, blood spatter or rain drops on the screen, the
+   low-health red tint, damage flashes, screen shake. Use the switches `/pd` found (or find them: menu, config,
+   engine settings, command line, then the shader pass), turn them off, look at the picture, and write down
+   where each lives and whether it held. One that cannot be switched off yet becomes its own board row.
+   `docs/PROTOCOL.md` §19.
 
 Why the window comes before any real work:
 - **Measurements carry between machines only if the picture is the same shape.** Anything keyed to
