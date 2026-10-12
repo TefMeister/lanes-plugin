@@ -1044,3 +1044,39 @@ when they first say "jittery".
 
 The rule rides on the BeG0nE rider's session-start line (`tools/begone.py`), which every session prints when
 `begone = ...` is set in lanes.conf. No BeG0nE clone, no rule: there is nothing to wire in.
+
+
+## 19. Gameplay only: every blur and screen effect off in VR (0.60.0, 2026-10-12)
+
+Asked for by the maintainer: *"switch off any blur effects in VR, also any screen effects like blood spatter, rain,
+low health red tint, so there is only gameplay during gameplay."*
+
+### The rule
+
+- **In VR, a game shows the world and nothing painted over it.** Every effect that sits on the screen rather than in
+  the world is switched off: motion blur, depth of field, radial / speed / camera blur, film grain, vignette,
+  chromatic aberration (colour fringing), lens flares and lens dirt, screen-space blood spatter, rain or water drops
+  on the "lens", the low-health red tint or pulse, damage flashes, screen shake, flat-screen "lens" distortions
+  (Panini and similar). Rain, blood and fog that exist IN the world stay; only what is painted on the camera goes.
+- **Every game, as part of modding it, without being asked:** find the switches. Look in this order, cheapest first:
+  the game's own options menu, its config / ini / registry settings, engine settings it still honours (Unreal
+  `r.*` lines, console variables), command-line switches, then the shader or post-process pass that draws the
+  effect (skip the draw, or zero its strength). Write down where each switch lives and whether it was proven, in
+  the project's notes, the same way as the window setting (`/lm` §4b).
+- **No game needed to look:** the search through settings files, string tables and shaders is `/pd` work. Turning
+  them off and checking the picture is the first live session after the window is fixed.
+- **If an effect cannot be switched off yet**, it goes on the board as a row of its own, so it is not forgotten.
+- Flat-screen play is not covered: the person may want the effects there. When a switch is shared, the VR build
+  turns it off when the headset session starts and leaves the flat setting alone.
+
+### Why
+
+On a flat screen these effects are a film language. In a headset they are glued to your eyes: blur and grain
+cannot be focused past, a red tint or blood on the "lens" has no distance, and screen shake moves the world while
+the head is still, which is a direct path to motion sickness. Worse, each one hides what the head is doing from
+the person testing it, so comfort and jitter judgements get muddied. Gameplay only, during gameplay.
+
+### How it reaches the session
+
+`/lm` §4b step 4 (the first live session, right after the window), `/pd` step 5 (the static search, when a
+project's notes have no screen-effects list yet) and `/ms` 5d.
