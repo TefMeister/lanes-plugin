@@ -141,7 +141,7 @@ def read_conf(key):
         try:
             with open(path, encoding="utf-8") as f:
                 for line in f:
-                    m = re.match(r"^\s*" + re.escape(key) + r"\s*=\s*(.*?)\s*$", line)
+                    m = re.match(r"^\s*" + re.escape(key) + r"\s*=\s*(.*?)\s*(?:\s#.*)?$", line)
                     if m:
                         return m.group(1).strip().strip('"')
         except OSError:
