@@ -33,6 +33,7 @@ you have at the start of every session: *what can I actually do right now?*
 | `/menu` | Menu-o-matiC, Move-o-matiC and State-o-matiC | You play a game's menus and a short route once while it records; after that it repeats them by itself, and can tell menu, loading, cutscene and gameplay apart. |
 | `/setup` | Setup | First-run setup: your name, this PC's name, and optional tools. |
 | `/update` | Update | Gets the newest version of the plugin, after asking you. |
+| `/uninstall` | Uninstall | Takes Lanes off this PC in one go, after showing what it will do: the look, the shortcut, its helpers and settings, then the plugin. Your own work stays. |
 | `/theme` | Theme | The plugin's look (see below): puts it on, or puts your terminal back the way it was. |
 | `/pt` | Plugin Test | Tests the plugin itself. |
 
@@ -115,7 +116,7 @@ what is new and never installs without asking. The full manual is in
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.60.2`, early public release |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.61.0`, early public release |
 
 ## Modding games?
 
