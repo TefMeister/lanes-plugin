@@ -1024,7 +1024,8 @@ plugin as well"*.
 ### The rule
 
 - **Every VR mod still in early development has BeG0nE's jitter recorder wired in, without being asked.** Copy
-  `camera-jitter/ride-along/jitterlog.h` from the BeG0nE clone into the mod's source, and call:
+  `begone/camera-jitter/jitterlog.h` (or `jitterlog.lua` for REFramework) from the plugin into the mod's source
+  (since 0.62.0; before, from the BeG0nE clone's `camera-jitter/ride-along/`), and call:
   `jl_init(<project>, <runtime>)` at load; `jl_vr_on()` / `jl_vr_off()` when the headset session starts and stops;
   `jl_pose_*()` where the head pose is read; `jl_camera_*()` where the game's camera takes it; `jl_present()` once
   per frame sent out.
@@ -1042,8 +1043,8 @@ when they first say "jittery".
 
 ### How it reaches the session
 
-The rule rides on the BeG0nE rider's session-start line (`tools/begone.py`), which every session prints when
-`begone = ...` is set in lanes.conf. No BeG0nE clone, no rule: there is nothing to wire in.
+The rule rides on the BeG0nE session-start lines (`tools/begone.py`), which every session prints. Since 0.62.0 the
+tools ship in the plugin, so there is always something to wire in; `begone = ...` only says where reports are kept.
 
 
 ## 19. Gameplay only: every blur and screen effect off in VR (0.60.0, 2026-10-12)
@@ -1080,3 +1081,42 @@ the person testing it, so comfort and jitter judgements get muddied. Gameplay on
 
 `/lm` §4b step 4 (the first live session, right after the window), `/pd` step 5 (the static search, when a
 project's notes have no screen-effects list yet) and `/ms` 5d.
+
+## 20. The BeG0nE tools ship in Lanes, and reports are read, never raw numbers (0.62.0, 2026-10-12)
+
+Asked for by the maintainer: *"please ship the occlusion drift height fix, jitter recorder and now Ghost hand in the
+lanes plugin, and if we make a 4th BeG0nE tool, we'll add that too. make sure you also add to lanes for yourself, to
+check what they record if a problem arises"*, then: *"is there a way for you to make it impossible to read the raw
+numbers that would possibly fill the session by accident? or ... some sort of a program on the pc, that crunches all
+these numbers and gives you a short summary of it"*.
+
+### The tools
+
+`begone/` holds every tool, each a folder with a `tool.json`: **Camera Jitter** (the stepped camera), **Ghost Hand**
+(gaps between the real hand and the player's hand: lag, offset, jumps, lost tracking, gestures that miss) and
+**Occlusion Drift** (no recorder of its own; read through Ghost Hand's tracked flags; per-game cure code in
+`games/`). A fourth tool is a fourth folder: the rider, the reader and the lock find it by its `tool.json`.
+
+### The rules
+
+- **Wire the recorders in.** Every early VR mod carries the jitter recorder (section 18). **Any mod with hand
+  gestures** (racking a slide, working a pump, grabbing, reloading by hand, two-handed aim) **also carries Ghost
+  Hand**, with `gh.event(<gesture>, 'start' | 'done' | 'fail')` around every gesture and `gh.value('<gesture>_need',
+  metres)` so a miss can be judged. `tools/begone.py tools` prints how to wire each one.
+- **The PC counts, the session reads.** The rider files each recording the moment a headset session ends: the tool's
+  filer writes a short `report.md` and a `summary.json`. A session never opens `summary.json` or a raw recording;
+  `hooks/begone-raw-guard.py` refuses it (Read, Grep, and shell commands that read). Not airtight, by design: it
+  stops the accident.
+- **After every headset test, `begone.py new`.** One line per new report since this PC last looked; a bookmark per
+  PC (`~/.claude/lanes/begone-seen.json`) means nothing is shown twice and nothing is missed. The session start
+  prints the same lines.
+- **Read in full when it matters.** Open a report (`begone.py report <tool> latest`) when its line looks wrong, or
+  when the job is linked to that tool: `begone.py for "<job>"` says which (slide racking, grabbing, reloads ->
+  Ghost Hand; walking, running, turning -> Camera Jitter; two-handed aim and shooting -> Ghost Hand and Occlusion
+  Drift). Dig further only with `begone.py ask <tool> <run> <question>`, whose answers are capped at 60 lines.
+
+### Why
+
+One filed jitter session's `summary.json` is 600 KB and its report under 1 KB. Reading every report after every
+session costs little; reading raw numbers by accident costs a session. The bookmark keeps the cheap part from
+growing, and the lock keeps the dear part from happening by mistake.

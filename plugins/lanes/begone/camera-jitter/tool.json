@@ -1,0 +1,11 @@
+{
+  "name": "Camera Jitter BeG0nE",
+  "short": "jitter",
+  "what": "the stepped, jittery camera in VR: records when the head pose is read, the camera written and the picture sent",
+  "log_dir": "jitter",
+  "log_ext": ".jl",
+  "filer": "file_jitter.py",
+  "jobs": ["walk", "run", "turn", "camera", "head", "jitter", "stepped", "smooth", "drive", "fly", "look"],
+  "raw": ["summary.json", "*.jl"],
+  "wire": "copy jitterlog.h (native) or jitterlog.lua (REFramework) from the plugin's begone/camera-jitter/ into the mod; jl_init at load, jl_vr_on/jl_vr_off with the headset session, jl_pose_* where the head pose is read, jl_camera_* where the game camera takes it, jl_present per frame out"
+}

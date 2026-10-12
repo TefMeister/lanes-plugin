@@ -352,10 +352,42 @@ out=$(LANES_CONFIG="$NR/lanes.conf" CLAUDE_PLUGIN_ROOT="$HERE/../.." bash "$HERE
 assert_contains '\"User\"' "$out" "and after clearing it, the person is User again"
 grep -q '"name-rule"\|name-rule' "$HERE/../../hooks/hooks.json" && ok "the naming hook is registered for session start" || fail "hooks.json does not run name-rule"
 
-echo "the BeG0nE rider hook is registered and silent with nothing configured"
+echo "the BeG0nE tools ship in the plugin, file, read and lock (0.62.0)"
 grep -q "begone-ride" "$HERE/../../hooks/hooks.json" && ok "hooks.json runs begone-ride" || fail "hooks.json does not run begone-ride"
-out=$(LANES_CONFIG="/nonexistent/lanes.conf" LANES_BEGONE="" bash "$HERE/../../hooks/begone-ride" 2>&1); rc=$?
-[ "$rc" = "0" ] && [ -z "$out" ] && ok "begone-ride says nothing and exits 0 without a clone" || fail "begone-ride without a clone: rc=$rc out=$out"
+grep -q "begone-raw-guard.py" "$HERE/../../hooks/hooks.json" && ok "hooks.json runs the raw-number lock" || fail "hooks.json does not run begone-raw-guard.py"
+out=$(LANES_BEGONE_RIDE=0 bash "$HERE/../../hooks/begone-ride" 2>&1); rc=$?
+[ "$rc" = "0" ] && [ -z "$out" ] && ok "begone-ride is silent when switched off" || fail "begone-ride switched off: rc=$rc out=$out"
+n=$(ls "$HERE"/../../begone/*/tool.json 2>/dev/null | wc -l)
+[ "$n" -ge 3 ] && ok "$n BeG0nE tools ship in begone/" || fail "only $n BeG0nE tools in begone/"
+"$PY" "$HERE/../../begone/ghost-hand/ghost_hand_check.py" selftest >/dev/null 2>&1 && ok "Ghost Hand self-test passes" || fail "Ghost Hand self-test fails"
+"$PY" "$HERE/../../begone/camera-jitter/jitter_log_check.py" selftest >/dev/null 2>&1 && ok "Camera Jitter self-test passes" || fail "Camera Jitter self-test fails"
+BH="$NR/begone-home"; BS="$NR/begone-state"
+mkdir -p "$BH/ghost-hand/data/demo/r1"
+printf 'run,game,runtime,date,time,seconds,attempts,finished,jumps,tracking_lost,quality,verdict
+r1,demo,test,2026-10-12,10-00-00,5,2,1,0,0,good,rack: 1 of 2 finished
+' > "$BH/ghost-hand/data/INDEX.csv"
+printf '# demo
+
+rack: 1 of 2 finished
+' > "$BH/ghost-hand/data/demo/r1/report.md"
+out=$(LANES_BEGONE="$BH" LANES_STATE_DIR="$BS" "$PY" "$TOOLS/begone.py" new)
+assert_contains "bookmarked" "$out" "the first look on a PC bookmarks what was already filed"
+printf 'r2,demo,test,2026-10-12,11-00-00,5,2,2,0,0,good,rack: 2 of 2 finished
+' >> "$BH/ghost-hand/data/INDEX.csv"
+out=$(LANES_BEGONE="$BH" LANES_STATE_DIR="$BS" "$PY" "$TOOLS/begone.py" new)
+assert_contains "NEW Ghost Hand BeG0nE - demo" "$out" "a report filed after that shows as NEW"
+out=$(LANES_BEGONE="$BH" LANES_STATE_DIR="$BS" "$PY" "$TOOLS/begone.py" new)
+assert_contains "nothing new" "$out" "and only once"
+out=$(LANES_BEGONE="$BH" LANES_STATE_DIR="$BS" "$PY" "$TOOLS/begone.py" report ghost r1)
+assert_contains "1 of 2 finished" "$out" "a report is read by name"
+out=$("$PY" "$TOOLS/begone.py" for "make the slide rack by hand accurate")
+assert_contains "Ghost Hand" "$out" "a hand-gesture job is linked to Ghost Hand"
+echo '{"tool_name":"Read","tool_input":{"file_path":"'"$BH"'/ghost-hand/data/demo/r1/summary.json"}}' | LANES_BEGONE="$BH" "$PY" "$HERE/../../hooks/begone-raw-guard.py" >/dev/null 2>&1
+[ "$?" = "2" ] && ok "the lock refuses reading a summary.json" || fail "the lock let a summary.json through"
+echo '{"tool_name":"Read","tool_input":{"file_path":"'"$BH"'/ghost-hand/data/demo/r1/report.md"}}' | LANES_BEGONE="$BH" "$PY" "$HERE/../../hooks/begone-raw-guard.py" >/dev/null 2>&1
+[ "$?" = "0" ] && ok "the lock lets the report through" || fail "the lock refused a report.md"
+echo '{"tool_name":"Bash","tool_input":{"command":"cat '"$BH"'/ghost-hand/data/demo/r1/summary.json"}}' | LANES_BEGONE="$BH" "$PY" "$HERE/../../hooks/begone-raw-guard.py" >/dev/null 2>&1
+[ "$?" = "2" ] && ok "the lock refuses cat on a summary.json" || fail "the lock let cat through"
 rm -rf "$NR"
 
 # The shipped plugin itself must be clean. This is the assertion that matters.

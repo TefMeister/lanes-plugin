@@ -80,7 +80,7 @@
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" begone-ride",
             "shell": "bash",
             "timeout": 45,
-            "statusMessage": "BeG0nE: starting the rider",
+            "statusMessage": "BeG0nE: starting the rider, reading new reports",
             "async": false
           }
         ]
@@ -211,6 +211,17 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook repo-guard.py",
+            "shell": "bash",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Grep|Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook begone-raw-guard.py",
             "shell": "bash",
             "timeout": 10
           }
