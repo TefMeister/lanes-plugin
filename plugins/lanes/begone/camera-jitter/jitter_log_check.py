@@ -11,7 +11,7 @@ Per second of log, while the head is turning, it measures:
   pose repeated    share of pose reads identical to the read before, while the head moved           -> stale pose
   pose age         how old the pose was when the camera was written (ms)                            -> latency
   camera lag       the camera matching the pose BEFORE last better than the last one                -> one-frame lag
-Vocabulary is Tefa's (claude-memory PREFERENCES.md, "what jittery means"): JITTER = stepped under a smooth slow turn.
+Vocabulary is the maintainer's (claude-memory PREFERENCES.md, "what jittery means"): JITTER = stepped under a smooth slow turn.
 """
 import json
 import math

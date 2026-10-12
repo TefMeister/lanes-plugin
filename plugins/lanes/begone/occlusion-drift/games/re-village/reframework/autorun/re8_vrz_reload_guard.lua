@@ -1,6 +1,6 @@
--- re8_vrz_reload_guard.lua -- a reload is not cancelled by the hands-up block gesture (2026-10-10, Tefa in the headset).
+-- re8_vrz_reload_guard.lua -- a reload is not cancelled by the hands-up block gesture (2026-10-10, the maintainer in the headset).
 --
--- WHY: Tefa, with the left hand gripping the rifle (LG held): "tilting it up and down and moving the right controller ...
+-- WHY: the maintainer, with the left hand gripping the rifle (LG held): "tilting it up and down and moving the right controller ...
 -- breaks that reload animation and it doesn't finish, the hand teleports back on the gun" -- "it's when i raised my right
 -- controller it stops reloading". Without LG the reload is fine.
 -- The grip log showed our grip never let go during those reloads; praydog's is_reloading simply ended after 0.3-1.5 s,
@@ -22,7 +22,7 @@ local function L(s) log.info(TAG .. tostring(s)) end
 local CFG_FILE = "re_scope_reload_guard.txt"
 local CFG_EVERY_S = 1.0
 
--- two_hands=1 (2026-10-10, Tefa: "block the guard if there are two hands on the weapon for all guns, so if LG held and
+-- two_hands=1 (2026-10-10, the maintainer: "block the guard if there are two hands on the weapon for all guns, so if LG held and
 -- hand docked"): with the left grip button held AND the left hand docked on the weapon (praydog's was_gripping_weapon),
 -- the block gesture is ignored on every gun, reloading or not. two_hands=0 = only during reloads.
 local cfg = { on = 1, two_hands = 1 }
