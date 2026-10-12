@@ -90,13 +90,28 @@ fi
 # Boards carry ISO dates throughout; the newest one anywhere in status/ is a
 # good proxy for "when was this estate last worked". Deliberately simple: a
 # smarter parse would be a second thing to keep in step with the board format.
+# Dates AFTER today are plans ("Wednesday 2026-10-14: ..."), not work: they are left out (0.60.2; one planned
+# date made every session for two days say the page was behind when it was not).
+TODAY="$(date +%F)"
 newest_date_in() {
-  grep -rhoE '20[0-9]{2}-[01][0-9]-[0-3][0-9]' "$@" 2>/dev/null | sort | tail -1
+  grep -rhoE '20[0-9]{2}-[01][0-9]-[0-3][0-9]' "$@" 2>/dev/null | awk -v t="$TODAY" '$0 <= t' | sort | tail -1
+}
+
+# The page is read as GitHub has it (origin/main) when it lives in a git clone: a local clone nobody has pulled
+# shows an old page (0.60.2). A failed fetch falls back to the file on disk, as before.
+page_text() {
+  local dir rel
+  dir="$(cd "$(dirname "$PAGE")" 2>/dev/null && git rev-parse --show-toplevel 2>/dev/null)" || dir=""
+  if [ -n "$dir" ] && timeout 20 git -C "$dir" fetch -q origin 2>/dev/null; then
+    rel="$(cd "$(dirname "$PAGE")" && git ls-files --full-name "$(basename "$PAGE")" 2>/dev/null)"
+    [ -n "$rel" ] && git -C "$dir" show "origin/HEAD:$rel" 2>/dev/null && return 0
+    [ -n "$rel" ] && git -C "$dir" show "origin/main:$rel" 2>/dev/null && return 0
+  fi
+  cat "$PAGE"
 }
 
 BOARD_DATE="$(newest_date_in "$BOARD/status")"
-PAGE_DATE="$(newest_date_in "$PAGE")"
-TODAY="$(date +%F)"
+PAGE_DATE="$(page_text | grep -oE '20[0-9]{2}-[01][0-9]-[0-3][0-9]' | awk -v t="$TODAY" '$0 <= t' | sort | tail -1)"
 
 if [ -z "$BOARD_DATE" ]; then
   [ "$QUIET" -eq 1 ] || echo "frontpage-scan: no dates found on any board - nothing to compare."
