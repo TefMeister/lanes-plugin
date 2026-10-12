@@ -204,10 +204,11 @@ work is allowed through rather than blocked.
 | board summary | puts the one-line board in front of every new session |
 | owed check | greets this machine with work queued for it, and stays silent when there is none |
 | ideas check | when ideas are waiting in your ideas repo, has the session file them first; silent otherwise, and off until `ideas = ...` is set |
-| BeG0nE rider | starts BeG0nE's background rider, says what it holds, and tells the session to wire the jitter recorder into every early VR mod; silent, and off, until `begone = ...` is set (0.52.0, rule 0.59.0) |
+| BeG0nE tools | starts the BeG0nE rider, shows one line per new report since this PC last looked, and tells the session to wire the jitter recorder (every early VR mod) and Ghost Hand (any mod with hand gestures) in; the tools ship in `begone/` (0.52.0, in the plugin since 0.62.0) |
 | `/pd` lock | stops a second `/pd` starting on this machine while one is live |
 | live-claim guard | blocks `/pd` or `/lm` naming a job another same-lane session holds |
 | reader guard | refuses the `/lm` session's background reader any write to the board's status files |
+| BeG0nE raw-number lock | refuses reading BeG0nE's raw recordings and `summary.json` files by accident, and points to `begone.py report` / `ask` instead (0.62.0) |
 | private repos | new GitHub repos are private; the session asks you first which, if any, should be public, and a public one always needs your OK; `new_repos = public` turns it off (0.58.0) |
 
 **The reader guard is a hook, not a missing toolbox — said plainly.** The reader keeps its write

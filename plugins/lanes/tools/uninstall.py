@@ -39,7 +39,9 @@ DEFAULT_INSPECTOR = os.environ.get("LANES_INSPECTOR_HOME") or os.path.join(HOME,
 READER_LOG = os.path.join(os.path.dirname(CONF), "lanes-reader-refusals.log")
 STARTUP_LNK = os.path.join(os.path.expandvars(r"%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"),
                            "OBS auto-record games.lnk")
-RIDER = os.path.join("camera-jitter", "ride-along", "ride.py")
+# 0.62.0: the rider ships in the plugin; its pid file is where the old BeG0nE ride.py kept one too.
+RIDER = os.path.join(os.path.dirname(HERE), "begone", "rider.py")
+RIDER_PID = os.path.join(os.environ.get("LOCALAPPDATA") or HOME, "BeG0nE", "ride.pid")
 DRY_TOOLS = os.environ.get("LANES_UNINSTALL_DRY_TOOLS") == "1"
 TOOL_TIMEOUT_S = 60
 PLUGIN_ID = "lanes@lanes-plugin"
@@ -102,13 +104,12 @@ def run_claude(args):
 
 def items():
     """What Lanes put on this PC: (key, present, what it is, what removing it does)."""
-    begone = conf_get("begone")
     shortcut = (read_json(os.path.join(STATE_DIR, "shortcut-state.json")) or {}).get("path", "")
     theme = read_json(os.path.join(STATE_DIR, "theme-state.json")) or {}
     insp = conf_get("inspector_home")
     return [
-        ("rider", bool(begone) and os.path.isfile(os.path.join(begone, RIDER)),
-         "BeG0nE's background rider (started by Lanes each session)", "stopped; BeG0nE itself stays"),
+        ("rider", os.path.isfile(RIDER_PID),
+         "the BeG0nE rider (started by Lanes each session)", "stopped and out of Startup; its reports stay"),
         ("autorec", os.path.isfile(STARTUP_LNK), "the automatic OBS recorder in Windows' Startup folder",
          "taken out of Startup and stopped"),
         ("shortcut", bool(shortcut) and os.path.isfile(shortcut), "the 'Lanes' Desktop shortcut", "deleted"),
@@ -157,7 +158,7 @@ def do(keep_settings, keep_plugin):
 
     say("LANES UNINSTALL:")
     if present["rider"]:
-        step("BeG0nE rider stopped", *run_tool([os.path.join(conf_get("begone"), RIDER), "stop"]))
+        step("BeG0nE rider stopped", *run_tool([RIDER, "uninstall"]))
     if present["autorec"]:
         step("OBS auto-recorder out of Startup", *run_tool([os.path.join(HERE, "obs-autorec.py"), "uninstall"]))
     if present["shortcut"]:

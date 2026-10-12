@@ -1,0 +1,11 @@
+{
+  "name": "Ghost Hand BeG0nE",
+  "short": "ghost",
+  "what": "the gaps between the real hand and the player's hand in VR: lag, offset, sudden jumps, lost tracking, and hand gestures (racking, grabbing) that miss",
+  "log_dir": "ghost-hand",
+  "log_ext": ".ghl",
+  "filer": "ghost_hand_check.py",
+  "jobs": ["rack", "slide", "pump", "reload", "grab", "holster", "hand", "finger", "magazine", "shell", "two-handed", "two handed", "melee", "throw", "gesture", "controller", "occlusion", "drift", "aim", "shoot"],
+  "raw": ["summary.json", "*.ghl"],
+  "wire": "copy ghosthand.lua (REFramework) from the plugin's begone/ghost-hand/ into the mod; gh.init at load, gh.vr_on/gh.vr_off with the headset session, then once per frame gh.real (each controller, with its tracked flag), gh.game (each hand the game draws), gh.part (the weapon's moving parts), gh.value (what the mod measured), gh.frame(); gh.event(<gesture>, 'start'|'done'|'fail') around every hand gesture"
+}

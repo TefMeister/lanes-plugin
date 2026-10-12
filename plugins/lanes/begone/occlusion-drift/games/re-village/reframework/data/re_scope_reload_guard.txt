@@ -1,0 +1,4 @@
+# re_scope_reload_guard.txt -- on=1: the hands-up block gesture is ignored while reloading; on=0: off. Read every second.
+on=1
+# two_hands=1: also ignored whenever the left grip button is held AND the left hand is docked on the weapon (every gun).
+two_hands=1

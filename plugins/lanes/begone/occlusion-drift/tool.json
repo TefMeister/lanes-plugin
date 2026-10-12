@@ -1,0 +1,10 @@
+{
+  "name": "Occlusion Drift BeG0nE",
+  "short": "occlusion",
+  "what": "a two-handed weapon's aim drifting because the front hand hides the back controller; the cure is a left-above-right grip",
+  "log_dir": "",
+  "checked_by": ["ghost-hand", "camera-jitter"],
+  "jobs": ["two-handed", "two handed", "aim", "rifle", "shotgun", "scope", "sights", "shoot", "occlusion", "drift", "grip"],
+  "raw": [],
+  "wire": "no recorder of its own: Ghost Hand's tracked flags (and jitterlog's jl_hand lines) show whether a controller was lost while the hands were stacked. Per-game cure code is in games/."
+}

@@ -1,119 +1,217 @@
-"""begone.py - BeG0nE rides every session (0.52.0): start its background rider, and say in one line what it holds.
+"""begone.py - the BeG0nE tools ride every session (0.52.0; shipped inside the plugin since 0.62.0).
 
-    python begone.py brief      start the rider if it is not running; print one line for the session start
-    python begone.py status     the same line, for a person
+    python begone.py brief                 start the rider if needed; print what is NEW since the last look (then
+                                           bookmark it), the tools and when to read them, and the wiring rules
+    python begone.py status                the same, for a person, without moving the bookmark
+    python begone.py new [--peek]          only the new reports, one line each (--peek keeps the bookmark where it is)
+    python begone.py report <tool> <run|latest> [--game <project>]     one report in full (short by design)
+    python begone.py ask <tool> <run|latest> <question...> [--game <project>]
+                                           a short answer computed from the numbers, capped in size
+    python begone.py for "<what the job is>"                which tools to read for this job
+    python begone.py tools                 every tool, what it watches, how a mod wires it in
 
-BeG0nE (a separate, public repo) collects, while a game runs in VR, what a VR mod did with the headset pose, the
-camera and the controllers, and keeps a knowledge base of what jittery and smooth cameras look like in the numbers.
-Its code is updated on its own; this plugin only knows where the clone is (`begone = ...` in lanes.conf, or
-$LANES_BEGONE) and starts its rider once per session. The rider idles until a mod starts a VR session, so it costs
-nothing during ordinary work. With no clone configured, this says nothing.
+WHY IT IS BUILT LIKE THIS (asked for by the maintainer, 2026-10-12)
+  A recording is two things: a short report (a paragraph) and the raw numbers (one Alan Wake session: 600 KB, most
+  of a session's reading on its own). So the PC does the counting (each tool's filer, run by the rider the moment a
+  headset session ends), the session reads one line per NEW report (a bookmark per PC remembers what was shown),
+  opens the full report only when a line looks wrong or the job is linked to that tool, and asks questions through
+  `ask`, whose answers are capped. The raw files themselves are locked (hooks/begone-raw-guard.py).
 
-Nothing printed here names a path, a machine or a person: project names and counts only.
+Nothing printed here names a path, a machine or a person: project names, counts and verdicts only.
 """
 import csv
 import json
 import os
-import re
 import subprocess
 import sys
 
+HERE = os.path.dirname(os.path.abspath(__file__))
+BEGONE = os.path.join(os.path.dirname(HERE), "begone")
+sys.path.insert(0, BEGONE)
+import begone_common as bc  # noqa: E402
+
+RIDER = os.path.join(BEGONE, "rider.py")
+STATE_DIR = os.environ.get("LANES_STATE_DIR") or os.path.join(os.path.expanduser("~"), ".claude", "lanes")
+SEEN = os.path.join(STATE_DIR, "begone-seen.json")
 START_TIMEOUT_S = 20
-RIDER = os.path.join("camera-jitter", "ride-along", "ride.py")
-INDEX = os.path.join("camera-jitter", "data", "INDEX.csv")
-PATTERNS = os.path.join("camera-jitter", "knowledge", "patterns.json")
-HEADER = os.path.join("camera-jitter", "ride-along", "jitterlog.h")
-# 0.59.0: the rule rides with the rider line, so it reaches every session that could build a VR mod.
-WIRE_RULE = ("RULE: every VR mod in early development has the jitter recorder wired in, without being asked: copy "
-             "BeG0nE's camera-jitter/ride-along/jitterlog.h into the mod and call jl_init at load, jl_vr_on/jl_vr_off "
-             "with the headset session, jl_pose_* where the head pose is read, jl_camera_* where the game camera takes "
-             "it, jl_present per frame out. A mod that reaches a headset without it gets it in that same session. "
-             "PROTOCOL section 18.")
+VERDICT_CHARS = 200             # one new-report line never carries more of the verdict than this
+NEW_MAX = 12                    # at most this many new lines at session start; the rest are counted
+ASK_MAX_LINES = 60              # an answer is cut here, whatever the tool printed
+ASK_MAX_CHARS = 4000
+REPORT_MAX_LINES = 80
+
+READ_RULE = ("RULE: BeG0nE reports are read, never the raw numbers. After every headset test, run "
+             "`begone.py new`; open a full report (`begone.py report <tool> latest`) when a line looks wrong or the "
+             "job is linked to that tool (`begone.py for \"<job>\"`); dig further only with `begone.py ask`. "
+             "summary.json and the raw recordings are locked. PROTOCOL section 20.")
+WIRE_RULE = ("RULE: every VR mod in early development has the jitter recorder wired in, without being asked "
+             "(PROTOCOL section 18), and any mod with hand gestures (racking, grabbing, reloading by hand, two-handed "
+             "aim) also has Ghost Hand (section 20). `begone.py tools` says how; the files are in the plugin's begone/.")
 
 
-def conf_path():
-    return os.environ.get("LANES_CONFIG") or os.path.join(os.path.expanduser("~"), ".claude", "lanes.conf")
-
-
-def read_conf():
-    conf = {}
+def rows(t):
     try:
-        with open(conf_path(), encoding="utf-8") as f:
-            for line in f:
-                m = re.match(r"^\s*([A-Za-z_]+)\s*=\s*(.*?)\s*(#.*)?$", line)
-                if m and not line.lstrip().startswith("#"):
-                    conf[m.group(1)] = m.group(2).strip().strip('"').strip("'")
+        with open(bc.index_path(t), newline="", encoding="utf-8") as f:
+            return list(csv.DictReader(f))
+    except (OSError, csv.Error):
+        return []
+
+
+def key(t, r):
+    return f"{t['folder']}/{r.get('game', '?')}/{r.get('run', '?')}"
+
+
+def load_seen():
+    try:
+        with open(SEEN, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
+def save_seen(seen):
+    try:
+        os.makedirs(STATE_DIR, exist_ok=True)
+        with open(SEEN, "w", encoding="utf-8") as f:
+            json.dump(seen, f, indent=0)
     except OSError:
         pass
-    return conf
 
 
-def clone():
-    c = os.environ.get("LANES_BEGONE") or read_conf().get("begone", "")
-    return c if c and os.path.isfile(os.path.join(c, RIDER)) else None
+def new_reports(mark):
+    """([(tool, row)] not yet shown on this PC, oldest first; count bookmarked on a first look). The very first
+    look bookmarks everything already filed: a session start full of old news gets skimmed."""
+    seen = load_seen()
+    first = seen is None
+    seen = seen or {}
+    fresh = [(t, r) for t in bc.tools() for r in rows(t) if key(t, r) not in seen]
+    if mark or first:
+        for t, r in fresh:
+            seen[key(t, r)] = 1
+        save_seen(seen)
+    if first:
+        return [], len(fresh)
+    fresh.sort(key=lambda x: (x[1].get("date", ""), x[1].get("time", "")))
+    return fresh, 0
 
 
-def rider_running(root):
+def new_line(t, r):
+    v = (r.get("verdict") or "").strip()
+    if len(v) > VERDICT_CHARS:
+        v = v[:VERDICT_CHARS - 3] + "..."
+    return f"NEW {t['name']} - {r.get('game', '?')} {r.get('date', '')} {r.get('time', '')}: {v}"
+
+
+def rider(cmd):
     try:
-        r = subprocess.run([sys.executable, os.path.join(root, RIDER), "status"], capture_output=True, text=True,
-                           timeout=START_TIMEOUT_S)
-        return "rider: running" in r.stdout
+        r = subprocess.run([sys.executable, RIDER, cmd], capture_output=True, text=True, timeout=START_TIMEOUT_S,
+                           env=dict(os.environ, LANES_BEGONE=bc.home()))
+        return r.returncode, r.stdout
     except (OSError, subprocess.SubprocessError):
-        return False
+        return 1, ""
 
 
-def start_rider(root):
-    try:
-        subprocess.run([sys.executable, os.path.join(root, RIDER), "start"], capture_output=True, text=True,
-                       timeout=START_TIMEOUT_S)
-    except (OSError, subprocess.SubprocessError):
-        pass
-    return rider_running(root)
+def rider_running():
+    _, out = rider("status")
+    return "rider: running" in out and "OLDER" not in out
 
 
-def held(root):
-    """(sessions on file, patterns, last session's game and verdict) - counts and project names only."""
-    sessions, last = 0, None
-    try:
-        with open(os.path.join(root, INDEX), newline="", encoding="utf-8") as f:
-            rows = list(csv.DictReader(f))
-        sessions = len(rows)
-        if rows:
-            r = max(rows, key=lambda r: (r.get("date", ""), r.get("time", "")))
-            last = f"{r.get('game', '?')} on {r.get('date', '?')}: {(r.get('verdict') or '')[:90]}"
-    except (OSError, csv.Error):
-        pass
-    patterns = 0
-    try:
-        with open(os.path.join(root, PATTERNS), encoding="utf-8") as f:
-            patterns = len(json.load(f).get("patterns", {}))
-    except (OSError, ValueError):
-        pass
-    return sessions, patterns, last
-
-
-def line(start=True):
-    root = clone()
-    if not root:
-        return ""
-    running = rider_running(root) or (start and start_rider(root))
-    sessions, patterns, last = held(root)
-    state = "running" if running else "NOT running (python ride.py start in the BeG0nE clone)"
-    out = f"BeG0nE rider {state}: {sessions} VR sessions on file, {patterns} behaviour patterns."
-    if last:
-        out += f" Last: {last}"
-    if not sessions:
-        out += " It idles until a mod wired to jitterlog.h starts a VR session."
-    if os.path.isfile(os.path.join(root, HEADER)):
-        out += "\n" + WIRE_RULE
+def tool_lines():
+    out = []
+    for t in bc.tools():
+        via = (" (checked through " + ", ".join(t["checked_by"]) + ")") if t.get("checked_by") else ""
+        out.append(f"  {t['name']}: {len(rows(t))} reports{via}. Read it for: " + ", ".join(t.get("jobs", [])[:10]) + ".")
     return out
 
 
-if __name__ == "__main__":
-    a = sys.argv[1:]
-    if a and a[0] in ("brief", "status"):
-        s = line(start=(a[0] == "brief"))
-        if s:
-            print(s)
+def brief(mark=True, start=True):
+    running = (start and rider("start")[0] == 0) or rider_running()
+    fresh, bookmarked = new_reports(mark)
+    total = sum(len(rows(t)) for t in bc.tools())
+    out = [f"BeG0nE (in Lanes): rider {'running' if running else 'NOT running (begone.py brief starts it)'}; "
+           f"{total} reports on file, {len(fresh)} new since this PC last looked."]
+    if bookmarked:
+        out.append(f"First look on this PC: {bookmarked} earlier reports bookmarked as read.")
+    out += [new_line(t, r) for t, r in fresh[:NEW_MAX]]
+    if len(fresh) > NEW_MAX:
+        out.append(f"... and {len(fresh) - NEW_MAX} more: begone.py new --peek")
+    out.append("Tools:")
+    out += tool_lines()
+    out += [READ_RULE, WIRE_RULE]
+    return "\n".join(out)
+
+
+def find_run(t, which, game=None):
+    rs = [r for r in rows(t) if not game or r.get("game") == game]
+    if not rs:
+        return None
+    if which == "latest":
+        r = max(rs, key=lambda r: (r.get("date", ""), r.get("time", "")))
     else:
-        sys.exit(__doc__)
+        r = next((r for r in rs if r.get("run") == which), None)
+    return os.path.join(bc.data_dir(t), r["game"], r["run"]) if r else None
+
+
+def cap(text):
+    lines = text.splitlines()
+    cut = len(lines) > ASK_MAX_LINES
+    out = "\n".join(lines[:ASK_MAX_LINES])
+    if len(out) > ASK_MAX_CHARS:
+        out, cut = out[:ASK_MAX_CHARS], True
+    return out + ("\n[cut here: ask a narrower question]" if cut else "")
+
+
+def opt(a, name):
+    if name in a:
+        i = a.index(name)
+        v = a[i + 1] if i + 1 < len(a) else None
+        del a[i:i + 2]
+        return v
+    return None
+
+
+def main(a):
+    if not a:
+        return __doc__
+    cmd = a[0]
+    if cmd == "brief":
+        return brief()
+    if cmd == "status":
+        return brief(mark=False, start=False)
+    if cmd == "new":
+        fresh, bookmarked = new_reports(mark="--peek" not in a)
+        if bookmarked:
+            return f"First look on this PC: {bookmarked} earlier reports bookmarked as read."
+        return "\n".join(new_line(t, r) for t, r in fresh) or "nothing new"
+    if cmd == "tools":
+        return "\n".join(f"{t['name']} ({t['folder']}): {t['what']}.\n  wire: {t.get('wire', '-')}" for t in bc.tools())
+    if cmd == "for" and len(a) >= 2:
+        job = " ".join(a[1:]).lower()
+        hits = [t["name"] for t in bc.tools() if any(w in job for w in t.get("jobs", []))]
+        return ("read: " + ", ".join(hits)) if hits else "no BeG0nE tool is linked to this job"
+    if cmd in ("report", "ask") and len(a) >= 3:
+        a = list(a)
+        game = opt(a, "--game")
+        t = bc.tool(a[1])
+        if not t:
+            return f"no tool called {a[1]}"
+        if not t.get("filer"):
+            return f"{t['name']} has no recorder of its own; " + t.get("wire", "")
+        run = find_run(t, a[2], game)
+        if not run or not os.path.isdir(run):
+            return f"no {t['name']} report {a[2]}" + (f" for {game}" if game else "")
+        if cmd == "report":
+            try:
+                with open(os.path.join(run, "report.md"), encoding="utf-8") as f:
+                    lines = [x for x in f.read().splitlines() if not x.startswith("![")]
+            except OSError:
+                return "that run has no report.md"
+            return "\n".join(lines[:REPORT_MAX_LINES])
+        r = subprocess.run([sys.executable, os.path.join(t["dir"], t["filer"]), "ask", run] + a[3:],
+                           capture_output=True, text=True, timeout=120)
+        return cap((r.stdout or r.stderr).strip())
+    return __doc__
+
+
+if __name__ == "__main__":
+    print(main(sys.argv[1:]))
