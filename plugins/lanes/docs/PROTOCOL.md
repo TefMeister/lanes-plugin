@@ -382,6 +382,23 @@ own name, whatever the person calls it. Never leave them guessing either way.
 
 _Asked for by the maintainer on 2026-10-10: "it is such a relief to know that something is ok to turn off."_
 
+**And the same for anything left running in the background (0.62.1, 2026-10-12).** Claude Code shows a background
+shell as still running after the session started it, and from the person's side there is no telling whether closing
+the session would cut off something important. So every write-up that ends a stretch of work says, in one line under
+the close-out box, what is still running and whether it matters:
+
+```
+🐚 Nothing of this session is still running: safe to close.
+🐚 Still running: the build (about 3 minutes more). Wait for it before closing.
+🐚 Still running: the BeG0nE rider. It is meant to stay on and is not tied to this session: safe to close.
+```
+
+Name each task in plain words, and check before writing the line: a task whose finish was never reported is
+"still running" until the session has looked. A background task the session no longer needs is stopped, not left.
+
+_Asked for by the maintainer on 2026-10-12: "please add a check that tells the user if the shell is still doing
+something important or can just be closed down."_
+
 ---
 
 ## 6. Code shape — small files, named numbers (0.7.0, 2026-09-17)
