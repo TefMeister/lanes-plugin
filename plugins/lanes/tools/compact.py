@@ -267,28 +267,30 @@ def text_of(message):
     return ""
 
 
-def conversation_tail(path):
-    """The person's last few requests and the last reply, since the most recent summary."""
-    asks, reply = [], ""
+def log_entries(path):
+    """Every readable entry of a conversation log, skipping summaries and Claude Code's own notes."""
     try:
         with open(path, encoding="utf-8") as f:
-            for line in f:
-                try:
-                    d = json.loads(line)
-                except ValueError:
-                    continue
-                if d.get("isCompactSummary") or d.get("isMeta"):
-                    continue
-                if d.get("type") == "user":
-                    t = text_of(d.get("message")).strip()
-                    if t and not t.startswith("<"):
-                        asks.append(t[:ASK_MAX_CHARS])
-                elif d.get("type") == "assistant":
-                    t = text_of(d.get("message")).strip()
-                    if t:
-                        reply = t[:REPLY_MAX_CHARS]
+            lines = f.readlines()
     except OSError:
-        pass
+        return
+    for line in lines:
+        try:
+            d = json.loads(line)
+        except ValueError:
+            continue
+        if not (d.get("isCompactSummary") or d.get("isMeta")):
+            yield d.get("type"), text_of(d.get("message")).strip()
+
+
+def conversation_tail(path):
+    """The person's last few requests and the last reply."""
+    asks, reply = [], ""
+    for kind, t in log_entries(path):
+        if kind == "user" and t and not t.startswith("<"):
+            asks.append(t[:ASK_MAX_CHARS])
+        elif kind == "assistant" and t:
+            reply = t[:REPLY_MAX_CHARS]
     return asks[-LAST_ASKS:], reply
 
 
@@ -345,20 +347,18 @@ def cmd_pre():
     return 0
 
 
+def newest_checkpoint(conf):
+    root = os.path.expanduser(conf.get("session_logs") or "")
+    if not root or not os.path.isdir(root):
+        return ""
+    found = [os.path.join(d, n) for d, _, files in os.walk(root) for n in files if SLUG in n]
+    return max(found, key=os.path.getmtime) if found else ""
+
+
 def cmd_post():
     hook_input()
-    conf = handover.read_conf()
-    root = conf.get("session_logs")
-    newest = ""
-    if root and os.path.isdir(os.path.expanduser(root)):
-        best = 0
-        for dirpath, _, files in os.walk(os.path.expanduser(root)):
-            for name in files:
-                if SLUG in name:
-                    p = os.path.join(dirpath, name)
-                    if os.path.getmtime(p) > best:
-                        best, newest = os.path.getmtime(p), p
-    text = ("LANES: the conversation was just summarised early to keep it short. Nothing was lost: the full log "
+    newest = newest_checkpoint(handover.read_conf())
+    text =("LANES: the conversation was just summarised early to keep it short. Nothing was lost: the full log "
             "is kept on this PC%s. FIRST, before other work: write onto the board and the project's notes anything "
             "the summary says is not recorded yet, and save anything not on GitHub. Then carry on with the next step."
             % ((", and the checkpoint is " + newest) if newest else ""))
