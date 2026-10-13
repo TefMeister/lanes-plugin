@@ -130,3 +130,15 @@ role = DEV
 # BeG0nE repo (github.com/TefMeister/BeG0nE) puts them on GitHub for your other PC; unset, they go to
 # Documents\BeG0nE recordings. Overridden by $LANES_BEGONE.
 # begone = /path/to/your/BeG0nE-clone
+
+# KEEP CONVERSATIONS SHORT (0.63.0, PROTOCOL section 21).
+# Claude Code summarises a conversation by itself when it is nearly full. `tools/compact.py on` moves that
+# earlier, to this share of the model's room (10 to 95; default 40), by writing one setting into
+# ~/.claude/settings.json (backed up first). Before every summary Lanes saves a checkpoint to the session logs
+# and tells the summary what must survive. `off` here means /lanes:setup never offers it; the close-out box
+# then says when it is safe to /clear instead.
+# early_summary = 40
+#
+# Where full conversation logs are copied, so Claude Code's 30-day clean-up never removes them.
+# Default ~/.claude/lanes-transcripts. They can hold anything said in a session: keep them on this PC.
+# transcripts = /path/to/kept/conversation/logs

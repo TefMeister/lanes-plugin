@@ -1137,3 +1137,39 @@ these numbers and gives you a short summary of it"*.
 One filed jitter session's `summary.json` is 600 KB and its report under 1 KB. Reading every report after every
 session costs little; reading raw numbers by accident costs a session. The bookmark keeps the cheap part from
 growing, and the lock keeps the dear part from happening by mistake.
+
+## 21. Keep conversations short: an earlier summary that loses nothing (0.63.0, 2026-10-13)
+
+Asked for by the maintainer: keep conversations short automatically; before each automatic summary save anything
+important not yet written down and tell the summary what must survive; keep the full logs on the PC; and if the
+early-summary setting does not exist, fall back to a "SAVED - safe to /clear" line in the close-out box.
+
+### What was checked first
+
+Claude Code 2.1.296 has the setting `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` (an environment value, also accepted in the
+`env` block of `~/.claude/settings.json`). The summary point becomes the smaller of that share of the model's room
+and the usual point, so it can only come earlier. Live, three short conversations with it set low were summarised;
+text printed by the PreCompact hook was kept in the summary word for word; a SessionStart hook with source
+`compact` reached the next turn; and the log file kept every earlier message. `[verified-live 2026-10-13, n=3]`
+The summary is prepared in the background and lands one turn after the point is passed. The `autoCompactWindow`
+setting did not trigger a summary from a settings file in the same test, so it is not used. `[measured 2026-10-13, n=1]`
+
+### How it works
+
+- **Switch:** `tools/compact.py on [PERCENT]` (default `early_summary` in lanes.conf, else 40), `off`, `status`.
+  `/lanes:setup` offers it (step 0.11). It applies to sessions started after it is set.
+- **Before every summary** (`hooks/compact-hook.py pre`, a PreCompact hook): a checkpoint goes into the session logs
+  (§17) for the project - the claim this PC holds, else the repo the session runs in - with the claims, every repo
+  holding work not on GitHub, the board's next OPEN row, the person's last requests word for word and the last reply.
+  The hook's output is added to the summary's instructions: keep those facts, the model and gate last named, any
+  question waiting for an answer, and every decision the person made.
+- **Right after it** (`post`, SessionStart source `compact`): the session is told to write onto the board and the
+  notes anything the summary says is not recorded yet, and to save anything not on GitHub, before other work. That
+  part needs judgement, so the session does it, not the hook.
+- **Full logs:** at every summary and every session end the conversation's log file is copied to `transcripts`
+  (default `~/.claude/lanes-transcripts`), out of reach of Claude Code's 30-day clean-up. The original is never touched.
+- **Fallback:** while the early summary is not on (or this Claude Code lacks the setting), a green close-out box gets
+  one more row, `| 🧹 Clear | SAVED - safe to /clear |`.
+- Every hook here is silent on failure and can never block a summary or a session end. `LANES_COMPACT=0` turns
+  them off.
+

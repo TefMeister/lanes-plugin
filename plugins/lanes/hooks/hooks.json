@@ -155,6 +155,18 @@
             "statusMessage": "Inspector: anything carried over?"
           }
         ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook compact-hook.py post",
+            "shell": "bash",
+            "timeout": 20,
+            "statusMessage": "Lanes: putting the checkpoint back in view"
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
@@ -249,6 +261,16 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook compact-hook.py end",
+            "shell": "bash",
+            "timeout": 60
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -261,6 +283,19 @@
             "shell": "bash",
             "timeout": 60,
             "statusMessage": "Inspector: looking over the edit"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook compact-hook.py pre",
+            "shell": "bash",
+            "timeout": 180,
+            "statusMessage": "Lanes: saving a checkpoint before the summary"
           }
         ]
       }

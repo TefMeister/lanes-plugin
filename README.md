@@ -72,6 +72,136 @@ two names, so keep them as they are.
 - **Ideas get filed for you.** Jot them into your ideas repo, even from a phone. The next session
   files them, and each project's next session lists them for you to pick from.
 
+## Everything Lanes gives you: a guide for someone starting out
+
+Lanes was built while turning flat-screen games into VR, by one person who is not a programmer and an
+AI that writes the code. Everything below came from a real problem met along the way. You do not have
+to learn any of it up front: the sessions follow it for you, and you can switch most of it off.
+
+### Replies you can actually read
+
+- **Short, plain answers.** Sessions are told to write for a person who loves games, not for a
+  programmer: what changed for you, in everyday words, with the technical detail saved in the
+  project's notes instead of the reply.
+- **Fixed icons on every heading,** so you can jump straight to the part that wants something from
+  you: 🔧 what I did · 🎯 what it means for you · ⚠️ worth knowing · ❓ what I need from you (always
+  last, so it sits right above where you type) · 🎬 what was recorded · 🎮 in front of each project
+  when a reply covers several · ✅ "you can stop" the moment a held test has what it needed.
+- **A one-line answer stays one line.** A yes, a no or a quick fact gets no headings at all.
+
+### It tells you what the next step needs, and which model to use
+
+- **The gate box.** Every session ends by saying, in capitals, what the next step requires: nothing
+  running (`PD`), the game running (`FLAT`), the headset plugged in (`VR CLAUDE`) or you in the headset
+  (`VR USER`). You can decide at a glance whether to put the headset on tonight.
+- **The model box.** Each next job is named with the model it suits: the strongest for hard,
+  never-solved problems, the standard one for normal work, a light one for tidying. At the start of a
+  session it checks the model you are running: too weak, it stops and says what to switch to; stronger
+  than needed, it says so and carries on.
+
+### Nothing gets lost
+
+- **The close-out box.** Every session ends with a table that checks every one of your repos and says
+  **SAVED** (everything is on GitHub) or **NOT SAVED** (and which repo). No green box, no trust: type
+  `/sp` and it saves properly. A line under it says whether anything this session started is still
+  running, so you know if Claude Code can be closed.
+- **Every session summary is kept,** dated, in its own folder per project, and pushed to a private repo
+  if you have one. When a problem keeps coming back, sessions search the old summaries first.
+- **Conversations stay short, and nothing is lost (new in 0.63.0).** Claude Code summarises a
+  conversation by itself when it is nearly full. Lanes can make that happen earlier (40% full by
+  default), which keeps each session sharper and cheaper. Just before every summary it saves a
+  checkpoint for the project (what is not on GitHub yet, the job it holds, the next step, and your last
+  requests word for word) and tells the summary what it must keep. Right after, the session writes
+  anything still unrecorded onto the board first. The full conversation logs are copied to a folder on
+  your PC, so Claude Code's 30-day clean-up never deletes them. If your Claude Code does not have the
+  early-summary setting, the close-out box simply says **"SAVED - safe to /clear"** instead.
+- **Every installed change is a numbered build** (optional): saved in a private repo, so you can go back
+  to any version, on any PC.
+- **Two PCs?** The handover light says when the other PC last saved and whether it ended cleanly, and a
+  job only one PC can do is queued for that PC and greets it at its next session.
+
+### Help with the modding itself
+
+- **The BeG0nE recorders.** VR problems are hard to describe. Wired into your mod, the **jitter
+  recorder** times every head pose and frame, so "it feels jittery" becomes a short report saying
+  exactly where the stepping comes from. **Ghost Hand** finds where your real hand and the game's hand
+  part (lag, offset, jumps, lost tracking, and gestures such as racking a slide that miss). The
+  **occlusion drift** fix covers controllers that wander when the headset loses sight of them. After
+  every headset session the PC turns each recording into a short report by itself, and the next session
+  start shows one line per new report.
+- **The Inspector** (optional). Every piece of code Claude writes is looked over. Anything messy (a
+  file grown too long, a bare number that should have a name, a test left wired in) is written down as a
+  note for you and Claude to decide on. It never edits code, saving always works, and only uploading
+  waits until every note is answered.
+- **Menu-o-matiC, Move-o-matiC and State-o-matiC.** You play a game's menus and a short route once while
+  it records; after that it replays them by itself, and can tell a menu, a loading screen, a cutscene and
+  gameplay apart, so automated tests cost no effort from you.
+- **A first-file-into-the-game kit.** A small logging file is generated for a new game, to prove the
+  game will load your code at all before any real work starts.
+- **Rules learned the hard way, followed for you:** a new game is made to run in a 1280×720 window first
+  (so you can still see the Claude Code window), and you are asked to confirm it once; every blur and
+  screen effect (blood on the screen, the red low-health tint, shake, grain) is switched off in VR, so
+  there is only gameplay; any VR mod someone else is already building is looked for before starting.
+- **Game recording.** Test runs can be recorded with OBS automatically: only the game's own window
+  and sound, never your desktop.
+- **Ideas, from anywhere.** Jot an idea into your ideas repo, even from your phone's browser. The next
+  session files it under the right game, and that game's next session lists it for you to pick from.
+
+### Several sessions at once, safely
+
+The lanes above (`/pd`, `/lm`, `/ms` and the research lanes) can run side by side. Each owns its own
+files, claims its job on the board and skips a job another session holds. `/gates` shows every
+project's open work grouped by what it needs, and `/gate-watch` tells you when another session finishes
+something.
+
+### Private by default
+
+Nobody's name is written anywhere: you are "User", or the name you choose, and your PCs are PC1, PC2 and
+so on. Every new GitHub repo a session makes is private, and you are asked before any is made public. A
+privacy scan runs before every Lanes release.
+
+## What `/lanes:setup` offers at first install
+
+Nothing is installed without your yes, and one "no" means it never asks again. First it asks what to
+call you and this PC, then a few yes/no questions (keep every build, switch on the Inspector, a synced
+folder for files that must not go on GitHub, keep conversations short). Then it checks what is already
+on your PC and offers the rest, one group at a time, either installing them for you or giving you the
+official links:
+
+| Group | What is offered |
+| --- | --- |
+| Core | Git (with Git Bash), the GitHub command-line tool, Python and its helper packages, uv, 7-Zip |
+| Building mod code | llvm-mingw, CMake, Visual Studio Build Tools (C++), Rust, Lua |
+| Reverse engineering | x64dbg with its Claude connection and ready-made workflows, Ghidrust (reads and decompiles a game's .exe without running it) |
+| Driving games unattended | a virtual gamepad driver (ViGEmBus) and its Python side |
+| 3D | Blender and Blender MCP, so Claude can build models with you, live, in your Blender |
+| VR | SteamVR, Virtual Desktop (for Quest headsets) |
+| Videos | DaVinci Resolve (free) to edit, FFmpeg so Claude can cut and convert recordings |
+
+Per-game frameworks (REFramework, UEVR and similar) are only suggested when a game needs one.
+
+## Make it yours
+
+Almost everything can be changed. Settings live in one file, `~/.claude/lanes.conf` (the example in
+[`lanes.conf.example`](plugins/lanes/lanes.conf.example) explains each one), and for anything else you
+can simply ask Claude Code in your own words. Some examples:
+
+- **Rename commands.** *"Make /research run /lanes:gr."* Any command can get a name you like, except
+  `/pd` and `/lm`, whose safety checks look for those two names.
+- **Swap the icons or the reply shape.** *"Use coloured circles instead of the section icons: ⚪ what I
+  did, 🔵 what it means for me, 🟣 what you need from me, and number the rows."* Or ask for longer, more
+  technical replies if that suits you.
+- **Summarise earlier or later.** `early_summary = 30` summarises sooner; `early_summary = 60` later;
+  `python tools/compact.py off` switches it off and the close-out box tells you when to `/clear`.
+- **Keep the logs somewhere else.** `transcripts = <folder>` for the full conversation logs,
+  `session_logs = <folder>` for the summaries.
+- **Turn parts off.** `inspector = off`, `theme = off` (keep your own terminal look),
+  `shortcut = off`. `/lanes:theme restore` puts your old look back.
+- **Change the board's tags.** If you are not making VR mods, the five tags can stand for whatever your
+  project needs: `[FLAT]` as "the app running", `[VR USER]` as "someone using the special hardware".
+- **Name your PCs.** `machine_name = Desk` and `machine_name = Laptop` instead of PC1 and PC2.
+- **Make new repos public by default** with `new_repos = public`, if you prefer to share as you go.
+
 ## Get started
 
 ```
@@ -116,7 +246,7 @@ what is new and never installs without asking. The full manual is in
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.62.1`, early public release |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.63.0`, early public release |
 
 ## Modding games?
 
