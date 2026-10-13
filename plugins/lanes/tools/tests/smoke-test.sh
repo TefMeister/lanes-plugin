@@ -719,6 +719,17 @@ else
   fail "menu-o-matic-fixture.sh failed"
 fi
 
+echo "compact.py - the early summary that loses nothing (0.63.0)"
+grep -q 'compact-hook.py pre' "$HERE/../../hooks/hooks.json" && grep -q '"PreCompact"' "$HERE/../../hooks/hooks.json"   && grep -q '"matcher": "compact"' "$HERE/../../hooks/hooks.json"   && ok "hooks.json runs the summary checkpoint before and after a summary" || fail "hooks.json is missing the compact hooks"
+if out=$(bash "$HERE/compact-fixture.sh" 2>&1); then
+  ok "$(printf '%s
+' "$out" | tail -n 1)"
+else
+  printf '%s
+' "$out" | grep FAIL
+  fail "compact-fixture.sh failed"
+fi
+
 echo "session-log.py - every session summary kept, one folder per project (0.44.0)"
 if out=$(bash "$HERE/session-log-fixture.sh" 2>&1); then
   ok "$(printf '%s

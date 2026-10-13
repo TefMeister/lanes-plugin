@@ -457,7 +457,18 @@ def close_box(conf, session):
                 lines.append("| 🖥️ GitHub | could not be reached just now, the row above may be old |")
     else:
         lines.append("| 🖥️ Other PC | no board to read it from |")
+    if green and roots and not early_summary_on():
+        # 0.63.0: without the early summary nothing keeps the conversation short, so say when it is safe
+        lines.append("| 🧹 Clear | SAVED - safe to /clear |")
     return green, lines
+
+
+def early_summary_on():
+    try:
+        import compact  # lazy: compact.py imports this module
+        return compact.early_summary_on()
+    except Exception:  # noqa: BLE001 - unknown means offer the safe-to-clear row
+        return False
 
 
 def write_heartbeat(board, me, role, event, green, problem_lines):

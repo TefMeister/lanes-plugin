@@ -109,6 +109,15 @@ joining, still frames, converting files the free Resolve will not open). Say pla
 but the free version cannot open some recordings, so the two are best installed together. Resolve is downloaded by
 the person (a short sign-up form on Blackmagic's site); FFmpeg Claude can install with winget.
 
+## 0.11 Keep conversations short? (0.63.0, everyone)
+
+Say in plain words: a long conversation costs more with every message and gets vaguer; Claude Code summarises it
+by itself when it is nearly full, and Lanes can make that happen earlier while saving everything first. Ask **one
+question**: *"Should conversations be summarised earlier, at about 40% full, with everything important saved
+first?"* Options: **"Yes"** and **"Not now"**. On yes run `python tools/compact.py on` and say it applies from the
+next restart of Claude Code. If it answers that this Claude Code does not have the setting, say the close-out box
+will tell them when it is safe to type `/clear` instead. What it does: `docs/PROTOCOL.md` §21.
+
 ## 1. Scan
 
 ```bash
