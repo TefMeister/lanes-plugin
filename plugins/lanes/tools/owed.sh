@@ -18,6 +18,7 @@
 #   owed.sh list [<ROLE>|--all]     # what is queued, for one machine or all of them
 #   owed.sh show <file>             # print one item in full
 #   owed.sh done <file>             # clear one, by its exact name - never a pattern
+#   owed.sh done <file> <ROLE> "<their words>"   # clear ANOTHER machine's item when the person says it is done there
 #
 # ROLE is a machine label from your board's machine-assignments.tsv (the shipped pair is
 # HOME and DEV). Items live at <board>/owed/<ROLE>/YYYY-MM-DD-<slug>.md, one file per item,
@@ -34,7 +35,7 @@
 # unrelated lane's work gets swept into someone else's commit.
 set -uo pipefail
 
-usage() { sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'; }
 
 # ---- where is the board? -------------------------------------------------------------
 # ORDER CHANGED 2026-09-18, and the reason matters.
@@ -297,11 +298,21 @@ case "$MODE" in
     case "$name" in
       *'*'*|*'?'*|*/*) echo "owed done: give one exact filename, not a pattern or a path." >&2; exit 2 ;;
     esac
+    # Another machine's item (0.65.0): allowed when the PERSON says it is done there - their word is the
+    # proof (they installed and tested Hand Freeze on the home PC, and this PC kept the reminder open for a
+    # day because only the home PC could clear it). Their words go in, so the commit can quote them.
+    said="${4:-}"
+    if [ "$role" != "$ROLE" ] && [ -z "$said" ]; then
+      echo "owed done: '$role' is another machine. Clear it only on the person's word, quoted:" >&2
+      echo "  owed.sh done <name> $role \"<what they said>\"" >&2
+      exit 2
+    fi
     f="$OWED/$role/$name"
     [ -f "$f" ] || { echo "owed done: no such item: $f" >&2; exit 2; }
     title=$(sed -n 's/^#[[:space:]]\+//p' "$f" | head -1)
     rm -f "$f" || exit 2
     echo "Cleared: ${title:-$name}"
+    if [ -n "$said" ]; then echo "Cleared for $role on the person's word: \"$said\". Put that in the commit message."; fi
     echo "NOT committed - commit and push the board, or it comes back at the next session." >&2
     ;;
 

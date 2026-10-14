@@ -150,6 +150,10 @@ def install():
     with open(os.path.join(INSTALL_DIR, MARKER), "w", encoding="utf-8") as f:
         f.write(tag + "\n")
     print(f"Hand Freeze {tag} installed: its icon is on the Desktop. Switch it ON before starting a game.")
+    # tell the other PCs (0.65.0): a note on the board, saved with it at the session's end
+    if not os.environ.get("LANES_HANDFREEZE_RELEASE") or os.environ.get("LANES_BOARD"):
+        subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "installed.py"),
+                        "record", "Hand Freeze", tag])
     return 0
 
 

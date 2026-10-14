@@ -107,7 +107,10 @@ to learn any of it up front: the sessions follow it for you, and you can switch 
   running, so you know if Claude Code can be closed.
 - **Every session summary is kept,** dated, in its own folder per project, and pushed to a private repo
   if you have one. When a problem keeps coming back, sessions search the old summaries first.
-- **Hand Freeze for VR (new in 0.64.0).** `/lanes:setup` can install our small
+- **Your PCs know what the other has (new in 0.65.0).** Each PC keeps a small note of which of our apps
+  it has, and every session start says when another PC has one this PC does not. When you say a job is
+  done on the other PC, the session that hears it clears that PC's reminder, quoting you.
+- **Hand Freeze for VR (0.64.0).** `/lanes:setup` can install our small
   [Hand Freeze](https://github.com/TefMeister/hand-freeze-vr) app from GitHub: it holds both VR controllers
   still in any OpenXR game, so hand and weapon poses can be tuned with the mouse while the controllers lie
   on the desk. `/lanes:update` says when a newer Hand Freeze is out.
@@ -250,7 +253,7 @@ what is new and never installs without asking. The full manual is in
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.64.0`, early public release |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.65.0`, early public release |
 
 ## Modding games?
 

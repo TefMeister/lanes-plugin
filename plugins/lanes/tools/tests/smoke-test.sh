@@ -719,6 +719,14 @@ else
   fail "menu-o-matic-fixture.sh failed"
 fi
 
+echo "installed.py - which of our apps each PC has, and clearing another PC's reminder on the person's word (0.65.0)"
+if out=$(bash "$HERE/installed-fixture.sh" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "installed-fixture.sh failed"
+fi
+
 echo "compact.py - the early summary that loses nothing (0.63.0)"
 grep -q 'compact-hook.py pre' "$HERE/../../hooks/hooks.json" && grep -q '"PreCompact"' "$HERE/../../hooks/hooks.json"   && grep -q '"matcher": "compact"' "$HERE/../../hooks/hooks.json"   && ok "hooks.json runs the summary checkpoint before and after a summary" || fail "hooks.json is missing the compact hooks"
 if out=$(bash "$HERE/compact-fixture.sh" 2>&1); then

@@ -24,5 +24,7 @@ for cand in python3 python py; do
 done
 [ -n "$PY" ] || exit 0
 
-bash "$OWED" check 2>/dev/null | "$PY" "$EMIT"
+# 0.65.0: and which of our apps the other PCs have (installed.py), so neither PC plans around a missing app
+# the other one already has. Silent when nothing differs.
+{ bash "$OWED" check 2>/dev/null; "$PY" "${PLUGIN_ROOT}/tools/installed.py" brief 2>/dev/null; } | "$PY" "$EMIT"
 exit 0
