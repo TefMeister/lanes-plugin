@@ -55,6 +55,16 @@ check "json report parses" 'printf "%s" "$js" | "$PY" -c "import json,sys; d=jso
 out="$(LANES_GU_FAKE_RELEASES="$T/rel.json" "$PY" "$TOOL" scan)"
 check "once noted, the release is no longer new" 'printf "%s" "$out" | grep -q "Some Tool: v2, already noted"'
 
+# twins in git: the copy was committed later, but the master's file date is newer (a fresh clone) -> the copy wins
+mkdir -p "$T/ga" "$T/gb"
+for r in ga gb; do git -C "$T/$r" init -q; done
+printf 'v1\n' > "$T/ga/h.py"; (cd "$T/ga" && git add h.py && GIT_COMMITTER_DATE="2026-10-01T00:00:00" git -c user.name=t -c user.email=t@t commit -q -m a --date "2026-10-01T00:00:00")
+printf 'v2\n' > "$T/gb/h.py"; (cd "$T/gb" && git add h.py && GIT_COMMITTER_DATE="2026-10-10T00:00:00" git -c user.name=t -c user.email=t@t commit -q -m b --date "2026-10-10T00:00:00")
+touch "$T/ga/h.py"
+printf 'twin = %s | %s\n' "$T/ga" "$T/gb" > "$T/git.conf"
+out="$(LANES_CONFIG="$T/git.conf" "$PY" "$TOOL" scan)"
+check "twins in git: the last commit decides, not the file date" 'printf "%s" "$out" | grep -q "changed last: the second copy"'
+
 check "nudge: silent within the week" '[ -z "$(LANES_GU_TODAY=2026-10-11 "$PY" "$TOOL" nudge)" ]'
 check "nudge: one line after a week" 'LANES_GU_TODAY=2026-10-12 "$PY" "$TOOL" nudge | grep -q "7 days ago"'
 rm -f "$LANES_STATE_DIR/gu.json"
