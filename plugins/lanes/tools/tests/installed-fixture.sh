@@ -33,11 +33,11 @@ check "the other PC learns it from GitHub's copy" 'printf "%s" "$out" | grep -q 
 out="$(LANES_BOARD="$T/a" LANES_CONFIG="$T/a.conf" LANES_HANDFREEZE_DIR="$T/hf" "$PY" "$TOOL" brief)"
 check "a PC that matches everyone says nothing" '[ -z "$out" ]'
 
-mkdir -p "$T/a/owed/HOME"; echo "# Install X" > "$T/a/owed/HOME/2026-10-14-x.md"
-LANES_BOARD="$T/a" GATE_ROLE=DEV bash "$OWED" done 2026-10-14-x.md HOME >/dev/null 2>&1
-check "another machine's reminder does not clear without the person's words" '[ -f "$T/a/owed/HOME/2026-10-14-x.md" ]'
-LANES_BOARD="$T/a" GATE_ROLE=DEV bash "$OWED" done 2026-10-14-x.md HOME "tested it there" >/dev/null 2>&1
-check "and clears with them" '[ ! -f "$T/a/owed/HOME/2026-10-14-x.md" ]'
+mkdir -p "$T/a/owed/OTHERPC"; echo "# Install X" > "$T/a/owed/OTHERPC/2026-10-14-x.md"
+LANES_BOARD="$T/a" GATE_ROLE=DEV bash "$OWED" done 2026-10-14-x.md OTHERPC >/dev/null 2>&1
+check "another machine's reminder does not clear without the person's words" '[ -f "$T/a/owed/OTHERPC/2026-10-14-x.md" ]'
+LANES_BOARD="$T/a" GATE_ROLE=DEV bash "$OWED" done 2026-10-14-x.md OTHERPC "tested it there" >/dev/null 2>&1
+check "and clears with them" '[ ! -f "$T/a/owed/OTHERPC/2026-10-14-x.md" ]'
 
 echo "installed-fixture: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]
