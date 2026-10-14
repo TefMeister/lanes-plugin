@@ -260,11 +260,12 @@ done:
      fullscreen (Prototype, 2026-09-29: `-width 1280 -height 720` did that; `windowed width=1280
      height=720` was the real window). A window as big as the screen, or a screen that changed size
      while the game runs, is fullscreen. Menu-o-matiC's `windowcheck` does both measurements.
-   - **Then ASK the person, every time, before any modding starts:** "Is the game in a window, the
-     right size, and can you still see this session beside it?" If the check could not tell, ask
-     whether it is windowed at all. Their answer settles it: what they see outranks the measurement.
-     A fullscreen or oversized game hides the Claude session from them, so they cannot follow or stop
-     it. Nothing else begins until they have said yes (a user's rule, 2026-09-29).
+   - **If the check could not tell, ask whether the game is windowed at all.** Their answer settles it:
+     what they see outranks the measurement. A fullscreen game hides the Claude session from them, so
+     nothing else begins until it is windowed (a user's rule, 2026-09-29).
+   - **Once it measures as windowed, do not ask whether they can see the session.** They place the
+     windows themselves (a user's rule, 2026-10-14: "whenever windowed i can set the session window so i
+     can see it"). At most ask, without waiting, whether a new or changed window looks the right size.
    - **Once per project.** After they have said yes, store it (`mom windowcheck <window> --route <route.json> --confirmed`); later sessions only measure, and ask again only if the window changed size or turned fullscreen.
 4. **Gameplay only: switch off every blur and screen effect for VR** (0.60.0). Motion blur, depth of field,
    film grain, vignette, colour fringing, lens flares and dirt, blood spatter or rain drops on the screen, the
