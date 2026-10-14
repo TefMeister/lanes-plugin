@@ -158,6 +158,20 @@ def same_text(p, q):
         return f.read().replace(b"\r\n", b"\n") == g.read().replace(b"\r\n", b"\n")
 
 
+def changed_at(path):
+    """When this file last changed: its last commit if it is in git and unchanged since, else the file's date.
+    File dates alone mislead: a fresh clone stamps every file with the clone time (seen on the first real run)."""
+    d = os.path.dirname(path)
+    try:
+        _, dirty = git(d, "status", "--porcelain", "--", os.path.basename(path))
+        rc, ct = git(d, "log", "-1", "--format=%ct", "--", os.path.basename(path))
+        if rc == 0 and ct and not dirty:
+            return int(ct)
+    except (OSError, subprocess.TimeoutExpired, ValueError):
+        pass
+    return os.path.getmtime(path)
+
+
 def compare_twin(a, b):
     if not os.path.exists(a) or not os.path.exists(b):
         return {"a": a, "b": b, "error": "missing: " + (a if not os.path.exists(a) else b)}
@@ -167,7 +181,7 @@ def compare_twin(a, b):
     for rel in sorted(set(fa) & set(fb)):
         if not same_text(fa[rel], fb[rel]):
             differ.append(rel or os.path.basename(a))
-            if os.path.getmtime(fa[rel]) >= os.path.getmtime(fb[rel]):
+            if changed_at(fa[rel]) >= changed_at(fb[rel]):
                 newer_a += 1
             else:
                 newer_b += 1
