@@ -136,6 +136,9 @@ role = DEV
 #   watch  = <name> | <owner/repo>           someone else's tool on GitHub: say when a new release is out
 #   ours   = <clone>                         one of our own tool repos: behind or ahead of GitHub?
 #   routes = <folder>                        where each app's routes and KNOWN.md live (its Tool ideas are read)
+#   gu_ask = no                              update without asking first (default: one question for everything)
+# Many tools publish real updates as nightly builds on a separate repo (praydog/UEVR-nightly,
+# praydog/REFramework-nightly); watch that one when the main page's releases are years old.
 # twin = /path/to/toolkit/tools/menu-o-matic | /path/to/lanes-plugin/plugins/lanes/tools/menu-o-matic
 # watch = UEVR | praydog/UEVR
 

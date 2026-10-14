@@ -51,6 +51,10 @@ check "a watched tool's new release is shown with its title" 'printf "%s" "$out"
 check "our clone one commit behind GitHub" 'printf "%s" "$out" | grep -q "ours: 1 new on GitHub"'
 check "only lessons since the last run" 'printf "%s" "$out" | grep -q "hold a key" && ! printf "%s" "$out" | grep -q "old idea"'
 check "json report parses" 'printf "%s" "$js" | "$PY" -c "import json,sys; d=json.load(sys.stdin); sys.exit(0 if d[\"twins\"][1][\"newer\"]==\"a\" else 1)"'
+check "asks before installing by default" 'printf "%s" "$out" | grep -q "Ask before installing: yes"'
+printf 'gu_ask = no   # my own PCs\n' >> "$T/lanes.conf"
+out2="$(LANES_GU_FAKE_RELEASES="$T/rel.json" "$PY" "$TOOL" scan)"
+check "gu_ask = no: updates without asking" 'printf "%s" "$out2" | grep -q "Ask before installing: no"'
 "$PY" "$TOOL" seen "Some Tool" v2 >/dev/null
 out="$(LANES_GU_FAKE_RELEASES="$T/rel.json" "$PY" "$TOOL" scan)"
 check "once noted, the release is no longer new" 'printf "%s" "$out" | grep -q "Some Tool: v2, already noted"'
