@@ -107,7 +107,10 @@ to learn any of it up front: the sessions follow it for you, and you can switch 
   running, so you know if Claude Code can be closed.
 - **Every session summary is kept,** dated, in its own folder per project, and pushed to a private repo
   if you have one. When a problem keeps coming back, sessions search the old summaries first.
-- **Your PCs know what the other has (new in 0.65.0).** Each PC keeps a small note of which of our apps
+- **Sessions get better at driving each game (new in 0.66.0).** Each game keeps a note beside its recorded
+  menu routes of what sessions have learned (menu buttons, controls, hazards). It is read before every launch
+  and added to as soon as something new turns up, so no session has to rediscover a game's menus.
+- **Your PCs know what the other has (0.65.0).** Each PC keeps a small note of which of our apps
   it has, and every session start says when another PC has one this PC does not. When you say a job is
   done on the other PC, the session that hears it clears that PC's reminder, quoting you.
 - **Hand Freeze for VR (0.64.0).** `/lanes:setup` can install our small
@@ -253,7 +256,7 @@ what is new and never installs without asking. The full manual is in
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.65.0`, early public release |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.66.0`, early public release |
 
 ## Modding games?
 

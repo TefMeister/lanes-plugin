@@ -22,7 +22,8 @@ description: (Update) Checks GitHub for a newer version of the lanes plugin, say
 3. **Newer version available:** tell the user in two or three plain sentences:
    - that a new version is out, and which one they have;
    - **what it means for them**, drawn from `changes` (each entry is one plain line per version
-     they are missing). Summarise; do not paste the list unless they ask;
+     they are missing). List **each version in between with one plain line** on what it adds or changes
+     for them (0.66.0: people asked to always see what an update brings). No jargon, one line each;
    - that updating downloads it from GitHub and **takes effect after they restart Claude Code**.
 
    Then **ask** whether you may update it now. Print this question **word for word, on a line of its

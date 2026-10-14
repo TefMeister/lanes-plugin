@@ -237,6 +237,7 @@ machines.**
    stronger → say it in one line and carry on**, never stop — the person is usually away and the app
    is about to launch, so a pause wastes the slot. `docs/PROTOCOL.md` §5.
 7. **Start the reader** (one line to the user saying what it is looking at) — see above.
+8. **Read what the app has taught us** before launching it: `mom known <route folder>` (§5b, PROTOCOL §22).
 
 ## 4b. ⭐ The first job on a new app: does it run, does it run with our file, then a FIXED WINDOW (0.7.0)
 
@@ -338,9 +339,15 @@ Waiting is the person's time. Between menu key presses wait **0.2–0.5 s**, not
 is actually loading (and then poll for it, do not sleep a fixed minute). Skip intros and cutscenes with the keys the app
 offers (often any key). Look at the screen only where it matters: **before a choice that destroys or overwrites
 something** (new game, delete, overwrite save) and after a step whose result you are unsure of. Menus that animate in
-move their buttons: look once the panel has settled before clicking. Driving the app directly like this is the default;
-Menu-o-matiC (`/lanes:menu`) is there for recorded routes, not a requirement. Write each quick route you prove into the
-app's control profile so the next session drives it from the first second.
+move their buttons: look once the panel has settled before clicking.
+
+**Drive with the -o-matic tools and get better at each app every run (0.66.0).** Use the app's recorded routes
+(`/lanes:menu`) first; drive by hand only where no route exists yet, and then record or write one. Before the app
+starts, read what it has already taught us: `mom known <route folder>` prints its `KNOWN.md` (menu screens and the
+button for each, controls that work, save spot, hazards, what failed) and its route map. The moment something new
+is learned, add it the same session (`mom known <folder> --add <Section> "..."`) or fix the route, and when the tool
+itself was missing something, improve it. Each run should leave the app easier to drive than it found it.
+`docs/PROTOCOL.md` §22.
 
 ## 6. Before the session ends
 
