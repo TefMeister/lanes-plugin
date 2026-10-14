@@ -131,6 +131,14 @@ role = DEV
 # Documents\BeG0nE recordings. Overridden by $LANES_BEGONE.
 # begone = /path/to/your/BeG0nE-clone
 
+# THE WEEKLY TOOL CHECK, /lanes:gu (0.67.0, PROTOCOL section 23). Each line may repeat.
+#   twin   = <master copy> | <second copy>   two copies of the same tool (file or folder) that must match
+#   watch  = <name> | <owner/repo>           someone else's tool on GitHub: say when a new release is out
+#   ours   = <clone>                         one of our own tool repos: behind or ahead of GitHub?
+#   routes = <folder>                        where each app's routes and KNOWN.md live (its Tool ideas are read)
+# twin = /path/to/toolkit/tools/menu-o-matic | /path/to/lanes-plugin/plugins/lanes/tools/menu-o-matic
+# watch = UEVR | praydog/UEVR
+
 # KEEP CONVERSATIONS SHORT (0.63.0, PROTOCOL section 21).
 # Claude Code summarises a conversation by itself when it is nearly full. `tools/compact.py on` moves that
 # earlier, to this share of the model's room (10 to 95; default 40), by writing one setting into

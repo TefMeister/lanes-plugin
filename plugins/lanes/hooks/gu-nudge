@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# SessionStart hook: one line when the weekly tool check (/lanes:gu) last ran a week or more ago on this PC, or has
+# never run here while something is set up for it. Silent otherwise, and on any failure. LANES_GU_NUDGE=0 turns it off.
+set -uo pipefail
+[ "${LANES_GU_NUDGE:-1}" = "0" ] && exit 0
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+PY=""
+for cand in python3 python py; do
+  command -v "$cand" >/dev/null 2>&1 || continue
+  "$cand" -c "" >/dev/null 2>&1 || continue
+  PY="$cand"; break
+done
+[ -n "$PY" ] || exit 0
+"$PY" "$PLUGIN_ROOT/tools/gu.py" nudge 2>/dev/null | "$PY" "$SCRIPT_DIR/emit_context.py"
+exit 0

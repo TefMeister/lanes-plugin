@@ -27,6 +27,7 @@ you have at the start of every session: *what can I actually do right now?*
 | `/gr` | Guided Research | Web research for each project, kept in that project's notes. |
 | `/sr` | Sweep Research | Research across all projects, kept in one shared library. |
 | `/gs` | Good-standing Sweep | Hygiene check: are notes tagged, and are hand-offs being picked up? |
+| `/gu` | GitHub Update | The weekly tool check: brings your tools up to date both ways, flags new releases of outside tools, and feeds lessons into the tools. |
 | `/gates` | Gate Board | Shows the work board. |
 | `/gate-watch` | Gate Watch | Tells you when another session finishes something. |
 | `/ideas` | Ideas | Files the ideas you jotted down, onto the right project. |
@@ -107,7 +108,11 @@ to learn any of it up front: the sessions follow it for you, and you can switch 
   running, so you know if Claude Code can be closed.
 - **Every session summary is kept,** dated, in its own folder per project, and pushed to a private repo
   if you have one. When a problem keeps coming back, sessions search the old summaries first.
-- **Sessions get better at driving each game (new in 0.66.0).** Each game keeps a note beside its recorded
+- **A weekly tool check, `/lanes:gu` (new in 0.67.0).** Brings everything you rely on up to date: newer
+  versions of your own tools come down or go up, two copies of a tool are put back in step, outside tools with
+  a new release are listed with what is new (installed only on your yes), and lessons noted while driving games
+  go into the tools. A line at session start says when a week has passed.
+- **Sessions get better at driving each game (0.66.0).** Each game keeps a note beside its recorded
   menu routes of what sessions have learned (menu buttons, controls, hazards). It is read before every launch
   and added to as soon as something new turns up, so no session has to rediscover a game's menus.
 - **Your PCs know what the other has (0.65.0).** Each PC keeps a small note of which of our apps
@@ -256,7 +261,7 @@ what is new and never installs without asking. The full manual is in
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.66.1`, early public release |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.67.0`, early public release |
 
 ## Modding games?
 

@@ -125,6 +125,18 @@
         "hooks": [
           {
             "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" gu-nudge",
+            "shell": "bash",
+            "timeout": 15,
+            "statusMessage": "Is the weekly tool check due?",
+            "async": false
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" theme-apply",
             "shell": "bash",
             "timeout": 30,
