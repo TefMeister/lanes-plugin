@@ -261,7 +261,7 @@ what is new and never installs without asking. The full manual is in
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.67.2`, early public release |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.68.0`, early public release |
 
 ## Modding games?
 

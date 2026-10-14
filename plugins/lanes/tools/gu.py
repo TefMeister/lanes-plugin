@@ -74,6 +74,11 @@ def pair(value):
     return a.strip(), b.strip()
 
 
+def asks():
+    """False when the person said /gu may update without asking (gu_ask = no)."""
+    return (conf_values("gu_ask") or ["yes"])[-1].lower() not in ("no", "false", "off", "0")
+
+
 def load_state():
     try:
         with open(STATE_FILE, encoding="utf-8") as f:
@@ -260,6 +265,7 @@ def scan(as_json):
         print(json.dumps(report, indent=1))
         return 0
     print(f"Last /gu on this PC: {report['last_run'] or 'never'}")
+    print("Ask before installing: " + ("no (gu_ask = no): update and report" if not asks() else "yes, one question for all"))
     print("1. Our apps and tools")
     for a in apps:
         word = f"newer release out: {a['newest']}" if a["newer"] else "up to date"

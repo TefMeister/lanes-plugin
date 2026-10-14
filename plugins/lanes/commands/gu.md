@@ -16,6 +16,9 @@ unasked; mention it in one line and carry on.
   only looks after tools.
 - **Ask before installing or updating anything on this PC** that is not a git pull of our own clone: the lanes
   plugin, Hand Freeze, an outside tool. One question listing them all (AskUserQuestion, multi-select), not one each.
+  **Unless the person said not to ask:** `gu_ask = no` in lanes.conf (the scan's first lines say which). Then update
+  everything that needs it without asking, and report what was done (0.68.0; asked for by the maintainer: "update
+  everything that needs an update, no need to ask me, it's more for users who are not me").
 - **Pushing our own work needs no question** (the same as every lane), but stage only the files you mean to.
 - If a repo you need is claimed by a live session in the same clone root, leave it and say so.
 - Short, plain report. Detail goes in the commits.
@@ -47,6 +50,13 @@ Four sections. If one is empty because nothing is set up for it in `lanes.conf` 
    small (and test it), otherwise turn it into a board row or an issue on the tool's repo. Anything learned that
    other people's tools could use goes where those tools keep knowledge (the cross-engine library's `inbox/`, the
    toolkit's notes).
+5. **The PC's own development tools** (0.68.0): `winget upgrade` lists programs with a newer version; update the
+   ones used for the work (compilers and build tools, cmake, git hosting tools, runtimes, editors, packers, the
+   debugger). Leave alone, and say why: anything running right now (the terminal this runs in, git while shells use
+   it, an editor or tool another session has open), a compiler a live session is building with (a new major version
+   changes every build), game stores and launchers (they update themselves), and the person's private apps.
+   Then Python packages the tools use (`python -m pip list --outdated`): update them, and run `pip check` after; a
+   package another tool pins below a major version stays where that pin allows.
 
 ## 3. Finish
 

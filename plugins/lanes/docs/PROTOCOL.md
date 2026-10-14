@@ -1229,3 +1229,6 @@ knowledge goes into the tools.
   days old or more (or it never ran while something is set up). The session mentions it and carries on; it never
   runs it unasked. `LANES_GU_NUDGE=0` turns the line off.
 - Never launches or drives an app, and never touches a project's own files. Test: `tools/tests/gu-fixture.sh`.
+- **0.68.0:** `gu_ask = no` lets it update without asking (the maintainer's choice for their own PCs; everyone
+  else is still asked). A fifth step covers the PC's own development tools (`winget upgrade`, Python packages),
+  leaving alone anything running, a compiler a live session builds with, game stores and private apps.
