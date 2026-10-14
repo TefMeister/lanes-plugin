@@ -10,8 +10,8 @@ session walks the same menus dozens of times.
 The tool is `python "${CLAUDE_PLUGIN_ROOT}/tools/menu-o-matic/menu_o_matic.py"`, below `mom`. Its own `README.md`
 beside it explains the route format. Windows only; needs Pillow (`python -m pip install pillow`).
 
-> Fast direct driving (short gaps between presses, looks only before destructive choices) is the default in `/lm`
-> (`commands/lm.md` §5b); this tool is for routes worth recording.
+> Since 0.66.0 `/lm` drives with this tool's routes first and keeps what it learns per app (`KNOWN.md`, below);
+> fast direct driving (`commands/lm.md` §5b) is for the stretches no route covers yet.
 
 ## Which lane may use it
 
@@ -53,6 +53,15 @@ the tool's `README.md` → "Setting a game up" has the detail:
 
 Only after that, run it yourself as often as the tests need. **Not sure what the game is doing?**
 `state_o_matic.py watch <window> [--poke <key>] [--states states.json]` says menu, loading, cutscene or gameplay, with the reason.
+
+## Keep what each game teaches you (0.66.0)
+
+Every app's route folder holds a `KNOWN.md`: menu screens and the button for each, controls that work (held or
+tapped, how long), the save spot, hazards, what failed, and ideas for the tool. `mom known <folder>` prints it with
+the route map (and makes it from a template the first time); `mom known <folder> --add <Section> "..."` adds a dated
+line. Read it before every launch; add to it the same session something new is learned; fix a broken route then and
+there; and when the tool was missing something, improve it. Only app facts: route folders are often public.
+PROTOCOL §22.
 
 ## A map of routes per game (0.34.0)
 

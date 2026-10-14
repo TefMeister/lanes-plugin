@@ -1191,3 +1191,23 @@ setting did not trigger a summary from a settings file in the same test, so it i
 - Every hook here is silent on failure and can never block a summary or a session end. `LANES_COMPACT=0` turns
   them off.
 
+## 22. Get better at driving each app, every run (0.66.0, 2026-10-14)
+
+Asked for by the maintainer: sessions should use the -o-matic tools themselves to get more and more familiar with
+each game's menus and gameplay, keep what they learn per game, and improve the tools as they go.
+
+- **Drive with routes first.** `/lm` uses the app's recorded routes (`/lanes:menu`); driving by hand is the fallback
+  where no route exists yet, and that is the moment to record one.
+- **One `KNOWN.md` per app, beside its routes**, with fixed sections: Menus, Controls, Save spot, Hazards, What
+  failed, Tool ideas. `mom known <folder>` prints it and the route map (making it from a template the first time);
+  `--add <Section> "..."` adds a dated line. Only app facts: no paths, machine names or people.
+- **Read it in pre-flight** (`/lm` §4 step 8), so the session already knows how to reach the work.
+- **Add the same session** anything new: a screen, a key that works, a route that broke after a patch.
+- **Improve the tool** when it was missing something; the canonical copy is the toolkit's, copied into the plugin.
+- Unchanged: the first setup of an app is done with the person (`/lanes:menu`), still-camera and mouse tests come
+  before movement routes, and playing through levels stays the person's job.
+
+### Plugin updates are described
+
+When a session updates the plugin, or says an update is waiting (`/lanes:update`), it lists each version in between
+with one plain line on what it adds, from `CHANGELOG.md`.
