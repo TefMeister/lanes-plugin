@@ -1211,3 +1211,21 @@ each game's menus and gameplay, keep what they learn per game, and improve the t
 
 When a session updates the plugin, or says an update is waiting (`/lanes:update`), it lists each version in between
 with one plain line on what it adds, from `CHANGELOG.md`.
+
+## 23. The weekly tool check: /lanes:gu (0.67.0, 2026-10-14)
+
+Asked for by the maintainer: `/gs` only checks; `/gu` should check the things that might need updating and update
+them, both ways: a newer version on GitHub comes to this PC, a newer version on this PC goes to GitHub, and new
+knowledge goes into the tools.
+
+- **Four things, one report** (`tools/gu.py scan`): our own apps and tools (the plugin, Hand Freeze, every
+  `ours = <clone>`); two copies of one tool (`twin = A | B`, A is the master copy; line endings are ignored); outside
+  tools on GitHub (`watch = name | owner/repo`, a release not yet noted is new); and the "Tool ideas" lines added to
+  each app's `KNOWN.md` (§22) since the last run.
+- **The tool changes nothing.** The session updates; it asks once, listing everything, before installing or
+  updating anything on the PC that is not a pull of our own clone. `gu.py seen <name> <tag>` notes a release so it
+  is not offered again; `gu.py done` stamps the run.
+- **The habit is weekly.** The `gu-nudge` hook prints one line at session start when the last run on this PC is 7
+  days old or more (or it never ran while something is set up). The session mentions it and carries on; it never
+  runs it unasked. `LANES_GU_NUDGE=0` turns the line off.
+- Never launches or drives an app, and never touches a project's own files. Test: `tools/tests/gu-fixture.sh`.
