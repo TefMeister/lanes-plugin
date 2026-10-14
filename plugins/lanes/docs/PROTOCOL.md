@@ -511,6 +511,24 @@ Write two things into every item or it will never be cleared: **why it must be t
   through git. An item on the remote but missing from this clone is reported as exactly that, with a
   nudge to pull — never as nothing.
 
+### The person's word clears it, on any machine (0.65.0, 2026-10-14)
+
+What happened: an app was installed and tested on the home PC, its reminder was never cleared there, and
+the other PC kept treating it as missing. **When the person says a reminder's job is done on the other
+machine, the session that hears it clears it straight away**, quoting them:
+`owed.sh done <name> <ROLE> "<their words>"`, then commits with those words in the message. Their report
+is the proof (they were there; we were not). Without the words, `done` refuses another machine's item.
+Before planning work around "the other PC still needs X", run `owed.sh list --all` and `installed.py list`,
+and ask if the two disagree with what they have said.
+
+### Which of our apps each PC has (0.65.0)
+
+`tools/installed.py` keeps one small note per PC at `<board>/installed/<PC name>.json`: which of our own
+apps it has, at which release. Install tools write it (`hand-freeze.py install` does), and every session
+start looks at this PC, updates its note if anything changed, and prints one line for each app another PC
+has that this one does not, or has at a different release. Silent when they match. Like `owed.sh` it never
+commits; the close-out box shows the note as unsaved until the board is saved.
+
 ## 8. Can a rule REACH the session that needs it? (0.15.0, 2026-09-19)
 
 Every other check in this plugin looks at the **records** — confidence tags, inbox drains, board
