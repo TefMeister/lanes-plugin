@@ -107,7 +107,11 @@ to learn any of it up front: the sessions follow it for you, and you can switch 
   running, so you know if Claude Code can be closed.
 - **Every session summary is kept,** dated, in its own folder per project, and pushed to a private repo
   if you have one. When a problem keeps coming back, sessions search the old summaries first.
-- **Conversations stay short, and nothing is lost (new in 0.63.0).** Claude Code summarises a
+- **Hand Freeze for VR (new in 0.64.0).** `/lanes:setup` can install our small
+  [Hand Freeze](https://github.com/TefMeister/hand-freeze-vr) app from GitHub: it holds both VR controllers
+  still in any OpenXR game, so hand and weapon poses can be tuned with the mouse while the controllers lie
+  on the desk. `/lanes:update` says when a newer Hand Freeze is out.
+- **Conversations stay short, and nothing is lost (0.63.0).** Claude Code summarises a
   conversation by itself when it is nearly full. Lanes can make that happen earlier (40% full by
   default), which keeps each session sharper and cheaper. Just before every summary it saves a
   checkpoint for the project (what is not on GitHub yet, the job it holds, the next step, and your last
@@ -246,7 +250,7 @@ what is new and never installs without asking. The full manual is in
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.63.0`, early public release |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.64.0`, early public release |
 
 ## Modding games?
 
