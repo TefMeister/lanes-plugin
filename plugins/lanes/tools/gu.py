@@ -48,21 +48,24 @@ def conf_files():
     return [os.path.expanduser("~/.claude/lanes.conf"), os.path.expanduser("~/.config/lanes/lanes.conf")]
 
 
+def conf_lines(path):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return [line for line in f if not line.lstrip().startswith("#")]
+    except OSError:
+        return []
+
+
 def conf_values(key):
     """Every value of a (repeatable) key; a ' #' note after the value is not part of it."""
     out = []
     for c in conf_files():
-        try:
-            for line in open(c, encoding="utf-8"):
-                if line.lstrip().startswith("#"):
-                    continue
-                k, sep, v = line.partition("=")
-                if sep and k.strip() == key:
-                    v = v.split(" #")[0].strip().strip('"')
-                    if v:
-                        out.append(os.path.expandvars(os.path.expanduser(v)) if "|" not in v else v)
-        except OSError:
-            pass
+        for line in conf_lines(c):
+            k, sep, v = line.partition("=")
+            v = v.split(" #")[0].strip().strip('"')
+            if not (sep and k.strip() == key and v):
+                continue
+            out.append(os.path.expandvars(os.path.expanduser(v)) if "|" not in v else v)
     return out
 
 
@@ -222,23 +225,26 @@ def outside_tools(state):
 
 # ---- 4. lessons -----------------------------------------------------------------------------------------------
 
+def tool_ideas(path, since):
+    """The '- YYYY-MM-DD: ...' lines under '## Tool ideas' in one KNOWN.md, from `since` on."""
+    out, section = [], ""
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            if line.startswith("## "):
+                section = line[3:].strip()
+            elif section == "Tool ideas" and line.startswith("- ") and (not since or line[2:12] >= since):
+                out.append(line[2:].strip())
+    return out
+
+
 def lessons(since):
     out = []
     for root in conf_values("routes"):
-        if not os.path.isdir(root):
-            continue
-        for app in sorted(os.listdir(root)):
+        apps = sorted(os.listdir(root)) if os.path.isdir(root) else []
+        for app in apps:
             p = os.path.join(root, app, "KNOWN.md")
-            if not os.path.isfile(p):
-                continue
-            section = ""
-            for line in open(p, encoding="utf-8"):
-                if line.startswith("## "):
-                    section = line[3:].strip()
-                elif section == "Tool ideas" and line.startswith("- "):
-                    date = line[2:12]
-                    if not since or date >= since:
-                        out.append({"app": app, "line": line[2:].strip()})
+            if os.path.isfile(p):
+                out += [{"app": app, "line": line} for line in tool_ideas(p, since)]
     return out
 
 
