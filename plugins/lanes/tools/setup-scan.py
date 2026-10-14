@@ -279,6 +279,8 @@ def catalog():
         ("vr", "steamvr", "SteamVR", lambda: steam_app_installed(250820), False, True),
         ("vr", "virtualdesktop", "Virtual Desktop Streamer", lambda: process_running("VirtualDesktop.Streamer.exe")
          or os.path.isdir(os.path.join(PROGRAMFILES, "Virtual Desktop Streamer")), False, True),
+        ("vr", "handfreeze", "Hand Freeze (hold VR hands still while tuning poses)",
+         lambda: os.path.isfile(os.path.join(LOCALAPPDATA, "Programs", "HandFreeze", "HandFreeze.exe")), False, False),
         ("video", "resolve", "DaVinci Resolve (free)", resolve, False, True),
         ("video", "ffmpeg", "FFmpeg", ffmpeg, False, False),
     ]

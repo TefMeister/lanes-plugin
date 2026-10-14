@@ -17,7 +17,7 @@ description: (Update) Checks GitHub for a newer version of the lanes plugin, say
    looked at. Since 0.12.1 it locates the real installed copy itself and sets `ran_from_repo` when
    it had to; `installed_root` then says which copy the answer is about.
 
-2. **Up to date** (`newer` is false): say so in one line, with the version. Stop.
+2. **Up to date** (`newer` is false): say so in one line, with the version. Go to step 6.
 
 3. **Newer version available:** tell the user in two or three plain sentences:
    - that a new version is out, and which one they have;
@@ -59,5 +59,13 @@ description: (Update) Checks GitHub for a newer version of the lanes plugin, say
    ```
 
    Tell them it will be offered again tomorrow, or any time they type `/lanes:update`.
+
+6. **Hand Freeze, every run** (0.64.0), whichever way steps 2-5 went (an up-to-date plugin does not stop this step):
+   `python "${CLAUDE_PLUGIN_ROOT}/tools/hand-freeze.py" status --json`.
+   - `installed` false: say nothing (`/lanes:setup` offers it; do not nag).
+   - `newer` true: say in one plain line that a newer Hand Freeze is out, and ask (AskUserQuestion: "Update Hand
+     Freeze" / "Not now"). Yes runs `hand-freeze.py install`; it refuses while the app is open, so if it says so,
+     ask them to close the Hand Freeze window and try once more.
+   - Otherwise, or if `error` is set: say nothing.
 
 Never update without a yes in this session. A yes from an earlier session does not count.

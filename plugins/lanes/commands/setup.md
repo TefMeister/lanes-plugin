@@ -1,5 +1,5 @@
 ---
-description: (Setup) First-run walk-through - first asks what name sessions should call you in notes and on GitHub (default "User") and what to call this PC (default PC1, PC2 ...), then the optional tools the lanes use - Git, Python, build tools, debuggers and decompilers with their MCP servers, Blender + Blender MCP, gamepad and VR runtimes. For each missing tool it offers to install it for you, or gives you the official link to do it yourself, or skips it. Safe to re-run any time; it only ever adds what you say yes to.
+description: (Setup) First-run walk-through - first asks what name sessions should call you in notes and on GitHub (default "User") and what to call this PC (default PC1, PC2 ...), then the optional tools the lanes use - Git, Python, build tools, debuggers and decompilers with their MCP servers, Blender + Blender MCP, gamepad and VR runtimes, and our Hand Freeze app. For each missing tool it offers to install it for you, or gives you the official link to do it yourself, or skips it. Safe to re-run any time; it only ever adds what you say yes to.
 ---
 
 `/lanes:setup` walks the user through **optional** tools, one group at a time. The catalog, with
@@ -174,6 +174,16 @@ own guided sequence. Use the catalog's numbered steps:
 Print steps 5–7 as one block for the user, then wait. Afterwards, **re-run the scan and read the
 `detail` again**: it is what tells you the clicks landed, and it works in the session that made the
 change, without waiting for a restart.
+
+## 3.5 Hand Freeze (0.64.0, in the VR group, only if they have a VR headset)
+
+Our own small desktop app (catalog section 6): it holds both VR controllers still in any OpenXR game, so hand and
+weapon poses can be tuned with the mouse while the controllers lie on the desk. It is offered with the VR group like
+any other tool. "Install it for me" runs `python "${CLAUDE_PLUGIN_ROOT}/tools/hand-freeze.py" install`: it downloads
+the newest release from GitHub, puts a **Hand Freeze** icon on the Desktop, and needs no administrator rights. Say in
+one line that it must be switched **ON before a game starts**, and that it works with OpenXR games only.
+"Give me the links" gives https://github.com/TefMeister/hand-freeze-vr/releases (download the zip, unzip, right-click
+`install.ps1` → Run with PowerShell).
 
 ## 4. MCP servers need a restart
 

@@ -97,6 +97,7 @@ Official project page: **https://github.com/ahujasid/mcp-for-blender** (MIT). It
 | --- | --- | --- | --- | --- |
 | **SteamVR** | OpenVR/OpenXR runtime for PC VR | https://store.steampowered.com/app/250820/SteamVR/ | **you**, through Steam | installed in Steam |
 | **Virtual Desktop** (Quest headsets) | Streams PC VR to a Quest wirelessly, with its own OpenXR runtime. **Paid app** on the headset; the PC Streamer is free | https://www.vrdesktop.net/ | **you**: buy on the headset's store, install the Streamer from that site | `VirtualDesktop.Streamer` running |
+| **Hand Freeze** (ours) | Holds both VR controllers still in any OpenXR game, so hand and weapon poses can be tuned with the mouse while the controllers lie on the desk. Switch it ON before starting the game | https://github.com/TefMeister/hand-freeze-vr | `python tools/hand-freeze.py install` (the newest release, no admin; the same command updates it) | `HandFreeze.exe` in `%LOCALAPPDATA%\Programs\HandFreeze` |
 
 ## 7. Per-game frameworks (install into one game, only when that game needs it)
 
