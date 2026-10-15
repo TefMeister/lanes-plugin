@@ -13,7 +13,7 @@
 #   1. the version is X.Y.Z in all four places: plugin.json, marketplace.json, the newest CHANGELOG line,
 #      and the front page (the installer reads marketplace.json; RELEASE-CHECKLIST B8)
 #   2. everything is committed (nothing unsaved could slip past the checks)
-#   3. the tag vX.Y.Z does not exist yet
+#   3. the tag vX.Y.Z does not exist yet, and GitHub has nothing this copy lacks (another PC's release)
 #   4. the privacy scan finds nothing that identifies a person
 #   5. the smoke test and the hooks test pass
 # Then it pushes, tags vX.Y.Z, pushes the tag, and creates the GitHub Release marked Latest.
