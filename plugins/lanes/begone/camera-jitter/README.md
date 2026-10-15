@@ -36,7 +36,7 @@ shutdown). A flat run writes nothing, so there is no switch to remember. The rid
 signs (SteamVR's own processes; a windowed program with the OpenXR or OpenVR library loaded) so a session can
 tell "VR is up but no mod is logging" from "nothing is running".
 
-**Flat screen, simulator and real headset are never pooled** (Tefa, 2026-10-15: *"they are different in feel"*).
+**Flat screen, simulator and real headset are never pooled** (asked for by the maintainer, 2026-10-15: they feel different).
 The checker reads where a session ran from the runtime name the mod passes to `jl_init`: pass `"flat"` for a flat
 run, and otherwise the headset runtime's own name (OpenXR `xrGetInstanceProperties` runtimeName, spaces as
 dashes, for example `openxr-steamvr` or `openxr-openxr-simulator`). A name containing `sim` counts as the

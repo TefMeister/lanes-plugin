@@ -35,7 +35,7 @@ POSE_AGE_HIGH_MS = 12.0       # median pose age above this (about one 90 Hz fram
 MIN_TURNING_S = 2.0           # fewer turning seconds than this: no jitter verdict
 MIN_PICTURES_S = 20.0         # fewer pictures a second than this: the mod was not really running
 CHART_W, ROW_H, MARGIN = 1200, 90, 50
-# Where the session ran (Tefa, 2026-10-15: flat-screen and headset jitter feel different, so they are never pooled).
+# Where the session ran (the maintainer, 2026-10-15: flat-screen and headset jitter feel different, so they are never pooled).
 # Read from the runtime name the mod passes to jl_init: "flat" for a flat run, else the headset runtime's own name.
 PLACES = {"flat": "flat screen", "simulator": "headset simulator", "headset": "real headset",
           "unknown": "VR, headset or simulator not recorded"}
