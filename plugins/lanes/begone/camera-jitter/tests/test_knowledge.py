@@ -62,9 +62,25 @@ def main():
         base = knowledge._load()
         check("labels survive a rebuild", base["sessions"]["run1_stepped"].get("label") == "jittery"
               and len(base["patterns"]) == 3)
+        # the same numbers on a flat screen, in the simulator and in a real headset stay three patterns
+        log = os.path.join(tmp, "run1_stepped.jl")
+        fids = set()
+        for runtime in ("flat", "openxr-openxr-simulator", "openxr-steamvr"):
+            with open(log, encoding="utf-8") as f:
+                text = f.read().replace("runtime=none", f"runtime={runtime}", 1)
+            alt = os.path.join(tmp, f"place_{runtime}.jl")
+            with open(alt, "w", encoding="utf-8") as f:
+                f.write(text)
+            out = os.path.join(knowledge.DATA, "village", f"place_{runtime}")
+            jitter_log_check.check(alt, out)
+            fids.add(knowledge.ingest(out)[0])
+        knowledge.report()
+        text = open(knowledge.FINDINGS, encoding="utf-8").read()
+        check("flat, simulator and headset never pooled", len(fids) == 3 and "village, flat screen" in text
+              and "village, headset simulator" in text and "village, real headset" in text)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
-    print(f"{8 - failed}/8 checks passed")
+    print(f"{9 - failed}/9 checks passed")
     sys.exit(1 if failed else 0)
 
 
