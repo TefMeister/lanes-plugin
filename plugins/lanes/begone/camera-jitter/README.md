@@ -36,6 +36,14 @@ shutdown). A flat run writes nothing, so there is no switch to remember. The rid
 signs (SteamVR's own processes; a windowed program with the OpenXR or OpenVR library loaded) so a session can
 tell "VR is up but no mod is logging" from "nothing is running".
 
+**Flat screen, simulator and real headset are never pooled** (Tefa, 2026-10-15: *"they are different in feel"*).
+The checker reads where a session ran from the runtime name the mod passes to `jl_init`: pass `"flat"` for a flat
+run, and otherwise the headset runtime's own name (OpenXR `xrGetInstanceProperties` runtimeName, spaces as
+dashes, for example `openxr-steamvr` or `openxr-openxr-simulator`). A name containing `sim` counts as the
+simulator; a bare `openxr`/`openvr` is "VR, headset or simulator not recorded". Each place gets its own sections
+in FINDINGS.md and its own patterns. A flat run is only logged if the mod calls `jl_vr_on()` for it, with the
+input-driven view as the pose and the game camera as the camera (not tried yet).
+
 **Controllers ride the same log** (`jl_hand_*`, one line per controller read with a tracked flag), so Occlusion
 Drift BeG0nE collects at the same time: per controller, how often tracking dropped, for how long, and how often
 the other controller was within 30 cm when it did.

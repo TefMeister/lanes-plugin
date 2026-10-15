@@ -24,6 +24,9 @@ import time
 
 import numpy as np
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from jitter_log_check import PLACES, place_of  # noqa: E402
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 # Lanes 0.62.0: the code ships in the plugin; the data and the knowledge live in the person's BeG0nE home.
 ROOT = os.environ.get("BEGONE_TOOL_HOME") or os.path.dirname(HERE)
@@ -74,6 +77,7 @@ def fingerprint(summary):
             return None, None
         vals[key] = round(round(float(np.median(xs)) / bucket) * bucket, 3)
     vals["verdict"] = "JITTER" if any(w["kind"] == "JITTER" for w in turning) else "smooth"
+    vals["place"] = summary.get("place") or place_of(summary.get("runtime"))   # never pooled across places
     fid = hashlib.sha1(json.dumps(vals, sort_keys=True).encode()).hexdigest()[:10]
     return vals, fid
 
@@ -188,6 +192,10 @@ def _group_of(pat):
     return lab
 
 
+def _place(pat):
+    return pat["values"].get("place", "unknown")
+
+
 def _separations(pats):
     """Per measure: the range across jittery patterns, across smooth ones, and whether they overlap."""
     out = []
@@ -216,8 +224,13 @@ def report(base=None):
              f"{len(pats)} patterns. A pattern is one way a mod behaved; sessions that behaved the same way count "
              f"as one. A pattern is grouped as jittery or smooth by the checker's own verdict, unless the person wearing the "
              f"headset said otherwise with `ride.py label`, which outranks it. Every line is `[measured]` on our own mods.", ""]
-    games = sorted({g for p in pats for g in p["games"]})
-    sections = [("Across every game", pats)] + [(g, [p for p in pats if g in p["games"]]) for g in games]
+    # flat screen, simulator and real headset are compared only with themselves (they feel different)
+    sections = []
+    for place in [k for k in PLACES if any(_place(p) == k for p in pats)]:
+        here = [p for p in pats if _place(p) == place]
+        games = sorted({g for p in here for g in p["games"]})
+        sections.append((f"Across every game, {PLACES[place]}", here))
+        sections += [(f"{g}, {PLACES[place]}", [p for p in here if g in p["games"]]) for g in games]
     for title, group in sections:
         seps, nj, ns = _separations(group)
         lines += [f"## {title}", "", f"{len(group)} patterns: {nj} jittery, {ns} smooth, "
@@ -236,12 +249,12 @@ def report(base=None):
         for key, words, ra, rb, sep in seps:
             lines.append(f"| {words} | {_fmt(ra)} | {_fmt(rb)} | {'**yes**' if sep else 'no'} |")
         lines.append("")
-    lines += ["## Every pattern", "", "| id | label | seen | games | " +
+    lines += ["## Every pattern", "", "| id | label | where | seen | games | " +
               " | ".join(w for _, _, w in MEASURES) + " | checker said |",
-              "| --- | --- | --- | --- | " + " | ".join("---" for _ in MEASURES) + " | --- |"]
+              "| --- | --- | --- | --- | --- | " + " | ".join("---" for _ in MEASURES) + " | --- |"]
     for fid, p in sorted(base["patterns"].items(), key=lambda kv: -kv[1]["count"]):
         v = p["values"]
-        lines.append(f"| `{fid}` | {_label_of(p)} | {p['count']} | {', '.join(sorted(p['games']))} | " +
+        lines.append(f"| `{fid}` | {_label_of(p)} | {PLACES[_place(p)]} | {p['count']} | {', '.join(sorted(p['games']))} | " +
                      " | ".join(f"{v[k]:g}" for k, _, _ in MEASURES) + f" | {v['verdict']} |")
     contra = [fid for fid, p in base["patterns"].items() if _label_of(p) == "contradiction"]
     if contra:

@@ -6,6 +6,7 @@ what they are missing, and the smoke test fails if the newest line does not matc
 **The banner is fixed artwork and never changes on a release** (since 0.24.0). A new command goes on the
 front page (`README.md` at the repo root); the smoke test fails if one is missing there.
 
+- **0.70.0** (2026-10-15): **The jitter checker keeps flat screen, the headset simulator and a real headset apart.** Each session is sorted by where it ran (read from the runtime name the mod logs) and only ever compared with sessions from the same place, because jitter feels different on a monitor and in a headset. Asked for by the maintainer.
 - **0.69.2** (2026-10-15): **The check 0.69.1 described is now really in.** 0.69.1 shipped its description but not the check itself; this version adds it, tested.
 - **0.69.1** (2026-10-15): **A release can no longer skip another PC's version.** If GitHub has a version this copy has not pulled yet (another PC released while this session worked), the release stops before any check and says to pull it in first, so nothing from that version is lost. Asked about by the maintainer.
 - **0.69.0** (2026-10-15): **`/lanes:gu` keeps your GitHub texts up to date.** A new step checks every public repo's description and front pages for an old version number, "nothing released" beside a release, or a status that has not moved while the work did, then reads each description against the project's notes and rewrites what has fallen behind. Set `texts =` (your clones folder) and `texts_owner =` in lanes.conf. Asked for by the maintainer.

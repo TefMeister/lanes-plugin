@@ -35,6 +35,25 @@ POSE_AGE_HIGH_MS = 12.0       # median pose age above this (about one 90 Hz fram
 MIN_TURNING_S = 2.0           # fewer turning seconds than this: no jitter verdict
 MIN_PICTURES_S = 20.0         # fewer pictures a second than this: the mod was not really running
 CHART_W, ROW_H, MARGIN = 1200, 90, 50
+# Where the session ran (Tefa, 2026-10-15: flat-screen and headset jitter feel different, so they are never pooled).
+# Read from the runtime name the mod passes to jl_init: "flat" for a flat run, else the headset runtime's own name.
+PLACES = {"flat": "flat screen", "simulator": "headset simulator", "headset": "real headset",
+          "unknown": "VR, headset or simulator not recorded"}
+BARE_RUNTIMES = ("", "?", "none", "unknown", "openxr", "openvr", "steamvr")
+
+
+def place_of(runtime):
+    """flat / simulator / headset / unknown, from the runtime name in the log's first line."""
+    r = (runtime or "").lower()
+    if "flat" in r:
+        return "flat"
+    if "sim" in r:
+        return "simulator"
+    if r in BARE_RUNTIMES:
+        return "unknown"
+    return "headset"
+
+
 KIND_COLOUR = {"smooth": (120, 200, 120), "JITTER": (60, 60, 230), "still": (200, 200, 200), "thin": (90, 90, 90)}
 
 
@@ -252,7 +271,7 @@ def chart(path, s):
 
 
 def report(head, s, src):
-    lines = [f"# {head.get('game', 'game')} ({head.get('runtime', '?')})", "",
+    lines = [f"# {head.get('game', 'game')} ({head.get('runtime', '?')}, {PLACES[place_of(head.get('runtime'))]})", "",
              f"Log `{os.path.basename(src)}`, checked {time.strftime('%Y-%m-%d %H:%M')}. `[measured]`: one VR session.", "",
              s["verdict"], "", f"- quality: **{s['quality']}**"]
     if "pictures_per_s" in s:
@@ -278,6 +297,7 @@ def check(path, out=None):
     head, rows = read_log(path)
     s = judge(analyse(rows))
     s["file"], s["game"], s["runtime"] = os.path.basename(path), head.get("game", "game"), head.get("runtime", "?")
+    s["place"] = place_of(s["runtime"])
     if out:
         os.makedirs(out, exist_ok=True)
         with open(os.path.join(out, "summary.json"), "w", encoding="utf-8") as f:

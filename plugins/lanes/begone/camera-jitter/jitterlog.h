@@ -24,7 +24,9 @@
  *     #define JITTERLOG_IMPLEMENTATION
  *     #include "jitterlog.h"
  * and in every other file just #include "jitterlog.h".
- *     jl_init("hard-reset-vr", "openxr");   at load
+ *     jl_init("hard-reset-vr", "openxr-steamvr");   at load, or once the runtime is known
+ * The second name says WHERE the session ran, and the checker never pools places: "flat" for a flat run, else
+ * the headset runtime's own name (OpenXR runtimeName, no spaces); "sim" in it marks the simulator.
  *     jl_vr_on();  ...  jl_vr_off();         with the VR session
  */
 #ifndef JITTERLOG_H
