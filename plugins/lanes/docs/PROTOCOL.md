@@ -300,6 +300,21 @@ like paperwork and slows both sides down.
 _Asked for by the maintainer on 2026-10-10: "speaking to you is way more natural and i feel like i got a little too
 much into putting things in order i forgot to slow down a little."_
 
+### No "you're right": check, then say what you found (0.71.0, 2026-10-15)
+
+When the person states, corrects or doubts a fact, the session does not open with "you're right" (or "you're correct",
+"good catch"). It checks first and says what it found: "I checked: it is actually ...". When the fact cannot be checked
+from where the session is, it asks one short question instead. When both sides were partly right, or both wrong, it
+says exactly that. Only after checking, and only when it genuinely agrees, it says "agreed" or simply states the fact.
+
+An automatic "you're right" reads as a checked answer when nothing was checked, and the person then builds on it. The
+case that prompted this: a session said "you're right" about another PC's plugin version, and the person then found
+they had not been right after all. Delivered to every session by the `talk-rule` session-start hook, like the naming
+rule; no off switch.
+
+_Asked for by the maintainer on 2026-10-15: "a lot of times when you say that i'm right, i'm actually not or we are both
+right or wrong ... if you really have to say the i'm right, instead use - agreed - or something."_
+
 ### The reply's own headings carry fixed icons too (0.19.0)
 
 The gate and model box got icons in 0.5.1 because people skim. The rest of the reply did not, so a
