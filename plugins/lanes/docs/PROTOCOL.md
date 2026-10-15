@@ -1232,3 +1232,10 @@ knowledge goes into the tools.
 - **0.68.0:** `gu_ask = no` lets it update without asking (the maintainer's choice for their own PCs; everyone
   else is still asked). A fifth step covers the PC's own development tools (`winget upgrade`, Python packages),
   leaving alone anything running, a compiler a live session builds with, game stores and private apps.
+- **0.69.0:** a sixth step keeps the texts the public reads in step with the work. `tools/gu_texts.py` (scan
+  section 5) checks every public repo of the account (`texts_owner =`, front pages read from the clones under
+  `texts =`): a description or front page naming a version older than the newest release (pre-releases count when
+  there is no full release), "nothing released" or "private" beside a public release, and a status part unchanged
+  for 21 days while 15 or more commits landed. The session then reads every description once against the
+  project's own notes and rewrites what disagrees, in plain words, from those notes only. It never changes what a
+  project is (visibility, a release, a decision). Its first run brought texts in 20 repos up to date.

@@ -75,5 +75,40 @@ rm -f "$LANES_STATE_DIR/gu.json"
 check "nudge: never run but set up = one line" '"$PY" "$TOOL" nudge | grep -q "never run"'
 check "nudge: never run and nothing set up = silent" '[ -z "$(LANES_CONFIG="$T/none.conf" "$PY" "$TOOL" nudge)" ]'
 
+# 5. texts on GitHub (0.69.0): a stale description, a front page pointing at an old version and saying nothing is
+# released, a status part left behind by later work; and a repo whose texts are current, which must stay quiet
+mkdir -p "$T/texts"
+gc() { GIT_COMMITTER_DATE="$2" git -C "$T/texts/$1" -c user.name=t -c user.email=t@t commit -q "${@:3}" --date "$2"; }
+git init -q -b main "$T/texts/scope"
+git -C "$T/texts/scope" remote add origin https://github.com/me/scope.git
+printf '# Scope\n\n## Status\n\nFinished. Download v1.0.2 from Releases.\nNothing here is released.\nUnreal Engine 5.1.1 inside.\n' > "$T/texts/scope/README.md"
+git -C "$T/texts/scope" add README.md
+gc scope "2026-08-01T00:00:00" -m readme
+for i in $(seq 1 16); do gc scope "2026-09-10T00:00:00" --allow-empty -m "work $i"; done
+git init -q -b main "$T/texts/fresh"
+git -C "$T/texts/fresh" remote add origin git@github.com:me/fresh.git
+printf '# Fresh\n\nThe current version is v2.0.0. Download it from Releases.\n' > "$T/texts/fresh/README.md"
+git -C "$T/texts/fresh" add README.md
+gc fresh "2026-10-14T00:00:00" -m readme
+cat > "$T/repos.json" <<EOF
+[{"name": "scope", "description": "A scope. Finished: v1.0.2 released.", "visibility": "PUBLIC", "isArchived": false, "latestRelease": {"tagName": "v1.1.5"}},
+ {"name": "fresh", "description": "Fresh, v2.0.0. Engine 5.1.", "visibility": "PUBLIC", "isArchived": false, "latestRelease": {"tagName": "v2.0.0"}},
+ {"name": "pre", "description": "Early build v0.1.7-alpha out.", "visibility": "PUBLIC", "isArchived": false, "latestRelease": null, "releases": [{"tagName": "v0.1.8-alpha"}]},
+ {"name": "hidden", "description": "Private until work starts", "visibility": "PRIVATE", "isArchived": false, "latestRelease": null},
+ {"name": "noclone", "description": "Private until work starts", "visibility": "PUBLIC", "isArchived": false, "latestRelease": null}]
+EOF
+printf 'texts = %s/texts\ntexts_owner = me\n' "$T" > "$T/texts.conf"
+out="$(LANES_CONFIG="$T/texts.conf" LANES_GU_FAKE_REPOS="$T/repos.json" LANES_GU_TODAY=2026-10-15 "$PY" "$TOOL" scan)"
+check "texts: public repos counted, one without a clone" 'printf "%s" "$out" | grep -q "4 public repos of me checked, 2 without a local clone"'
+check "texts: old version in the description" 'printf "%s" "$out" | grep -q "scope: description names an older version than the newest release v1.1.5"'
+check "texts: front page download line points at the old version" 'printf "%s" "$out" | grep -q "scope: README.md line 5 points at an older version than v1.1.5"'
+check "texts: nothing-released beside a release" 'printf "%s" "$out" | grep -q "scope: README.md says nothing is released"'
+check "texts: status part left behind by later work" 'printf "%s" "$out" | grep -q "scope: README.md has a status part unchanged for 75 days, 16 commits since"'
+check "texts: an engine version is not a mod version" '! printf "%s" "$out" | grep -q "line 7"'
+check "texts: public repo calling itself private" 'printf "%s" "$out" | grep -q "noclone: description says it is private"'
+check "texts: current texts and private repos stay quiet" '! printf "%s" "$out" | grep -q "fresh:\|hidden:"'
+check "texts: a pre-release counts when there is no full release" 'printf "%s" "$out" | grep -q "pre: description names an older version than the newest release v0.1.8-alpha"'
+check "texts: not set up says so" 'printf "%s" "$(LANES_CONFIG="$T/none.conf" "$PY" "$TOOL" scan)" | grep -q "not set up (texts"'
+
 echo "gu-fixture: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

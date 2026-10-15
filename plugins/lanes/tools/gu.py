@@ -12,13 +12,15 @@ and CHANGES NOTHING by itself; the session does the updating, on the person's ye
   3. OUTSIDE TOOLS: `watch = <name> | <owner/repo>`, a tool from someone else on GitHub. Says when a release came
      out that we have not noted yet, with its title.
   4. LESSONS: lines added under "## Tool ideas" in each app's KNOWN.md (`routes = <folder>`) since the last run.
+  5. TEXTS ON GITHUB (0.69.0): repo descriptions and front pages that have fallen behind the work: an older version
+     named, "nothing released" beside a release, a status part untouched while work landed (gu_texts.py).
 
     python gu.py scan [--json]          the report
     python gu.py seen <name> <tag>      note that a watched tool's release has been looked at / installed
     python gu.py done                   stamp this run (the nudge counts days from here)
     python gu.py nudge                  one line at session start when the last run is NUDGE_DAYS old; else silent
 
-Settings in lanes.conf (each may repeat): twin, watch, ours, routes. State: <state dir>/gu.json, per PC.
+Settings in lanes.conf (each may repeat): twin, watch, ours, routes, texts (+ texts_owner). State: <state dir>/gu.json, per PC.
 Never commits, never installs. Exit 0 always for nudge (a start-up check must never open a session with an error).
 Tests set LANES_CONFIG, LANES_STATE_DIR, LANES_GU_FAKE_RELEASES (a JSON file: {"owner/repo": {release}}) and
 LANES_GU_NO_NET=1.
@@ -29,6 +31,8 @@ import os
 import subprocess
 import sys
 import urllib.request
+
+import gu_texts
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 STATE_DIR = os.environ.get("LANES_STATE_DIR") or os.path.join(os.path.expanduser("~"), ".claude", "lanes")
@@ -253,6 +257,15 @@ def lessons(since):
     return out
 
 
+# ---- 5. texts on GitHub ----------------------------------------------------------------------------------------
+
+def texts_report():
+    roots, owner = conf_values("texts"), (conf_values("texts_owner") or [""])[-1]
+    if not roots and not owner:
+        return None
+    return gu_texts.scan(roots, owner, today())
+
+
 # ---- commands -------------------------------------------------------------------------------------------------
 
 def scan(as_json):
@@ -260,7 +273,8 @@ def scan(as_json):
     apps, clones = our_apps()
     report = {"last_run": state.get("last_run"), "apps": apps, "clones": clones,
               "twins": [compare_twin(*pair(v)) for v in conf_values("twin")],
-              "outside": outside_tools(state), "lessons": lessons(state.get("last_run"))}
+              "outside": outside_tools(state), "lessons": lessons(state.get("last_run")),
+              "texts": texts_report()}
     if as_json:
         print(json.dumps(report, indent=1))
         return 0
@@ -301,12 +315,26 @@ def scan(as_json):
         print(f"   {l['app']}: {l['line']}")
     if not report["lessons"]:
         print("   none")
+    print("5. Texts on GitHub")
+    t = report["texts"]
+    if t is None:
+        print("   not set up (texts = <folder of clones>)")
+    elif t["error"]:
+        print(f"   could not check: {t['error']}")
+    else:
+        print(f"   {t['checked']} public repos of {t['owner']} checked"
+              + (f", {t['without_clone']} without a local clone (description only)" if t["without_clone"] else ""))
+        for r in t["repos"]:
+            for f in r["flags"]:
+                print(f"   {r['name']}: {f}")
+        if not t["repos"]:
+            print("   nothing found by the checks; still read each description once against the project's notes")
     return 0
 
 
 def nudge():
     try:
-        configured = any(conf_values(k) for k in ("twin", "watch", "ours", "routes"))
+        configured = any(conf_values(k) for k in ("twin", "watch", "ours", "routes", "texts"))
         last = load_state().get("last_run")
         if last:
             days = (today() - datetime.date.fromisoformat(last)).days
