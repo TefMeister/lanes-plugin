@@ -86,7 +86,7 @@ git -C "$T/texts/scope" add README.md
 gc scope "2026-08-01T00:00:00" -m readme
 for i in $(seq 1 16); do gc scope "2026-09-10T00:00:00" --allow-empty -m "work $i"; done
 git init -q -b main "$T/texts/fresh"
-git -C "$T/texts/fresh" remote add origin git@github.com:me/fresh.git
+git -C "$T/texts/fresh" remote add origin ssh://github.com/me/fresh.git
 printf '# Fresh\n\nThe current version is v2.0.0. Download it from Releases.\n' > "$T/texts/fresh/README.md"
 git -C "$T/texts/fresh" add README.md
 gc fresh "2026-10-14T00:00:00" -m readme
