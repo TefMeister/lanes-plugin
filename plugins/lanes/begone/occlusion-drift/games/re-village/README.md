@@ -47,7 +47,7 @@ left-menu-button fix in its own file.
 
 ## Shipped
 
-**In the RE Village VR Scope mod v1.1.1 and v1.1.2 (2026-10-02), worn and confirmed by the maintainer in the headset.** Since the split:
+**In the RE Village VR Scope mod since v1.1.1 (2026-10-02), worn and confirmed by the maintainer in the headset; still in v1.1.5, the finished version.** Since the split:
 
 - The reference spot is frozen only once it can be trusted (held still 0.3 s, or within 10 cm of the captured rifle
   spot), and forgotten on a weapon change or after 5 s without a grip, so the rifle no longer points far right after a
