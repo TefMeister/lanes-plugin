@@ -1,5 +1,5 @@
 ---
-description: (GitHub update) The weekly tool check. Finds what we rely on that has a newer version - our own apps and tools, two copies of the same tool that drifted apart, outside tools with a new release, lessons the tools should learn - and brings each up to date, asking first before installing anything.
+description: (GitHub update) The weekly tool check. Finds what we rely on that has a newer version - our own apps and tools, two copies of the same tool that drifted apart, outside tools with a new release, lessons the tools should learn, and repo descriptions and front pages that fell behind the work - and brings each up to date, asking first before installing anything.
 ---
 
 `/gu` — **keep everything we rely on fresh.** `/gs` only checks; `/gu` checks the things that may need updating
@@ -13,7 +13,7 @@ unasked; mention it in one line and carry on.
 ## 0. Rules
 
 - **Never launch, drive or close an app**, and never touch a project's own files (boards, notes, builds). This lane
-  only looks after tools.
+  looks after tools, and since 0.69.0 also the texts the public reads (step 6): repo descriptions and front pages.
 - **Ask before installing or updating anything on this PC** that is not a git pull of our own clone: the lanes
   plugin, Hand Freeze, an outside tool. One question listing them all (AskUserQuestion, multi-select), not one each.
   **Unless the person said not to ask:** `gu_ask = no` in lanes.conf (the scan's first lines say which). Then update
@@ -29,8 +29,8 @@ unasked; mention it in one line and carry on.
 python "${CLAUDE_PLUGIN_ROOT}/tools/gu.py" scan
 ```
 
-Four sections. If one is empty because nothing is set up for it in `lanes.conf` (`twin =`, `watch =`, `ours =`,
-`routes =`), say so in one line and offer to set it up.
+Five sections. If one is empty because nothing is set up for it in `lanes.conf` (`twin =`, `watch =`, `ours =`,
+`routes =`, `texts =` with `texts_owner =`), say so in one line and offer to set it up.
 
 ## 2. Act, section by section
 
@@ -57,6 +57,23 @@ Four sections. If one is empty because nothing is set up for it in `lanes.conf` 
    changes every build), game stores and launchers (they update themselves), and the person's private apps.
    Then Python packages the tools use (`python -m pip list --outdated`): update them, and run `pip check` after; a
    package another tool pins below a major version stays where that pin allows.
+6. **Texts on GitHub** (0.69.0; asked for by the maintainer after a finished mod's description still named v1.0.2
+   and its front page sent people to an older download while v1.1.5 was out: *"go over the whole github and bring
+   all the texts and descriptions up to date"*). Section 5 of the scan lists what the checks caught across every
+   public repo of the account: a description or front page naming an older version than the newest release
+   (pre-releases count when there is no full release), "nothing released" or "private" beside a public release, and
+   a status part unchanged for weeks while work landed. **Then the part no check can do:** read every public repo's
+   one-line description once against where the project stands, and the front-page rows that summarise them (a
+   profile page or index, if the account has one). Where they disagree:
+   - **Learn the true state first**, from the project's own board, notes and newest release, never from memory. A
+     status line is a claim: write only what those say, in plain words, dated where it helps.
+   - **Fix the text where it lives:** `gh repo edit <owner>/<repo> --description "..."` for a description; for a
+     front page, edit the file in a clone, pull first, stage only that file, commit, push. A row in a grouped table
+     moves to the group its icon now belongs to.
+   - **Never change what a project IS** (visibility, a release, a decision); a text that disagrees with a decision
+     is reported, not "fixed" by guessing. When the person knows something no file says (a mod site's version,
+     say), take their word and write it in.
+   - Rerun the scan after: section 5 should come back empty.
 
 ## 3. Finish
 
@@ -65,5 +82,5 @@ python "${CLAUDE_PLUGIN_ROOT}/tools/gu.py" done
 ```
 
 Then the usual write-up: close-out box (`handover.py close`), the gate/model box, and a short report: what was
-updated, what was left and why, and what needs the person. A front-page or activity line only when something was
+updated (texts included: which repos, in a few words each), what was left and why, and what needs the person. A front-page or activity line only when something was
 released or changed for people (a tool update, a plugin release).

@@ -6,6 +6,7 @@ what they are missing, and the smoke test fails if the newest line does not matc
 **The banner is fixed artwork and never changes on a release** (since 0.24.0). A new command goes on the
 front page (`README.md` at the repo root); the smoke test fails if one is missing there.
 
+- **0.69.0** (2026-10-15): **`/lanes:gu` keeps your GitHub texts up to date.** A new step checks every public repo's description and front pages for an old version number, "nothing released" beside a release, or a status that has not moved while the work did, then reads each description against the project's notes and rewrites what has fallen behind. Set `texts =` (your clones folder) and `texts_owner =` in lanes.conf. Asked for by the maintainer.
 - **0.68.0** (2026-10-14): **`/lanes:gu` can update without asking, and covers the PC's own tools.** `gu_ask = no` in lanes.conf lets it update everything that needs it and just report (without it you are still asked once). A new step updates the development programs and Python packages the work uses, leaving alone anything running, a compiler a live session is building with, game stores and private apps. Asked for by the maintainer.
 - **0.67.2** (2026-10-14): tidier code in `/lanes:gu`'s checker (two deeply nested parts split into small steps). Works exactly as in 0.67.1.
 - **0.67.1** (2026-10-14): `/lanes:gu` now judges which of two copies changed last by its save history (git), not the file's date: on its first real run a freshly copied folder made the older copy look newer.
