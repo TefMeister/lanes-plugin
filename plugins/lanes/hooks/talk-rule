@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# SessionStart hook: no "you're right" (0.71.0, 2026-10-15). When the person states or doubts a fact, the session
+# checks it and says what it found, or asks one short question; it never opens by agreeing. The maintainer: "a lot
+# of times when you say that i'm right, i'm actually not or we are both right or wrong." No off switch, like the
+# naming rule: it costs nothing and only changes wording. Silent on every failure path.
+set -uo pipefail
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+PY=""
+for cand in python3 python py; do
+  command -v "$cand" >/dev/null 2>&1 || continue
+  "$cand" -c "" >/dev/null 2>&1 || continue
+  PY="$cand"; break
+done
+[ -n "$PY" ] || exit 0
+
+printf '%s' 'TALK RULE (lanes plugin): never tell the person "you are right" (nor "you are correct", "good catch, you are right" and the like). When they state, correct or doubt a fact, CHECK it first, then say what you found ("I checked: it is actually ..."), or, when it cannot be checked, ask one short question to clear it up. Where both of you were partly right, or both wrong, say exactly that. If after checking you genuinely agree, say "agreed" or just state the fact. Why: an automatic "you are right" was often untrue - the person was not right, or both were, or neither - and it reads as checked when it was not.' \
+  | "$PY" "${SCRIPT_DIR}/emit_context.py"
+exit 0

@@ -29,6 +29,18 @@
         "hooks": [
           {
             "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" talk-rule",
+            "shell": "bash",
+            "timeout": 10,
+            "statusMessage": "Loading the talk rule",
+            "async": false
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" board-brief",
             "shell": "bash",
             "timeout": 20,

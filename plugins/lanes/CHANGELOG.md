@@ -6,6 +6,7 @@ what they are missing, and the smoke test fails if the newest line does not matc
 **The banner is fixed artwork and never changes on a release** (since 0.24.0). A new command goes on the
 front page (`README.md` at the repo root); the smoke test fails if one is missing there.
 
+- **0.71.0** (2026-10-15): **No more "you're right".** When you state, correct or doubt something, sessions now check it first and say what they found ("I checked: it is actually ..."), or ask one short question when it cannot be checked; when you both were partly right or both wrong they say so, and real agreement after checking is just "agreed". A new session-start rule (`talk-rule`) carries it to every session. PROTOCOL section 5. Asked for by the maintainer.
 - **0.70.0** (2026-10-15): **The jitter checker keeps flat screen, the headset simulator and a real headset apart.** Each session is sorted by where it ran (read from the runtime name the mod logs) and only ever compared with sessions from the same place, because jitter feels different on a monitor and in a headset. Asked for by the maintainer.
 - **0.69.2** (2026-10-15): **The check 0.69.1 described is now really in.** 0.69.1 shipped its description but not the check itself; this version adds it, tested.
 - **0.69.1** (2026-10-15): **A release can no longer skip another PC's version.** If GitHub has a version this copy has not pulled yet (another PC released while this session worked), the release stops before any check and says to pull it in first, so nothing from that version is lost. Asked about by the maintainer.

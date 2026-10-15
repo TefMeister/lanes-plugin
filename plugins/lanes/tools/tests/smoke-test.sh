@@ -352,6 +352,12 @@ out=$(LANES_CONFIG="$NR/lanes.conf" CLAUDE_PLUGIN_ROOT="$HERE/../.." bash "$HERE
 assert_contains '\"User\"' "$out" "and after clearing it, the person is User again"
 grep -q '"name-rule"\|name-rule' "$HERE/../../hooks/hooks.json" && ok "the naming hook is registered for session start" || fail "hooks.json does not run name-rule"
 
+# The talk rule (0.71.0): no "you are right"; check, then say what was found.
+out=$(CLAUDE_PLUGIN_ROOT="$HERE/../.." bash "$HERE/../../hooks/talk-rule")
+assert_contains "TALK RULE" "$out" "the session-start hook emits the talk rule"
+assert_contains "I checked" "$out" "and it says to check and report what was found"
+grep -q 'talk-rule' "$HERE/../../hooks/hooks.json" && ok "the talk hook is registered for session start" || fail "hooks.json does not run talk-rule"
+
 echo "the BeG0nE tools ship in the plugin, file, read and lock (0.62.0)"
 grep -q "begone-ride" "$HERE/../../hooks/hooks.json" && ok "hooks.json runs begone-ride" || fail "hooks.json does not run begone-ride"
 grep -q "begone-raw-guard.py" "$HERE/../../hooks/hooks.json" && ok "hooks.json runs the raw-number lock" || fail "hooks.json does not run begone-raw-guard.py"
