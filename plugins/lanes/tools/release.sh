@@ -13,7 +13,7 @@
 #   1. the version is X.Y.Z in all four places: plugin.json, marketplace.json, the newest CHANGELOG line,
 #      and the front page (the installer reads marketplace.json; RELEASE-CHECKLIST B8)
 #   2. everything is committed (nothing unsaved could slip past the checks)
-#   3. the tag vX.Y.Z does not exist yet, and GitHub has nothing this copy lacks (another PC's release)
+#   3. the tag vX.Y.Z does not exist yet, and (0.69.2) GitHub has nothing this copy lacks (another PC's release)
 #   4. the privacy scan finds nothing that identifies a person
 #   5. the smoke test and the hooks test pass
 # Then it pushes, tags vX.Y.Z, pushes the tag, and creates the GitHub Release marked Latest.
@@ -59,6 +59,13 @@ ok "everything is committed"
 git fetch -q --tags origin 2>/dev/null
 git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null && stop "the tag v$VERSION already exists"
 ok "tag v$VERSION is new"
+
+# 3b. nothing on GitHub that this copy lacks (0.69.2). Another PC may have released while this session worked;
+# the checks below must run on top of that version, never on an older copy merged in afterwards.
+git fetch -q origin 2>/dev/null
+BEHIND=$(git rev-list --count HEAD..@{upstream} 2>/dev/null || echo 0)
+[ "$BEHIND" = "0" ] || stop "GitHub has $BEHIND commit(s) this copy does not (another PC released?). Run git pull --rebase, keep both sides' changes, put this version's CHANGELOG line above theirs, then release again"
+ok "this copy has everything on GitHub"
 
 # 4. privacy
 if ! out=$("$PY" "$REL/tools/scrub-scan.py" . 2>&1); then
