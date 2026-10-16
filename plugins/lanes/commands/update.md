@@ -69,4 +69,15 @@ description: (Update) Checks GitHub for a newer version of the lanes plugin, say
      ask them to close the Hand Freeze window and try once more.
    - Otherwise, or if `error` is set: say nothing.
 
+7. **The OpenXR Simulator, every run** (0.73.0), after step 6:
+   `python "${CLAUDE_PLUGIN_ROOT}/tools/openxr-sim.py" status --json`.
+   - `installed` false and `declined` false: offer it in one plain sentence - a pretend headset that shows a VR game's
+     two eyes in a window on the desktop, so VR work can be checked with no headset plugged in, by elliotttate - and
+     ask (AskUserQuestion: "Download it" / "Download the fork for 32-bit games too" / "No thanks"). The first runs
+     `openxr-sim.py install`, the second `openxr-sim.py install --fork`, the third `openxr-sim.py decline` so it is
+     not offered again. Say that it is NOT switched on by downloading it.
+   - `newer` true: one plain line that a newer simulator is out, and ask ("Update it" / "Not now"); yes runs
+     `openxr-sim.py install` (add `--fork` when `source` is `fork`). It refuses while a game has it loaded.
+   - Otherwise, or if `error` is set: say nothing.
+
 Never update without a yes in this session. A yes from an earlier session does not count.

@@ -733,6 +733,14 @@ else
   fail "installed-fixture.sh failed"
 fi
 
+echo "openxr-sim.py - the OpenXR Simulator downloaded on first setup or an update (0.73.0)"
+if out=$(bash "$HERE/openxr-sim-fixture.sh" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "openxr-sim-fixture.sh failed"
+fi
+
 echo "gu.py - the weekly tool check (0.67.0)"
 if out=$(bash "$HERE/gu-fixture.sh" 2>&1); then
   ok "$(printf '%s
