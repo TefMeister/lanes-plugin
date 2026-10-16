@@ -363,7 +363,7 @@ _Asked for by the maintainer on 2026-10-07._
 and its sound (Windows Graphics Capture + the program's own audio, never a screen capture), `stop` and `done` end it and
 put your OBS profile back. `tools/obs-autorec.py install` records any fullscreen game by itself. Both check the picture
 every 10 s while recording and reconnect to the window after 30 s of black, so a capture that missed the window at start-up
-does not run on black for the whole session.
+does not run on black for the whole session. Since 0.72.0 `start` also records the OpenXR Simulator's preview window as a second file (`<label>_second_...`), adding it by itself when it opens later; `sim <exe>` says whether it is up.
 
 **One more fixed icon (0.50.0, 2026-10-08): the tick that ends a hold.**
 

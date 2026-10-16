@@ -7,6 +7,7 @@ r"""obs-rec.py - record ONLY a game's window (and only its sound) during a test,
     python obs-rec.py status
     python obs-rec.py check                                     is the game window showing a picture? PICTURE / BLACK
     python obs-rec.py repoint <exe>                             point the capture at that window again, still recording
+    python obs-rec.py sim <exe>                                 is the OpenXR Simulator's preview up for that game?
 
 PRIVACY, the reason for the shape: it never captures the screen. The picture comes from a Window Capture of the game's
 own window (Windows Graphics Capture: no injection into the game, so it cannot fight our Present hooks), and the sound
@@ -23,6 +24,11 @@ uses the Source Record add-on (exeldro/obs-source-record). The add-on only recor
 second window sits in the game scene but far outside the picture (a hidden scene never draws it: tested 2026-10-07). `:<cls>` picks
 that window class, `:!<cls>` any other class (the simulator's preview lives in the game's own process).
 `--class` does the same for the main window.
+
+THE SIMULATOR'S PREVIEW, BY ITSELF (0.72.0): without `--also`, `start` records the OpenXR Simulator's preview as the
+second file whenever it is up, and if it is not up yet leaves a quiet watcher that adds it the moment it opens (then
+restarts the recording so both files begin together). `sim <exe>` says whether it is up. The main window never picks
+the preview, even when the preview is the bigger window.
 
 Needs: OBS 28+ with its WebSocket server on (Tools -> WebSocket Server Settings; the password is read from OBS's own
 config file, never copied anywhere), and `pip install obsws-python`.
@@ -55,6 +61,10 @@ SCENE = "Game"
 VIDEO_W, VIDEO_H, FPS = 1280, 720, 60   # 60 fps
 CONNECT_TRIES, CONNECT_GAP_S = 40, 0.5
 START_CHECKS, START_CHECK_GAP_S = 10, 0.5   # up to 5 s for the recording to really begin
+SIM_TITLE = "OpenXR Simulator"     # the simulator's preview window title starts with this (read from its dll)
+SIM_LABEL = "OpenXR Simulator preview"
+SIM_WAIT_S, SIM_POLL_S = 900, 2.0   # the watcher looks for the preview every 2 s, for up to 15 min
+DETACHED_PROCESS, CREATE_NEW_PROCESS_GROUP = 0x00000008, 0x00000200
 SRC_VIDEO, SRC_AUDIO = "game window", "game sound"
 SRC_SECOND, SECOND_FILTER = "second window", "record second window"
 OFF_CANVAS_X = 50000   # the second window sits in the game scene but far off the picture: drawn, never seen
@@ -100,9 +110,12 @@ def ensure_obs(state):
         time.sleep(3)
     return connect()
 
-def window_spec(exe, want=None):
+def window_spec(exe, want=None, sim=False, must=True):
     """OBS's 'title:class:exe' string for the biggest visible top-level window of that exe (':' escaped as #3A).
-    want: a window class to require, or '!<class>' to require any OTHER class."""
+    want: a window class to require, or '!<class>' to require any OTHER class.
+    sim: True = only the OpenXR Simulator's preview (title starts with SIM_TITLE); False = never it, so the preview
+    (it lives in the game's own process and can be the bigger window) is never taken for the game; None = either.
+    must: False = return None instead of stopping when there is no such window."""
     u = ctypes.windll.user32; k = ctypes.windll.kernel32
     found = []
     @ctypes.WINFUNCTYPE(W.BOOL, W.HWND, W.LPARAM)
@@ -116,12 +129,14 @@ def window_spec(exe, want=None):
         if ok and os.path.basename(buf.value).lower() == exe.lower():
             t = ctypes.create_unicode_buffer(256); c = ctypes.create_unicode_buffer(256); r = W.RECT()
             u.GetWindowTextW(h, t, 256); u.GetClassNameW(h, c, 256); u.GetClientRect(h, ctypes.byref(r))
-            if want is None or (want.startswith("!") and c.value != want[1:]) or c.value == want:
+            sim_ok = sim is None or t.value.startswith(SIM_TITLE) == sim
+            if sim_ok and (want is None or (want.startswith("!") and c.value != want[1:]) or c.value == want):
                 found.append((r.right * r.bottom, t.value, c.value))
         return True
     u.EnumWindows(cb, 0)
     if not found:
-        sys.exit(f"no visible window for {exe} ({want or 'any class'}): start it first")
+        if not must: return None
+        sys.exit(f"no visible {'simulator preview ' if sim else ''}window for {exe} ({want or 'any class'}): start it first")
     _, title, cls = max(found)
     esc = lambda s: s.replace(":", "#3A")
     return f"{esc(title)}:{esc(cls)}:{exe}"
@@ -217,18 +232,59 @@ def cmd_start(exe, label, project, cls=None, also=None):
     cl.set_profile_parameter("SimpleOutput", "FilePath", folder)
     cl.set_profile_parameter("Output", "FilenameFormatting", f"{label}_%CCYY-%MM-%DD_%hh-%mm-%ss")
     point_sources(cl, window_spec(exe, cls))
-    point_second(cl, window_spec(*split_target(also)) if also else None, folder, label)
+    sim = None if also else window_spec(exe, sim=True, must=False)   # the simulator preview, if it is up already
+    point_second(cl, window_spec(*split_target(also), sim=None) if also else sim, folder, label)
+    start_recording(cl)
+    if sim: also = SIM_LABEL
+    state["recording"] = {"exe": exe, "label": label, "folder": folder, "also": also, "since": time.strftime("%H:%M:%S")}
+    save_state(state)
+    print(f"RECORDING {exe}{' + ' + also if also else ''} -> {folder} ({label})")
+    if not also:
+        start_sim_watch(exe)
+        print(f"  watching for the OpenXR Simulator preview (up to {SIM_WAIT_S // 60} min): it is added by itself if it opens")
+
+def start_recording(cl):
     if cl.get_record_status().output_active:
         cl.stop_record(); time.sleep(1)
     cl.start_record()
     for _ in range(START_CHECKS):   # OBS can accept the request and never start (seen 2026-10-08 during a driver update)
         time.sleep(START_CHECK_GAP_S)
-        if cl.get_record_status().output_active: break
-    else:
-        sys.exit("OBS took the start request but is NOT recording: restart OBS (or the PC after a driver update) and retry")
-    state["recording"] = {"exe": exe, "label": label, "folder": folder, "also": also, "since": time.strftime("%H:%M:%S")}
-    save_state(state)
-    print(f"RECORDING {exe}{' + ' + also if also else ''} -> {folder} ({label})")
+        if cl.get_record_status().output_active: return
+    sys.exit("OBS took the start request but is NOT recording: restart OBS (or the PC after a driver update) and retry")
+
+# ---- The OpenXR Simulator's preview, recorded by itself (asked for by the maintainer, 2026-10-16). The preview opens
+# only once the game's headset session starts, often well after the recording began, so `start` leaves a quiet
+# watcher behind: when the preview appears it is added as the second window and the recording is restarted, so the
+# game file and the "_second" preview file begin together (the path tested 2026-10-07; whether Source Record would
+# pick up a window added mid-recording is not known). The first game file (launch to session start) is kept. The
+# watcher ends when the recording stops or after SIM_WAIT_S.
+def start_sim_watch(exe):
+    pyw = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
+    py = pyw if os.path.isfile(pyw) else sys.executable
+    subprocess.Popen([py, os.path.abspath(__file__), "simwatch", exe], close_fds=True,
+                     creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP)
+
+def cmd_simwatch(exe):
+    deadline = time.time() + SIM_WAIT_S
+    while time.time() < deadline:
+        rec = load_state().get("recording")
+        if not rec or rec.get("exe", "").lower() != exe.lower() or rec.get("also"): return
+        spec = window_spec(exe, sim=True, must=False)
+        if spec:
+            cl = connect()
+            point_second(cl, spec, rec["folder"], rec["label"])
+            start_recording(cl)
+            state = load_state()
+            state["recording"]["also"] = SIM_LABEL
+            state["recording"]["sim_since"] = time.strftime("%H:%M:%S")
+            save_state(state)
+            return
+        time.sleep(SIM_POLL_S)
+
+def cmd_sim(exe):
+    """Is the OpenXR Simulator's preview up for this game? (what the watcher looks for)"""
+    spec = window_spec(exe, sim=True, must=False)
+    print(f"SIM PREVIEW {spec}" if spec else f"no simulator preview window for {exe}")
 
 def cmd_check():
     """Is the game window source showing a picture? Prints PICTURE or BLACK with the mean brightness (0-255)."""
@@ -290,6 +346,8 @@ def main():
         project = a[a.index("--game") + 1] if "--game" in a else os.path.splitext(a[1])[0]
         opt = lambda k: a[a.index(k) + 1] if k in a else None
         cmd_start(a[1], a[2], project, opt("--class"), opt("--also"))
+    elif a[0] == "simwatch" and len(a) >= 2: cmd_simwatch(a[1])
+    elif a[0] == "sim" and len(a) >= 2: cmd_sim(a[1])
     elif a[0] == "stop": cmd_stop()
     elif a[0] == "check": cmd_check()
     elif a[0] == "repoint" and len(a) >= 2: cmd_repoint(a[1])
