@@ -33,7 +33,8 @@ STATUS_STALE_COMMITS = 15    # ... while this much work landed is worth a look
 FRONT_PAGES = ("README.md", "mod/README.md")
 VERSION_RE = re.compile(r"(?<![\w.])v?(\d+)\.(\d+)\.(\d+)(?![\w])|(?<![\w.])v(\d+)\.(\d+)(?![\w.])")
 CURRENT_RE = re.compile(r"current|latest|newest|download|get it|released", re.I)
-UNRELEASED_RE = re.compile(r"nothing here is released|no releases yet|not released yet|nothing released", re.I)
+# A phrase in quotes is a page TALKING ABOUT the check (the plugin README does), not a status claim.
+UNRELEASED_RE = re.compile(r"(?<![\"'“`])(?:nothing here is released|no releases yet|not released yet|nothing released)", re.I)
 PRIVATE_RE = re.compile(r"private until|\*\*private[,.]", re.I)
 STATUS_RE = re.compile(r"^#+\s*status\b|\bstatus:", re.I | re.M)
 
