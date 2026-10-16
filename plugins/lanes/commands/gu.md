@@ -56,7 +56,11 @@ Five sections. If one is empty because nothing is set up for it in `lanes.conf` 
    it, an editor or tool another session has open), a compiler a live session is building with (a new major version
    changes every build), game stores and launchers (they update themselves), and the person's private apps.
    Then Python packages the tools use (`python -m pip list --outdated`): update them, and run `pip check` after; a
-   package another tool pins below a major version stays where that pin allows.
+   package another tool pins below a major version stays where that pin allows. Update the same-major ones as one
+   batch and each major jump on its own, putting back any that make `pip check` fail. ⚠️ **`pip check` only sees
+   pins, not code** (0.73.2): on 2026-10-16 `mcp` 1.29 → 2.3 passed it while removing `FastMCP`, which a debugger's
+   MCP server imports. After a major jump, import-test every Python MCP server listed in `~/.claude.json` (and any
+   tool the jump touches); one that fails puts the package back.
 6. **Texts on GitHub** (0.69.0; asked for by the maintainer after a finished mod's description still named v1.0.2
    and its front page sent people to an older download while v1.1.5 was out: *"go over the whole github and bring
    all the texts and descriptions up to date"*). Section 5 of the scan lists what the checks caught across every
