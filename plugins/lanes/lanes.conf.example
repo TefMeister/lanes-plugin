@@ -153,3 +153,7 @@ role = DEV
 # Where full conversation logs are copied, so Claude Code's 30-day clean-up never removes them.
 # Default ~/.claude/lanes-transcripts. They can hold anything said in a session: keep them on this PC.
 # transcripts = /path/to/kept/conversation/logs
+
+# Where the OpenXR Simulator lives on this PC, when it is not in the default folder (%LOCALAPPDATA%\Programs\
+# OpenXR-Simulator) and not registered with Windows (0.73.0). tools/openxr-sim.py finds and updates it there.
+# openxr_sim = <folder>

@@ -250,6 +250,17 @@ def steam_app_installed(appid):
                for lib in steam_libraries())
 
 
+def openxr_sim():
+    """the OpenXR Simulator on this PC, as tools/openxr-sim.py finds it (0.73.0)"""
+    try:
+        r = subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "openxr-sim.py"),
+                            "status", "--json"], capture_output=True, text=True, timeout=90,
+                           env=dict(os.environ, LANES_OPENXRSIM_OFFLINE="1"))
+        return json.loads(r.stdout).get("installed") is True
+    except Exception:
+        return False
+
+
 def catalog():
     mcp = mcp_servers()
     plugins = claude_plugins()
@@ -279,6 +290,7 @@ def catalog():
         ("vr", "steamvr", "SteamVR", lambda: steam_app_installed(250820), False, True),
         ("vr", "virtualdesktop", "Virtual Desktop Streamer", lambda: process_running("VirtualDesktop.Streamer.exe")
          or os.path.isdir(os.path.join(PROGRAMFILES, "Virtual Desktop Streamer")), False, True),
+        ("vr", "openxrsim", "OpenXR Simulator (a pretend headset in a desktop window)", openxr_sim, False, False),
         ("vr", "handfreeze", "Hand Freeze (hold VR hands still while tuning poses)",
          lambda: os.path.isfile(os.path.join(LOCALAPPDATA, "Programs", "HandFreeze", "HandFreeze.exe")), False, False),
         ("video", "resolve", "DaVinci Resolve (free)", resolve, False, True),

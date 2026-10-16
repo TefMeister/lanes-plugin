@@ -120,6 +120,11 @@ to learn any of it up front: the sessions follow it for you, and you can switch 
 - **Your PCs know what the other has (0.65.0).** Each PC keeps a small note of which of our apps
   it has, and every session start says when another PC has one this PC does not. When you say a job is
   done on the other PC, the session that hears it clears that PC's reminder, quoting you.
+- **A pretend headset (0.73.0).** `/lanes:setup` and the next `/lanes:update` offer the
+  [OpenXR Simulator](https://github.com/elliotttate/OpenXR-Simulator) by elliotttate (or
+  [webhead2oo9's fork](https://github.com/webhead2oo9/OpenXR-Simulator), which also runs 32-bit games): it shows a VR
+  game's two eyes in a window on the desktop, so VR work can be checked with no headset plugged in. Downloading it
+  never switches it on.
 - **Hand Freeze for VR (0.64.0).** `/lanes:setup` can install our small
   [Hand Freeze](https://github.com/TefMeister/hand-freeze-vr) app from GitHub: it holds both VR controllers
   still in any OpenXR game, so hand and weapon poses can be tuned with the mouse while the controllers lie
@@ -263,7 +268,7 @@ what is new and never installs without asking. The full manual is in
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.72.0`, early public release |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.73.0`, early public release |
 
 ## Modding games?
 
