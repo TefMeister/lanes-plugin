@@ -208,6 +208,8 @@ def main(a):
             if not os.path.isfile(fr):
                 return f"{t['name']} does not cut recordings"
             rest = [x for x in a[3:] if x != "--game" and x != game] or ["where"]
+            if rest[0].replace(".", "", 1).isdigit():   # "<from s> <to s>" is frames.py's cut
+                rest = ["cut"] + rest
             r = subprocess.run([sys.executable, fr, rest[0], run] + rest[1:], capture_output=True, text=True,
                                timeout=600)
             return cap((r.stdout or r.stderr).strip())
@@ -225,4 +227,6 @@ def main(a):
 
 
 if __name__ == "__main__":
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")   # reports carry ⚠️; a Windows console is cp1252 (2026-10-17)
     print(main(sys.argv[1:]))

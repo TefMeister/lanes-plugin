@@ -252,6 +252,24 @@ class VrBenchTest(unittest.TestCase):
         res = learn(FakeTools(), stages=["vr_head"])
         self.assertEqual([s["name"] for s in res["stages"]], ["preflight", "vr_head", "report"])
 
+    def test_body_moves_out_and_back_smoothly(self):
+        tools = FakeTools()
+        res = learn(tools, stages=["vr_body"])
+        body = [s for s in res["stages"] if s["name"] == "vr_body"][0]
+        self.assertEqual(body["result"], "PASS", body["how"])
+        self.assertIn("crouch: followed", body["how"])
+        ys = [pose[1] for _, pose in tools.heads]
+        self.assertAlmostEqual(min(ys), 1.7 - 0.6, places=3)   # the crouch reached its depth
+        steps = [abs(b - a) for a, b in zip(ys, ys[1:])]
+        self.assertLess(max(steps), 0.05)                       # a smooth path: no step over 5 cm, never one jump
+        self.assertAlmostEqual(tools.heads[-1][1][1], 1.7)      # standing again at the end
+
+    def test_body_check_when_the_game_ignores_it(self):
+        res = learn(FakeTools(pictures_change=False), stages=["vr_body"])
+        body = [s for s in res["stages"] if s["name"] == "vr_body"][0]
+        self.assertEqual(body["result"], "UNKNOWN")
+        self.assertIn("did not change", body["how"])
+
     def test_hands_unknown_without_centroid(self):
         res = learn(FakeTools(hands=False), stages=["vr_hands"])
         hands = [s for s in res["stages"] if s["name"] == "vr_hands"][0]

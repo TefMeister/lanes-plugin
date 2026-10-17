@@ -101,6 +101,9 @@ description: (Update) Checks GitHub for a newer version of the lanes plugin, say
 10. **Recording beside BeG0nE, once** (0.76.0), after step 9: as `/lanes:setup` §0.13 says (the same checks, the
     same one question, then `offers.py made begone-record <answer>`).
 
+11. **The superpowers skills, once** (0.77.0), after step 10: as `/lanes:setup` §0.14 says (already installed is
+    recorded as `had-it` without a word; otherwise one question, then `offers.py made superpowers <answer>`).
+
 **Every offer on this page is made once** (0.75.0): an add-on offer is never repeated once `offers.py made` holds
 it, and "Not now" to an update quiets that version for good. Updates of things already installed (steps 6-8,
 `newer` true) are not offers of something new and are asked when a newer version appears.
