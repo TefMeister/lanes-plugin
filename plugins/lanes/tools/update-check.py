@@ -18,7 +18,8 @@ USAGE
   python update-check.py            one plain line when a newer version exists; nothing otherwise
   python update-check.py --json     {"installed", "latest", "newer", "marketplace", "changes": [...], ...}
   python update-check.py --force    ignore the fetch throttle and the "not now" answer
-  python update-check.py --dismiss  the user said "not now": stay quiet about THIS version for SNOOZE_H hours
+  python update-check.py --dismiss  the user said "not now": never ask about THIS version again (0.75.0: every
+                                   offer is made once); the next version is offered when it comes out
 
   Test overrides: LANES_STATE_DIR, LANES_PLUGIN_ROOT (the installed copy), LANES_UPDATE_MARKETPLACE_DIR
   (a clone to fetch in), LANES_UPDATE_MARKETPLACE (its name).
@@ -33,7 +34,6 @@ import sys
 
 PLUGIN_NAME = "lanes"
 CHECK_EVERY_H = 6          # fetch from GitHub at most this often
-SNOOZE_H = 24              # after "not now", stay quiet about that version this long
 # The update question, word for word, on its own line with its own icon (2026-09-21).
 ASK_LINE = "\U0001f514 **New plugin update available! Would you like to install it now?**"
 GIT_TIMEOUT_S = 15
@@ -243,8 +243,7 @@ def main():
             save_state(state)
         return 0
 
-    snoozed = (not args.force and state.get("dismissed_version") == latest
-               and hours_since(state.get("dismissed_at")) < SNOOZE_H)
+    snoozed = not args.force and state.get("dismissed_version") == latest
     missed = [c for c in changes if vtuple(c[0].replace(".x", ".0")) > vtuple(installed or "0")]
 
     # A marketplace registered as a local DIRECTORY installs from that clone's working tree, not
@@ -274,7 +273,7 @@ def main():
               f"Tell the user in one or two plain sentences (what it means for them, not the version list), and "
               f"ASK whether you may update it now: end that with this question, exactly, on a line of its own with its bell icon and nothing else on the line: " + ASK_LINE + f" Only if they say yes, run: {' && '.join(update_cmds)} - then tell "
               f"them the new version takes effect after they restart Claude Code. If they say not now, run: "
-              f"python \"${{CLAUDE_PLUGIN_ROOT}}/tools/update-check.py\" --dismiss  (quiet for {SNOOZE_H} h).")
+              f"python \"${{CLAUDE_PLUGIN_ROOT}}/tools/update-check.py\" --dismiss  (this version is not offered again).")
     return 0
 
 
