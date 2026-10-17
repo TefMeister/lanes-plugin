@@ -40,7 +40,11 @@ to find out whether it can be made accurate enough for combat.
 
 ## For modders: wiring it in
 
-Copy `ghosthand.lua` next to the mod's script (REFramework: `reframework/autorun/`). Its header lists every call.
+Native mods (C / C++): copy `ghosthand.h` into the mod's source, `#define GHOSTHAND_IMPLEMENTATION` before including
+it in one file; the calls are the same, spelled `gh_init`, `gh_real`, `gh_frame` ... (first wired into Hard Reset VR,
+2026-10-17). Call `gh_frame()` once per PRESENTED frame, not once per camera update: Hard Reset first marked 795
+frames a second at 60. REFramework mods: copy `ghosthand.lua` next to the mod's script (`reframework/autorun/`).
+Each header lists every call.
 In short: `gh.init(<project>, <runtime>)` at load; `gh.vr_on()` / `gh.vr_off()` with the headset session; every
 frame `gh.real(side, tracked, x, y, z)` for each controller, `gh.game(side, x, y, z)` for each hand the game draws,
 `gh.part(name, ...)` for moving weapon parts, `gh.value(name, v)` for what the mod measured, then `gh.frame()`.
