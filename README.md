@@ -126,6 +126,9 @@ to learn any of it up front: the sessions follow it for you, and you can switch 
   [webhead2oo9's fork](https://github.com/webhead2oo9/OpenXR-Simulator), which also runs 32-bit games): it shows a VR
   game's two eyes in a window on the desktop, so VR work can be checked with no headset plugged in. Downloading it
   never switches it on.
+- **See every jitter frame by frame (0.76.0).** While the jitter checker logs a headset session, the game's
+  window can be recorded by itself; each report then comes with the jittery seconds cut out as pictures, and
+  which pictures stood still or jumped on screen. Offered once.
 - **Offers are made once, and thanks on GitHub (0.75.0).** Everything Lanes offers to add is asked once, at the
   first setup or on the update that brings it, and never again whatever the answer. One new offer: sessions can
   star and follow, on your GitHub, the people whose tools, mods or findings your work uses.
@@ -277,7 +280,7 @@ what is new and never installs without asking. The full manual is in
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.75.0`, early public release |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.76.0`, early public release |
 
 ## Modding games?
 

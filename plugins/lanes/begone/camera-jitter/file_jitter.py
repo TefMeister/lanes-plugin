@@ -65,7 +65,12 @@ def file_log(path, home, game=None):
         knowledge.report()
     except Exception:  # the knowledge base must never stop a filing
         pass
-    return f"{game}/{run}: {s['verdict']}"
+    try:
+        import frames   # the recording of the same session, cut at the jittery seconds (0.76.0)
+        seen = frames.attach(out, path, game)
+    except Exception as e:  # a recording problem must never stop a filing
+        seen = f"recording not looked at: {e}"
+    return f"{game}/{run}: {s['verdict']} ({seen})"
 
 
 def spans(windows, kind):

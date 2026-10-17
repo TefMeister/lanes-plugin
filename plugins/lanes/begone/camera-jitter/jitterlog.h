@@ -89,6 +89,25 @@ static LONGLONG jl_now_us(void) {
     return c.QuadPart * 1000000LL / jl_s.freq;
 }
 
+/* the PC's clock, ms since 1970 (0.76.0): written once in the header as wall_ms, so a recording made at the same
+ * time can be lined up with the log (frames.py). The precise call where Windows has it (8 and later). */
+static LONGLONG jl_wall_ms(void) {
+    typedef VOID (WINAPI *JlPreciseFn)(LPFILETIME);
+    static JlPreciseFn precise;
+    static int looked;
+    FILETIME ft;
+    ULARGE_INTEGER u;
+    if (!looked) {
+        HMODULE k = GetModuleHandleA("kernel32.dll");
+        precise = k ? (JlPreciseFn)GetProcAddress(k, "GetSystemTimePreciseAsFileTime") : NULL;
+        looked = 1;
+    }
+    if (precise) precise(&ft); else GetSystemTimeAsFileTime(&ft);
+    u.LowPart = ft.dwLowDateTime;
+    u.HighPart = ft.dwHighDateTime;
+    return (LONGLONG)(u.QuadPart / 10000ULL) - 11644473600000LL;   /* 1601 -> 1970 */
+}
+
 static void jl_flush_locked(void) {
     if (jl_s.f && jl_s.len > 0) {
         fwrite(jl_s.buf, 1, (size_t)jl_s.len, jl_s.f);
@@ -159,8 +178,8 @@ void jl_vr_on(void) {
     jl_s.f = fopen(path, "wb");
     if (jl_s.f) {
         jl_s.t0 = jl_now_us();
-        jl_s.len = _snprintf(jl_s.buf, JL_BUFFER_BYTES, "#jitterlog %d game=%s runtime=%s pid=%lu\n",
-                             JL_VERSION, jl_s.game, jl_s.runtime, (unsigned long)GetCurrentProcessId());
+        jl_s.len = _snprintf(jl_s.buf, JL_BUFFER_BYTES, "#jitterlog %d game=%s runtime=%s pid=%lu wall_ms=%lld\n",
+                             JL_VERSION, jl_s.game, jl_s.runtime, (unsigned long)GetCurrentProcessId(), jl_wall_ms());
         jl_s.on = 1;
         jl_flush_locked();
     }
