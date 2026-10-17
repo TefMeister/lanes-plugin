@@ -17,6 +17,10 @@ first, in full, every run. Never install from memory.
 - **Anything that needs the user's own hands** stays theirs, handed over as one plain block.
   That covers a browser sign-in, a store purchase, a Windows approval, and clicking inside Blender.
   For commands the user can type, suggest the `! <command>` form so the output lands in the session.
+- **Every offer is made once** (0.75.0, the maintainer: "any offer has to be one time only"). Before an offer
+  that `tools/offers.py list` names (thanks, shortcut, openxr-sim), run `offers.py should <name>`; exit 3 means it
+  was made already on this PC, so skip it without a word. After asking, whatever the answer, run
+  `offers.py made <name> <yes|no>`. The person can still ask for any of them by name later.
 - **Never touch a game folder.** Per-game frameworks (catalog section 7) are listed for reference
   only; a game's own session installs them.
 
@@ -118,6 +122,22 @@ first?"* Options: **"Yes"** and **"Not now"**. On yes run `python tools/compact.
 next restart of Claude Code. If it answers that this Claude Code does not have the setting, say the close-out box
 will tell them when it is safe to type `/clear` instead. What it does: `docs/PROTOCOL.md` §21.
 
+## 0.12 Thank the people your work uses? (0.75.0, everyone with a GitHub account, offered once)
+
+Only if `python "${CLAUDE_PLUGIN_ROOT}/tools/offers.py" should thanks` says `offer`. Say in plain words: much of
+what sessions use comes from other people's free tools, mods and findings on GitHub; a star and a follow is how
+GitHub says thank you. Ask **one question** (AskUserQuestion): *"Should sessions star and follow, on your GitHub
+account, the people whose tools, mods or findings your work uses, even one useful fact?"* Options: **"Yes"** and
+**"No thanks"**. Then run `offers.py made thanks yes` or `offers.py made thanks no`.
+- **Yes:** run `python "${CLAUDE_PLUGIN_ROOT}/tools/thanks.py" on`, then `thanks.py status`. If it says GitHub
+  has not given permission to follow people, hand over the one line it prints (`! gh auth refresh -h github.com
+  -s user:follow`, a browser sign-in) and run `thanks.py credits` once it is done; otherwise run `thanks.py credits`
+  now. It stars the projects Lanes is built on and follows their owners. Say it is undone any time with
+  `thanks.py off` (nothing starred is taken back).
+- **No thanks:** run `thanks.py off`. Nothing is starred or followed, and it is not asked again.
+No GitHub account or no `gh`: skip it and record `offers.py made thanks no-github`. What sessions do with it:
+`docs/PROTOCOL.md` section 25.
+
 ## 1. Scan
 
 ```bash
@@ -187,8 +207,8 @@ one line that it must be switched **ON before a game starts**, and that it works
 
 ## 3.6 The pretend headset and VR Bench (0.74.0, in the VR group)
 
-When the VR group reaches the **OpenXR Simulator** or **VR Bench** row and either is missing, offer them together
-as ONE question (AskUserQuestion), worded for someone who has never heard of either:
+When the VR group reaches the **OpenXR Simulator** or **VR Bench** row and either is missing, and
+`offers.py should openxr-sim` says `offer`, offer them together as ONE question (AskUserQuestion), worded for someone who has never heard of either:
 
 1. **OpenXR Simulator (webhead2oo9's build) + VR Bench** *(Recommended)*: a pretend headset that shows a VR game's two
    eyes in a desktop window and also runs 32-bit games, plus VR Bench, our robot player that learns a game's menus
@@ -198,7 +218,7 @@ as ONE question (AskUserQuestion), worded for someone who has never heard of eit
    Runs `openxr-sim.py install --fork`.
 3. **OpenXR Simulator (elliotttate's original)**: the pretend headset, 64-bit games only. Runs `openxr-sim.py install`.
 
-"No thanks" runs `openxr-sim.py decline`. When the simulator is already there and only VR Bench is missing, ask
+"No thanks" runs `openxr-sim.py decline`. Whatever was chosen, then run `offers.py made openxr-sim <answer>`. When the simulator is already there and only VR Bench is missing, ask
 just "Add VR Bench?" and run `python "${CLAUDE_PLUGIN_ROOT}/tools/vrbench/vrbench.py" install`. Say in one line that
 nothing is switched on by installing: the simulator is pointed at per game, and VR Bench is switched on per run.
 
