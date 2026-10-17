@@ -42,6 +42,8 @@ NEW_MAX = 12                    # at most this many new lines at session start; 
 ASK_MAX_LINES = 60              # an answer is cut here, whatever the tool printed
 ASK_MAX_CHARS = 4000
 REPORT_MAX_LINES = 80
+FRAMES_TIMEOUT_S = 600   # cutting a stretch of a recording into frames (ffmpeg) can take minutes
+ASK_TIMEOUT_S = 120      # a tool's own answer to one question
 
 READ_RULE = ("RULE: BeG0nE reports are read, never the raw numbers. After every headset test, run "
              "`begone.py new`; open a full report (`begone.py report <tool> latest`) when a line looks wrong or the "
@@ -211,7 +213,7 @@ def main(a):
             if rest[0].replace(".", "", 1).isdigit():   # "<from s> <to s>" is frames.py's cut
                 rest = ["cut"] + rest
             r = subprocess.run([sys.executable, fr, rest[0], run] + rest[1:], capture_output=True, text=True,
-                               timeout=600)
+                               timeout=FRAMES_TIMEOUT_S)
             return cap((r.stdout or r.stderr).strip())
         if cmd == "report":
             try:
@@ -221,7 +223,7 @@ def main(a):
                 return "that run has no report.md"
             return "\n".join(lines[:REPORT_MAX_LINES])
         r = subprocess.run([sys.executable, os.path.join(t["dir"], t["filer"]), "ask", run] + a[3:],
-                           capture_output=True, text=True, timeout=120)
+                           capture_output=True, text=True, timeout=ASK_TIMEOUT_S)
         return cap((r.stdout or r.stderr).strip())
     return __doc__
 
