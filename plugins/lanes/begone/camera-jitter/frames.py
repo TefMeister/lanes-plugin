@@ -264,18 +264,20 @@ def attach(run, log=None, game=None):
 
 def breaks(wall_ms, seconds):
     """[(log second, why, restarted or not)] for every recording break obs-rec's guard noted inside this log"""
-    out = []
     try:
         with open(BREAKS_LOG, encoding="utf-8") as f:
-            for line in f:
-                p = line.rstrip("\n").split("\t")
-                if len(p) >= 5 and p[0].isdigit():
-                    at = (int(p[0]) - wall_ms) / 1000.0
-                    if 0 <= at <= seconds + BREAK_SLACK_S:
-                        out.append((at, p[3], p[4]))
+            rows = [_break_row(line, wall_ms) for line in f]
     except OSError:
-        pass
-    return out
+        return []
+    return [r for r in rows if r and 0 <= r[0] <= seconds + BREAK_SLACK_S]
+
+
+def _break_row(line, wall_ms):
+    """one BREAKS_LOG line as (log second, why, restarted or not), or None"""
+    p = line.rstrip("\n").split("\t")
+    if len(p) < 5 or not p[0].isdigit():
+        return None
+    return (int(p[0]) - wall_ms) / 1000.0, p[3], p[4]
 
 
 def main(a):
