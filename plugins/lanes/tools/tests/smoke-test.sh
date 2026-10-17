@@ -701,6 +701,14 @@ else
   fail "inspector_summary_test.py failed"
 fi
 
+echo "vrbench - VR Bench's driver (0.74.0)"
+if out=$("$PY" "$HERE/vrbench_test.py" 2>&1); then
+  ok "vrbench_test.py: $(printf '%s\n' "$out" | grep -E '^Ran ' | head -n 1)"
+else
+  printf '%s\n' "$out" | grep -E 'FAIL|ERROR'
+  fail "vrbench_test.py failed"
+fi
+
 echo "ideas.py - the ideas inbox (0.23.0)"
 if out=$(bash "$HERE/ideas-fixture.sh" 2>&1); then
   ok "$(printf '%s\n' "$out" | tail -n 1)"
