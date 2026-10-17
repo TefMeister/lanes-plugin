@@ -34,6 +34,20 @@ import vb_input  # noqa: E402
 import vb_sim  # noqa: E402
 import vb_run  # noqa: E402
 import vb_layer  # noqa: E402
+import vb_profile  # noqa: E402
+
+
+class FakeProbes:
+    def __init__(self, gpus, ram):
+        self._gpus, self._ram = gpus, ram
+
+    def cpu(self): return "Some CPU"
+    def gpus(self): return list(self._gpus)
+    def ram_gb(self): return self._ram
+    def windows(self): return "Windows 10"
+    def runtime(self, bits): return f"runtime-{bits}.json"
+    def games(self): return ["Hard Reset Redux"]
+
 
 HAND_FREEZE = r"C:\Somewhere\HandFreeze\hand_freeze_layer.json"
 
@@ -122,6 +136,26 @@ class VrBenchTest(unittest.TestCase):
                            capture_output=True, text=True, env=env)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("layer", r.stdout.lower())
+
+    # ---- Task 5: the PC profile ----
+    DEV_GPUS = ["NVIDIA GeForce GTX 1660 SUPER", "Intel(R) HD Graphics 4000"]
+
+    def test_tier_dev_pc_is_light(self):
+        self.assertEqual(vb_profile.tier(self.DEV_GPUS, 16), "light")
+
+    def test_tier_rtx_32gb_is_full(self):
+        self.assertEqual(vb_profile.tier(["NVIDIA GeForce RTX 4080"], 32), "full")
+
+    def test_tier_conf_override(self):
+        prof = vb_profile.collect({"bench_tier": "full"}, FakeProbes(self.DEV_GPUS, 16))
+        self.assertEqual(prof["tier"], "full")
+
+    def test_profile_written_and_read(self):
+        vb_profile.write(vb_profile.collect({}, FakeProbes(self.DEV_GPUS, 16)))
+        prof = vb_profile.read()
+        self.assertEqual(prof["headset"], "none")
+        self.assertEqual(prof["tier"], "light")
+        self.assertEqual(prof["games"], ["Hard Reset Redux"])
 
     # ---- Task 4: the switch and the per-bitness registration ----
     def setUp(self):
