@@ -185,6 +185,30 @@ one line that it must be switched **ON before a game starts**, and that it works
 "Give me the links" gives https://github.com/TefMeister/hand-freeze-vr/releases (download the zip, unzip, right-click
 `install.ps1` → Run with PowerShell).
 
+## 3.6 The pretend headset and VR Bench (0.74.0, in the VR group)
+
+When the VR group reaches the **OpenXR Simulator** or **VR Bench** row and either is missing, offer them together
+as ONE question (AskUserQuestion), worded for someone who has never heard of either:
+
+1. **OpenXR Simulator (webhead2oo9's build) + VR Bench** *(Recommended)*: a pretend headset that shows a VR game's two
+   eyes in a desktop window and also runs 32-bit games, plus VR Bench, our robot player that learns a game's menus
+   and controls by itself, and, with a real headset, marks the spot you point at when you hold both grips and the
+   left trigger. Runs `python "${CLAUDE_PLUGIN_ROOT}/tools/openxr-sim.py" install --fork --bench`.
+2. **OpenXR Simulator (webhead2oo9's build) only**: the pretend headset, 64-bit and 32-bit games.
+   Runs `openxr-sim.py install --fork`.
+3. **OpenXR Simulator (elliotttate's original)**: the pretend headset, 64-bit games only. Runs `openxr-sim.py install`.
+
+"No thanks" runs `openxr-sim.py decline`. When the simulator is already there and only VR Bench is missing, ask
+just "Add VR Bench?" and run `python "${CLAUDE_PLUGIN_ROOT}/tools/vrbench/vrbench.py" install`. Say in one line that
+nothing is switched on by installing: the simulator is pointed at per game, and VR Bench is switched on per run.
+
+Then, when VR Bench was chosen, ask once: **"Can a real VR headset be used on this PC?"** ("Yes" / "No, the
+simulator only") and write `bench_headset = real` or `bench_headset = none` to lanes.conf. Nothing on the PC can
+tell this reliably, so it is asked, never guessed. Then run `vrbench.py profile` and say its tier in one line.
+Recording the headset's own view (elliotttate's OpenXR OBS Mirror) comes with the next version; say so in one line.
+
+Credits to say when offering: the simulator is elliotttate's, the 32-bit build webhead2oo9's.
+
 ## 4. MCP servers need a restart
 
 `claude mcp add` takes effect at the **next** session. When any MCP server was added (x64dbg,

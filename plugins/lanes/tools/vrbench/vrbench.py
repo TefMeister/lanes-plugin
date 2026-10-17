@@ -4,8 +4,11 @@
 The OpenXR Simulator plays the headset; the VR Bench layer (TefMeister/vr-bench) plays the hands, buttons and sticks
 from a file this tool writes. Design: docs/specs/2026-10-17-vr-bench-design.md.
 
-    python vrbench.py status          is the layer installed and switched on, is the simulator here, the PC profile,
-                                      how many runs are on disk
+    python vrbench.py status [--json] is the layer installed and switched on, is the simulator here, the PC profile,
+                                      how many runs are on disk (--json: installed, release, newer, for update)
+    python vrbench.py install         download the newest layer from GitHub (TefMeister/vr-bench) and install it;
+                                      the same command updates it. Registers nothing.
+    python vrbench.py uninstall       remove the layer (runs and pictures stay)
     python vrbench.py start <exe | game>
                                       switch the layer on for the next run of that game, registered for its bitness
                                       only (a game name: `vrbench_exe.<game> = <path>` in lanes.conf, else the one
@@ -16,8 +19,6 @@ from a file this tool writes. Design: docs/specs/2026-10-17-vr-bench-design.md.
                                       the learning hour: pre-flight, launch, menus, flat movement, the head, the
                                       hands, the buttons, then a debrief; the game must already be running in the
                                       simulator (only /lm or the person launches games)
-
-`install` arrives with the rest of plan 1.
 Exit 0 = done, 1 = could not (the reason is printed).
 """
 import json
@@ -130,6 +131,16 @@ def learn(argv):
 
 
 def main(argv):
+    if argv[:1] == ["status"] and "--json" in argv:
+        import vb_install
+        print(json.dumps(vb_install.status()))
+        return 0
+    if argv[:1] == ["install"]:
+        import vb_install
+        return vb_install.install()
+    if argv[:1] == ["uninstall"]:
+        import vb_install
+        return vb_install.uninstall()
     if argv[:1] == ["status"]:
         return status()
     if argv[:1] == ["learn"]:

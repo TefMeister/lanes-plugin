@@ -293,6 +293,9 @@ def catalog():
         ("vr", "openxrsim", "OpenXR Simulator (a pretend headset in a desktop window)", openxr_sim, False, False),
         ("vr", "handfreeze", "Hand Freeze (hold VR hands still while tuning poses)",
          lambda: os.path.isfile(os.path.join(LOCALAPPDATA, "Programs", "HandFreeze", "HandFreeze.exe")), False, False),
+        ("vr", "vrbench", "VR Bench (plays a VR game for you on the simulator; marks the spot you point at in the headset)",
+         lambda: any(os.path.isfile(os.path.join(LOCALAPPDATA, "Programs", "VRBench", f))
+                     for f in ("vrbench_layer.dll", "vrbench_layer32.dll")), False, False),
         ("video", "resolve", "DaVinci Resolve (free)", resolve, False, True),
         ("video", "ffmpeg", "FFmpeg", ffmpeg, False, False),
     ]
