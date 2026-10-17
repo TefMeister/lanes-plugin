@@ -146,6 +146,9 @@ class Tools:
     def head(self, x, y, z, yaw, pitch, roll):
         vb_sim.head(x, y, z, yaw, pitch, roll)
 
+    def sweep(self, on, yaw_amp=0.0, hz=0.0):
+        vb_sim.sweep(on, yaw_amp, hz)
+
     def sim_shot(self, name):
         return self.run.shot(name)
 
