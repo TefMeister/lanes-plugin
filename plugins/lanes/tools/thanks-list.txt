@@ -1,0 +1,17 @@
+# The projects Lanes itself is built on or offers to install (thanks.py credits stars each and follows its owner).
+# One owner/repo per line; # starts a comment. The maintainer's own projects are left out on purpose.
+obra/superpowers                  # the skills this plugin's way of working grew from
+elliotttate/OpenXR-Simulator      # the pretend headset
+webhead2oo9/OpenXR-Simulator      # its 32-bit build, used by VR Bench
+dariushoule/x64dbg-automate       # the debugger connector
+dariushoule/x64dbg-skills
+x64dbg/x64dbg                     # the debugger
+ahujasid/mcp-for-blender          # the Blender connector
+oofz/Ghidrust                     # the decompiler connector
+praydog/UEVR                      # Unreal Engine VR, watched by the weekly check
+praydog/REFramework               # RE Engine modding, watched by the weekly check
+nefarius/ViGEmBus                 # the virtual gamepad driver
+mstorsjo/llvm-mingw               # the compiler setup offers
+NSACloud/RE-Mesh-Editor
+dtlnor/REMSG_Converter
+eigeen/ree-pak-rs

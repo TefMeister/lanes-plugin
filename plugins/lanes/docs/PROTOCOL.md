@@ -1282,3 +1282,22 @@ and in the background, so the person only has to put the headset on to mark what
   in-headset "look at this" chord (left grip + right grip + left trigger, marking where the index finger or gun tip
   points) and the debrief from marks are the next two plans in `docs/plans/`.
 - Tests: `tools/tests/vrbench_test.py`, `tools/tests/vrbench-fixture.sh`. The layer's own 51 checks live in its repo.
+
+## 25. Every offer is made once, and thanks on GitHub (0.75.0, 2026-10-17)
+
+The maintainer: *"any offer has to be one time only on both install and also future updates on lanes plugin"*. An
+offer of something new (a desktop shortcut, the pretend headset, thanks on GitHub, and every one added later) is made
+on the first `/lanes:setup`, or once on the first `/lanes:update` that brings it to someone who installed Lanes
+before it existed. Whatever the answer, `tools/offers.py made <name> <answer>` records it and it is never asked
+again; `offers.py should <name>` is checked before asking. "Not now" to a plugin update quiets that version for good.
+Updates of something already installed are not offers and are asked when a newer version appears. A new offer is
+added to `KNOWN` in `offers.py`, to setup and to update in the same release.
+
+**Thanks on GitHub** (`tools/thanks.py`, the maintainer: *"add a star and a follow to anyone who provides even the
+smallest nugget of useful information or a tool, mod we can look at, anything like that"*). Off unless the person
+said yes (`thanks = yes` in lanes.conf). When it is on, every session, research lanes included, runs
+`thanks.py add <owner/repo> --why "<a few words>"` the moment a GitHub project gives the work something: a tool used,
+a mod looked at, an issue or a note with one useful fact. An account with no project to star is followed with
+`thanks.py add <owner>`. It is logged in `~/.claude/lanes/thanks-log.tsv`. Following needs GitHub's `user:follow`
+permission once (`gh auth refresh -h github.com -s user:follow`); without it `thanks.py` says so and stars nothing
+half-way. When it is off, sessions do nothing and do not ask again.
