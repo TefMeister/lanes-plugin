@@ -34,6 +34,12 @@ def head(x, y, z, yaw_deg, pitch_deg, roll_deg=0.0, data_dir=None):
                                  "roll": math.radians(roll_deg)}, data_dir or S.SIM_DATA_DIR)
 
 
+def sweep(on, yaw_amp_deg=0.0, freq_hz=0.0, data_dir=None):
+    """switch the simulator's own head sweep on (yaw only, a sine wave renewed every frame) or off"""
+    return _command(S.SWEEP_CMD, {"enabled": bool(on), "yaw_amp_deg": float(yaw_amp_deg), "pitch_amp_deg": 0.0,
+                                  "roll_amp_deg": 0.0, "freq_hz": float(freq_hz)}, data_dir or S.SIM_DATA_DIR)
+
+
 def screenshot(out_png, timeout_s=5.0, data_dir=None):
     """ask the simulator for both eyes and save them as a PNG; False when no picture came within timeout_s"""
     data_dir = data_dir or S.SIM_DATA_DIR
