@@ -12,8 +12,12 @@ from a file this tool writes. Design: docs/specs/2026-10-17-vr-bench-design.md.
                                       program in its `builds_app.<game>` folder)
     python vrbench.py stop            switch it off again and take it out of the OpenXR layer list
     python vrbench.py profile         note this PC's specs, OpenXR runtimes, headset and tier (light | full)
+    python vrbench.py learn <project> [--minutes 60] [--stage vr_head,vr_hands] [--tier light|full]
+                                      the learning hour: pre-flight, launch, menus, flat movement, the head, the
+                                      hands, the buttons, then a debrief; the game must already be running in the
+                                      simulator (only /lm or the person launches games)
 
-More commands (learn, install) arrive with the rest of plan 1.
+`install` arrives with the rest of plan 1.
 Exit 0 = done, 1 = could not (the reason is printed).
 """
 import json
@@ -99,9 +103,37 @@ def profile():
     return 0
 
 
+def learn(argv):
+    import argparse
+    import vb_learn
+    import vb_profile
+    import vb_run
+    import vb_tools
+    p = argparse.ArgumentParser(prog="vrbench.py learn")
+    p.add_argument("project")
+    p.add_argument("--minutes", type=int, default=S.LEARN_MINUTES_DEFAULT)
+    p.add_argument("--stage", default="", help="comma-separated stage names (pre-flight and report always run)")
+    p.add_argument("--tier", choices=("light", "full"))
+    a = p.parse_args(argv)
+    stages = [s for s in a.stage.split(",") if s]
+    bad = [s for s in stages if s not in vb_learn.STAGES]
+    if bad:
+        print(f"VR Bench: unknown stage {', '.join(bad)}; the stages are {', '.join(vb_learn.STAGES)}")
+        return 1
+    tier = a.tier or (vb_profile.read() or {}).get("tier") or "light"
+    run = vb_run.Run.new(a.project, tier=tier)
+    res = vb_learn.Learn(a.project, a.minutes, stages, tier, run, vb_tools.Tools(a.project, run)).run_all()
+    for i, s in enumerate(res["stages"], 1):
+        print(f"{i}. {s['name']}: {s['result']}. {s['how']}")
+    print(f"Ended: {res['reason']}. The debrief and pictures are in {res['folder']}.")
+    return 0 if res["reason"] == "done" else 1
+
+
 def main(argv):
     if argv[:1] == ["status"]:
         return status()
+    if argv[:1] == ["learn"]:
+        return learn(argv[1:])
     if argv[:1] == ["profile"]:
         return profile()
     if argv[:1] == ["start"] and len(argv) == 2:
