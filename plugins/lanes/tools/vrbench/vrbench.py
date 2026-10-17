@@ -6,8 +6,13 @@ from a file this tool writes. Design: docs/specs/2026-10-17-vr-bench-design.md.
 
     python vrbench.py status          is the layer installed and switched on, is the simulator here, the PC profile,
                                       how many runs are on disk
+    python vrbench.py start <exe | game>
+                                      switch the layer on for the next run of that game, registered for its bitness
+                                      only (a game name: `vrbench_exe.<game> = <path>` in lanes.conf, else the one
+                                      program in its `builds_app.<game>` folder)
+    python vrbench.py stop            switch it off again and take it out of the OpenXR layer list
 
-More commands (learn, start, stop, profile, install) arrive with the rest of plan 1.
+More commands (learn, profile, install) arrive with the rest of plan 1.
 Exit 0 = done, 1 = could not (the reason is printed).
 """
 import json
@@ -40,8 +45,11 @@ def _runs():
 def status():
     bits = [b for b, dll in (("64-bit", S.LAYER_DLL64), ("32-bit", S.LAYER_DLL32))
             if os.path.isfile(os.path.join(S.LAYER_DIR, dll))]
+    import vb_layer
+    n = len(vb_layer.registered())
     print(f"VR Bench layer: {'installed (' + ', '.join(bits) + ')' if bits else 'not installed'}; "
-          f"{'switched ON for a run' if os.path.exists(S.ENABLED_FILE) else 'switched off'}.")
+          f"{'switched ON for a run' if os.path.exists(S.ENABLED_FILE) else 'switched off'}; "
+          f"{n} {'copy' if n == 1 else 'copies'} in the OpenXR layer list.")
     sim = _simulator()
     if sim.get("installed"):
         print(f"OpenXR Simulator: on this PC ({sim.get('source') or 'source unknown'}"
@@ -53,11 +61,34 @@ def status():
     return 0
 
 
-def main(argv):
-    if not argv or argv[0] != "status":
-        print(__doc__)
+def start(target):
+    import vb_layer
+    try:
+        exe = vb_layer.resolve_exe(target)
+        bits = vb_layer.start(exe)
+    except (LookupError, ValueError, OSError) as e:
+        print(f"VR Bench: could not switch on: {e}")
         return 1
-    return status()
+    print(f"VR Bench: on for {os.path.basename(exe)} ({bits}-bit); `vrbench.py stop` switches it off.")
+    return 0
+
+
+def stop():
+    import vb_layer
+    vb_layer.stop()
+    print("VR Bench: off, and out of the OpenXR layer list.")
+    return 0
+
+
+def main(argv):
+    if argv[:1] == ["status"]:
+        return status()
+    if argv[:1] == ["start"] and len(argv) == 2:
+        return start(argv[1])
+    if argv[:1] == ["stop"]:
+        return stop()
+    print(__doc__)
+    return 1
 
 
 if __name__ == "__main__":
