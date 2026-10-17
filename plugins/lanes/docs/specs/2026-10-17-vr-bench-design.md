@@ -1,6 +1,6 @@
 # VR Bench — the robot player that learns a game and wears the headset for you
 
-**Status:** design, waiting for Tefa's approval (2026-10-17). Not yet built.
+**Status:** approved by Tefa 2026-10-17 (with the footage change in §6.3; the `vr-bench` repo may be public). Not yet built.
 **Written by:** a modding session on the dev PC, from a design conversation with Tefa the same day.
 **Builds on:** the OpenXR Simulator (webhead2oo9's fork of elliotttate's), Menu-o-matiC / Move-o-matiC,
 `obs-rec.py`, the Hand Freeze layer, BeG0nE's ride-along headers.
@@ -243,11 +243,15 @@ retelling.
 
 ### 6.3 Footage: kept only while useful
 
-- Video is for development. It is written into the run folder, never into the MEGA transfer folder (changed from the
-  2026-10-15 rule, which was for YouTube footage; Tefa 2026-10-17: *"not gonna upload them"*).
-- `debrief` pulls its stills, then the video of that run is **deleted by default**; `--keep-video` keeps it, and a
-  kept video is deleted by `purge` after `bench_keep_days` (default 7) unless its run folder holds a `keep` file.
-- `vrbench status` prints how much footage is on disk. The close-out box gets one line when it is over 5 GB.
+- Video is for development, never for YouTube (Tefa 2026-10-17: *"not gonna upload them"*). It is written into the
+  MEGA transfer folder, `Videos\<project>\`, as before, so **both PCs have the footage** in case it needs sharing
+  (Tefa 2026-10-17: *"please keep them in mega folder so both pc's have the footage"*). The run folder keeps a
+  pointer to each file, not a copy.
+- **Nothing is deleted on its own.** `debrief` pulls its stills and leaves the video. `vrbench purge` deletes only
+  what it is told to (`--run <run>`, or `--older-than N` days), and prints what it would delete before doing it.
+  Tefa: *"should the storage limit become a problem then we'll see."*
+- `vrbench status` prints how much footage the transfer folder holds. The close-out box gets one line when it is
+  over `bench_footage_warn_gb` (default 20).
 
 ### 6.4 Light and full tiers
 
@@ -264,7 +268,7 @@ retelling.
 | layer source | `plugins/lanes/vrbench/layer/` (C++, `build.bat` makes 32 + 64), `benchinput.h` beside it; copied into mods like `jitterlog.h` |
 | layer binaries | GitHub release zips of a repo `TefMeister/vr-bench` (layer + json manifests + install.ps1), fetched by `vrbench.py install` like Hand Freeze; the plugin stays source-only |
 | command | `plugins/lanes/commands/bench.md` (`/lanes:bench`, short `/vb`), `skills/bench/SKILL.md` |
-| rule text | `docs/PROTOCOL.md` §21 "VR Bench: learned by the robot, marked by the person"; `docs/TOOLS.md` row; `lanes.conf.example` keys `bench_headset`, `bench_keep_days`, `bench_tier` |
+| rule text | `docs/PROTOCOL.md` §21 "VR Bench: learned by the robot, marked by the person"; `docs/TOOLS.md` row; `lanes.conf.example` keys `bench_headset`, `bench_footage_warn_gb`, `bench_tier` |
 | per-game knowledge | `ai-game-control-profiles/routes/<game>/KNOWN.md` and routes (public: game facts only) |
 | per-PC state | `%LOCALAPPDATA%\VRBench\` (profile, runs, marks, input, enabled) |
 
@@ -292,7 +296,8 @@ should be credited and are not" line.
    fork is not ours and a layer also works with a real headset and with elliotttate's original.
 2. The **pointed spot comes from the aim pose**, not from finding a finger in the picture: same answer, no guessing.
 3. The chord is **held 0.4 s**, with a haptic pulse as the receipt.
-4. Footage is **deleted after the debrief by default**, kept 7 days at most otherwise.
+4. ~~Footage is deleted after the debrief by default, kept 7 days at most otherwise.~~ **Changed by Tefa
+   2026-10-17:** footage stays in the MEGA transfer folder so both PCs have it; nothing is deleted on its own (§6.3).
 5. Tiers are **light / full chosen from the PC's specs**, one set of files.
 6. The layer binaries ship from a **new repo `vr-bench`** by GitHub release, like Hand Freeze; the plugin stays source.
 7. `learn` may do a game's first setup **alone** when the game is handed over; the 2026-09-29 rule text changes.
