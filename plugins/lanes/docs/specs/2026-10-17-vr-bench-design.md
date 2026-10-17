@@ -1,10 +1,10 @@
 # VR Bench — the robot player that learns a game and wears the headset for you
 
-**Status:** approved by Tefa 2026-10-17 (with the footage change in §6.3; the `vr-bench` repo may be public). Not yet built.
-**Written by:** a modding session on the dev PC, from a design conversation with Tefa the same day.
+**Status:** approved by the maintainer 2026-10-17 (with the footage change in §6.3; the `vr-bench` repo may be public). Not yet built.
+**Written by:** a modding session on the dev PC, from a design conversation with the maintainer the same day.
 **Builds on:** the OpenXR Simulator (webhead2oo9's fork of elliotttate's), Menu-o-matiC / Move-o-matiC,
 `obs-rec.py`, the Hand Freeze layer, BeG0nE's ride-along headers.
-**Credit owed:** the idea of a "VR bench" that plays the game for you came from a Discord post Tefa saw. Its author is not
+**Credit owed:** the idea of a "VR bench" that plays the game for you came from a Discord post the maintainer saw. Its author is not
 known yet; the name goes into CREDITS the day it is. Until then the credit line reads "the person on Discord whose
 VR-bench write-up this is built from".
 
@@ -12,15 +12,15 @@ VR-bench write-up this is built from".
 
 ## 1. Why
 
-Tefa's words: *"within this hour, you have learned the basics of how to drive menus and know how to move the character
+The maintainer's words: *"within this hour, you have learned the basics of how to drive menus and know how to move the character
 around in both flat and vr - in vr you know how to move hands with motion controllers, can press motion controller
 buttons"*, and *"it needs to work in the background, it is one of the biggest pain points for me."*
 
-Today every test of a mechanic costs Tefa a headset session, and every session that drives a game steals the mouse,
+Today every test of a mechanic costs the maintainer a headset session, and every session that drives a game steals the mouse,
 keyboard and screen of the PC it runs on. Hard Reset showed the way out on 2026-10-16: with the simulator as a pretend
 headset, a script turned the head, moved the hands and checked each step while nobody wore anything. VR Bench makes
 that the normal shape for every game, and adds the half that only a real headset can give: a one-handed way to say
-"look at THIS" while Tefa is wearing it, so the debrief afterwards needs no retelling.
+"look at THIS" while the maintainer is wearing it, so the debrief afterwards needs no retelling.
 
 ## 2. What it is, in one picture
 
@@ -30,37 +30,37 @@ Two halves, one tool, one command (`/lanes:bench`, short name `/vb`):
   itself: launch, menus, walking and turning on the flat screen, then in VR the head, both hands, their buttons and
   sticks. What it learns goes into that game's `KNOWN.md` and routes, so the next session already knows how to drive
   it. Each run leaves the game easier to drive than it found it. Nothing it does needs the game window in front.
-- **WEARING half (home PC only; the dev PC cannot use a real headset).** Tefa plays, in the headset, launched through
+- **WEARING half (home PC only; the dev PC cannot use a real headset).** the maintainer plays, in the headset, launched through
   VR Bench. Left grip + right grip + left trigger, held together, marks "look at this": the moment's picture is saved
   with a little before and after, and the spot the hand or gun points at is worked out and cropped. `debrief` gathers
   every mark with its pictures, the game log, the buttons pressed and the head and hand poses, into one page.
 
-Tefa also framed it as two layers of the bridge from flat to VR: one used while building the bridge, one used once the
+The maintainer also framed it as two layers of the bridge from flat to VR: one used while building the bridge, one used once the
 game plays in VR but is not yet ready for gameplay. That is the same two halves.
 
 ## 3. Goals, non-goals, anti-goals
 
 **Goals**
 1. Learn a game's basics without a person: menus to gameplay, flat movement, VR head, hands, buttons, sticks.
-2. Run in the background: the game never takes Tefa's mouse, keyboard or focus while VR Bench drives it.
+2. Run in the background: the game never takes the maintainer's mouse, keyboard or focus while VR Bench drives it.
 3. Mark-and-debrief in the headset with one button chord, no speech.
 4. Record for development, both the monitor's picture and the headset's own view where that is possible, and
    delete footage once it has been used.
 5. Know the PC it runs on: specs, headset, games, and whether a real headset can be worn there.
 6. Install through the plugin's setup and update, as one of three simulator choices.
-7. Work for anyone who installs the plugin, not only Tefa: no paths, names or machines in anything it ships or
+7. Work for anyone who installs the plugin, not only the maintainer: no paths, names or machines in anything it ships or
    prints beyond the person's own PC.
 
 **Non-goals (this version)**
-- Playing through levels. Fights and reaching save points stay Tefa's job at home (standing rule, 2026-10-12).
+- Playing through levels. Fights and reaching save points stay the maintainer's job at home (standing rule, 2026-10-12).
 - Judging comfort, scale or "how it feels". Only a person can.
-- Speech. Tefa: *"i don't want it speech based"*.
+- Speech. The maintainer: *"i don't want it speech based"*.
 - A 32-bit build of the OBS mirror layer (elliotttate's is 64-bit only); see §6.3 for what 32-bit games get instead.
 - Replacing Menu-o-matiC's recorder. VR Bench uses and extends it; it does not fork it.
 
 **Anti-goals (a failure even if it technically works)**
-- A run that steals the screen or the keyboard, even once. Tefa would stop using it.
-- Footage that piles up. Tefa: *"it does eat up storage quickly."*
+- A run that steals the screen or the keyboard, even once. The maintainer would stop using it.
+- Footage that piles up. The maintainer: *"it does eat up storage quickly."*
 - Guessing recorded as knowledge. Every learned fact carries how it was learned and whether it was seen to work.
 - A "mark" that is lost or lands on the wrong moment.
 
@@ -75,17 +75,17 @@ game plays in VR but is not yet ready for gameplay. That is the same two halves.
 - **Hand Freeze already is an OpenXR API layer of ours**, built 32- and 64-bit, registered per bitness under HKCU, and
   it already intercepts action states and space locations. VR Bench's layer grows from the same shape.
 - **Recording** exists: `obs-rec.py` records the game window (never the screen) and the simulator's preview as a
-  second file. It was switched off everywhere on 2026-10-16 (no YouTube). Tefa, 2026-10-17: back on **for development
+  second file. It was switched off everywhere on 2026-10-16 (no YouTube). The maintainer, 2026-10-17: back on **for development
   only**, and deleted when no longer needed.
 - **elliotttate's OpenXR OBS Mirror** (`OpenXR-Layer-OBSMirror`): an x64 OpenXR layer + OBS source that records the
   headset's own view, with wider recording FOV and smoothing. D3D11/D3D12 OpenXR apps, 64-bit only, installer wants
   admin once for the OBS plugin folder.
 - **Two PCs:** dev PC (old: i7-3770S, GTX 1660 SUPER, 16 GB, simulator only), home PC (powerful, simulator and a real
-  headset). The heavy/light split is Claude's call (Tefa, 2026-10-17).
+  headset). The heavy/light split is Claude's call (the maintainer, 2026-10-17).
 - **Standing rules that bind this:** numpad not F-keys; input by a combination of methods, measured against a
   no-input control; still camera and mouse tests before walking routes; music muted first; every blur and screen
   effect off in VR; jitter recorder in every early VR mod; nobody's name written down but the chosen one; new repos
-  private unless Tefa says public; model line and gate line in every write-up.
+  private unless the maintainer says public; model line and gate line in every write-up.
 
 ## 5. How it gets made — the parts
 
@@ -109,7 +109,7 @@ real headset), which is what makes both halves work with one piece:
   right aim ray (left when only the left hand is tracked) projected into each eye's image as a 0..1 fraction. A gun
   points along the aim pose by definition, and an index finger points along it too (the aim pose is the runtime's
   pointing direction), so no image analysis is needed to find the spot; the picture crop is done later from these
-  numbers. If haptics are available it pulses both hands once so Tefa knows the mark took.
+  numbers. If haptics are available it pulses both hands once so the maintainer knows the mark took.
 - **Always:** a `vrbench_layer.log` per run with one line per state change and nothing per frame; the BeG0nE
   Occlusion Drift lines (`jl_hand_q`) for both controllers, so a lost controller is on record.
 - Off unless `%LOCALAPPDATA%\VRBench\enabled` exists (written by `vrbench.py start`, removed by `stop`), so a game
@@ -146,7 +146,7 @@ One Python tool, small files, named numbers (code-shape rule). Commands:
 - `vrbench profile` — writes `%LOCALAPPDATA%\VRBench\profile.json`: CPU, GPU(s), RAM, Windows version, the active
   OpenXR runtime (64 and 32), the headset's system name when one answers, `headset = none | real` (from lanes.conf
   `bench_headset =`, set by setup), `tier = light | full` (light when the GPU is below GTX 2060 class or RAM below
-  24 GB; Tefa's dev PC is light, the home PC full), the games list from `installed.py`. Printed with `vrbench status`.
+  24 GB; the maintainer's dev PC is light, the home PC full), the games list from `installed.py`. Printed with `vrbench status`.
 - `vrbench learn <game> [--minutes 60] [--stage ...]` — the BUILDING half, §6.1.
 - `vrbench start <game>` / `stop` — the WEARING half: switches the layer on, starts recording, waits; `stop` ends
   recording and runs the debrief (§6.2). Also used by `/lm` when it launches a game with VR Bench.
@@ -223,33 +223,33 @@ spot / Hazards / What failed / Tool ideas) with the date and how it was found. S
 It stops at the time limit or when every stage has ended, whichever first, and leaves the game running by default
 (standing rule since 2026-09-01) unless asked to close it.
 
-**On the setup-with-Tefa rule.** The standing rule (2026-09-29) says a game's first automation setup is done WITH Tefa,
-never by blind poking. Tefa's ask for VR Bench is that it learns the basics by itself. VR Bench's learning is not
+**On the setup-with-the maintainer rule.** The standing rule (2026-09-29) says a game's first automation setup is done WITH the maintainer,
+never by blind poking. The maintainer's ask for VR Bench is that it learns the basics by itself. VR Bench's learning is not
 blind: it looks at the screen before every press and records what it saw. This design records that `learn` may do a
-game's first setup alone when Tefa hands the game over ("all yours"), and the rule text is updated to say so. Marked
-here as a change for Tefa to confirm.
+game's first setup alone when the maintainer hands the game over ("all yours"), and the rule text is updated to say so. Marked
+here as a change for the maintainer to confirm.
 
-### 6.2 `start` / `stop` — Tefa in the headset, then the debrief
+### 6.2 `start` / `stop` — the maintainer in the headset, then the debrief
 
 `start <game>`: layer on in mark mode, recording on (monitor + headset view where possible), the game launched the
 usual way (or already running), then VR Bench waits and watches the marks folder. `stop`: recording off, then:
 
-`debrief.md`, in Tefa's reading shape, short: one numbered row per mark with the time into the run, the crop of the
+`debrief.md`, in the maintainer's reading shape, short: one numbered row per mark with the time into the run, the crop of the
 pointed spot for the eye the hand is in (both eyes when both), the wide still, which hand pointed, what buttons were
 held in the 5 s before, head yaw/pitch at that moment, and the game's log lines from 3 s before to 3 s after. Then one
 list of everything else that happened (session focus lost, controller lost, frame-rate dips from the jitter log).
-Tefa reads the rows and writes one line each of what they meant; the session turns those into board rows. No
+The maintainer reads the rows and writes one line each of what they meant; the session turns those into board rows. No
 retelling.
 
 ### 6.3 Footage: kept only while useful
 
-- Video is for development, never for YouTube (Tefa 2026-10-17: *"not gonna upload them"*). It is written into the
+- Video is for development, never for YouTube (the maintainer 2026-10-17: *"not gonna upload them"*). It is written into the
   MEGA transfer folder, `Videos\<project>\`, as before, so **both PCs have the footage** in case it needs sharing
-  (Tefa 2026-10-17: *"please keep them in mega folder so both pc's have the footage"*). The run folder keeps a
+  (the maintainer 2026-10-17: *"please keep them in mega folder so both pc's have the footage"*). The run folder keeps a
   pointer to each file, not a copy.
 - **Nothing is deleted on its own.** `debrief` pulls its stills and leaves the video. `vrbench purge` deletes only
   what it is told to (`--run <run>`, or `--older-than N` days), and prints what it would delete before doing it.
-  Tefa: *"should the storage limit become a problem then we'll see."*
+  the maintainer: *"should the storage limit become a problem then we'll see."*
 - `vrbench status` prints how much footage the transfer folder holds. The close-out box gets one line when it is
   over `bench_footage_warn_gb` (default 20).
 
@@ -286,17 +286,17 @@ should be credited and are not" line.
 - The pass/check rules per stage (what counts as "the picture followed the head").
 - The input.json shape (one file for VR and flat, sections `vr` and `flat`; versioned).
 - Which Menu-o-matiC functions grow a "background" path versus which VR Bench wraps.
-- The debrief page's exact layout, inside Tefa's reading rules (numbered rows, no jargon).
+- The debrief page's exact layout, inside the maintainer's reading rules (numbered rows, no jargon).
 - Tests: the layer's pure parts (chord timing, ray-to-image projection) and the driver's pure parts (stage
   state machine, purge rules, tier choice) run without a game or a headset.
 
-## 10. Calls made in this document (Claude's, for Tefa to check)
+## 10. Calls made in this document (Claude's, for the maintainer to check)
 
 1. The pretend hands and buttons are an **OpenXR layer of ours**, not a change to the simulator fork, because the
    fork is not ours and a layer also works with a real headset and with elliotttate's original.
 2. The **pointed spot comes from the aim pose**, not from finding a finger in the picture: same answer, no guessing.
 3. The chord is **held 0.4 s**, with a haptic pulse as the receipt.
-4. ~~Footage is deleted after the debrief by default, kept 7 days at most otherwise.~~ **Changed by Tefa
+4. ~~Footage is deleted after the debrief by default, kept 7 days at most otherwise.~~ **Changed by the maintainer
    2026-10-17:** footage stays in the MEGA transfer folder so both PCs have it; nothing is deleted on its own (§6.3).
 5. Tiers are **light / full chosen from the PC's specs**, one set of files.
 6. The layer binaries ship from a **new repo `vr-bench`** by GitHub release, like Hand Freeze; the plugin stays source.
