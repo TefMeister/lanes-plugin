@@ -30,6 +30,11 @@ second file whenever it is up, and if it is not up yet leaves a quiet watcher th
 restarts the recording so both files begin together). `sim <exe>` says whether it is up. The main window never picks
 the preview, even when the preview is the bigger window.
 
+THE CLOCK BESIDE EACH FILE (0.76.0): every saved file gets a small `<file>.json` beside it saying when its first frame
+was on the PC's clock (`start_ms`, milliseconds since 1970: the moment OBS confirmed recording, less how long OBS
+says it had already run), when it stopped, which game and which window. BeG0nE lines a jitter log up with it by that
+clock and cuts the jittery seconds out as frames (begone/camera-jitter/frames.py).
+
 Needs: OBS 28+ with its WebSocket server on (Tools -> WebSocket Server Settings; the password is read from OBS's own
 config file, never copied anywhere), and `pip install obsws-python`.
 """
@@ -61,6 +66,7 @@ SCENE = "Game"
 VIDEO_W, VIDEO_H, FPS = 1280, 720, 60   # 60 fps
 CONNECT_TRIES, CONNECT_GAP_S = 40, 0.5
 START_CHECKS, START_CHECK_GAP_S = 10, 0.5   # up to 5 s for the recording to really begin
+CLOSE_CHECKS, CLOSE_CHECK_GAP_S = 10, 0.5   # up to 5 s for OBS to close politely (the recording is saved by then)
 SIM_TITLE = "OpenXR Simulator"     # the simulator's preview window title starts with this (read from its dll)
 SIM_LABEL = "OpenXR Simulator preview"
 SIM_WAIT_S, SIM_POLL_S = 900, 2.0   # the watcher looks for the preview every 2 s, for up to 15 min
@@ -234,22 +240,31 @@ def cmd_start(exe, label, project, cls=None, also=None):
     point_sources(cl, window_spec(exe, cls))
     sim = None if also else window_spec(exe, sim=True, must=False)   # the simulator preview, if it is up already
     point_second(cl, window_spec(*split_target(also), sim=None) if also else sim, folder, label)
-    start_recording(cl)
+    start_ms = start_recording(cl)
     if sim: also = SIM_LABEL
-    state["recording"] = {"exe": exe, "label": label, "folder": folder, "also": also, "since": time.strftime("%H:%M:%S")}
+    state["recording"] = {"exe": exe, "label": label, "folder": folder, "also": also, "since": time.strftime("%H:%M:%S"),
+                          "project": project, "start_ms": start_ms}
     save_state(state)
     print(f"RECORDING {exe}{' + ' + also if also else ''} -> {folder} ({label})")
     if not also:
         start_sim_watch(exe)
         print(f"  watching for the OpenXR Simulator preview (up to {SIM_WAIT_S // 60} min): it is added by itself if it opens")
 
+def record_start_ms(cl):
+    """when this recording's first frame was, on the PC's clock (ms since 1970): now, less how long OBS has run it"""
+    try:
+        return int(time.time() * 1000 - (cl.get_record_status().output_duration or 0))
+    except Exception:
+        return int(time.time() * 1000)
+
 def start_recording(cl):
+    """start a fresh recording; returns when its first frame was (record_start_ms)"""
     if cl.get_record_status().output_active:
-        cl.stop_record(); time.sleep(1)
+        write_sidecars(cl.stop_record().output_path, load_state().get("recording", {})); time.sleep(1)
     cl.start_record()
     for _ in range(START_CHECKS):   # OBS can accept the request and never start (seen 2026-10-08 during a driver update)
         time.sleep(START_CHECK_GAP_S)
-        if cl.get_record_status().output_active: return
+        if cl.get_record_status().output_active: return record_start_ms(cl)
     sys.exit("OBS took the start request but is NOT recording: restart OBS (or the PC after a driver update) and retry")
 
 # ---- The OpenXR Simulator's preview, recorded by itself (asked for by the maintainer, 2026-10-16). The preview opens
@@ -273,8 +288,9 @@ def cmd_simwatch(exe):
         if spec:
             cl = connect()
             point_second(cl, spec, rec["folder"], rec["label"])
-            start_recording(cl)
+            start_ms = start_recording(cl)
             state = load_state()
+            state["recording"]["start_ms"] = start_ms
             state["recording"]["also"] = SIM_LABEL
             state["recording"]["sim_since"] = time.strftime("%H:%M:%S")
             save_state(state)
@@ -309,32 +325,66 @@ def cmd_repoint(exe):
     point_sources(cl, window_spec(exe, None))
     print(f"REPOINTED {exe} (recording {'on' if cl.get_record_status().output_active else 'off'}{', since ' + rec['since'] if rec.get('since') else ''})")
 
+def second_file(rec, after_ms):
+    """the newest '_second_' file of this recording, if it was written after `after_ms`"""
+    folder = rec.get("folder")
+    if not rec.get("also") or not folder or not os.path.isdir(folder): return None
+    second = sorted((f for f in os.listdir(folder) if f.startswith(rec["label"] + "_second_") and f.endswith(".mp4")),
+                    key=lambda f: os.path.getmtime(os.path.join(folder, f)))
+    if second and os.path.getmtime(os.path.join(folder, second[-1])) * 1000 >= after_ms:
+        return os.path.join(folder, second[-1])
+    return None
+
+def write_sidecars(path, rec, stop_ms=None):
+    """<file>.json beside the main file and the second file: when each began and ended, on the PC's clock"""
+    if not path or not rec.get("start_ms"): return None
+    stop_ms = stop_ms or int(time.time() * 1000)
+    time.sleep(2)   # Source Record closes its file a moment after the main one
+    second = second_file(rec, rec["start_ms"])
+    for f, window in ((path, "game window"), (second, rec.get("also"))):
+        if not f: continue
+        try:
+            json.dump({"start_ms": rec["start_ms"], "stop_ms": stop_ms, "exe": rec.get("exe"), "label": rec.get("label"),
+                       "project": rec.get("project"), "window": window, "file": os.path.basename(f),
+                       "fps": FPS}, open(f + ".json", "w"), indent=1)
+        except OSError:
+            pass
+    return second
+
 def cmd_stop():
     state = load_state()
     cl = connect()
     if not cl.get_record_status().output_active:
         print("not recording"); return
+    stop_ms = int(time.time() * 1000)
     path = cl.stop_record().output_path
     rec = state.pop("recording", {}); save_state(state)
     print(f"SAVED {path}")
     if rec.get("also"):
-        time.sleep(2)
-        folder = rec["folder"]
-        second = sorted((f for f in os.listdir(folder) if f.startswith(rec["label"] + "_second_")),
-                        key=lambda f: os.path.getmtime(os.path.join(folder, f)))
-        print(f"SAVED {os.path.join(folder, second[-1])}" if second else "SECOND FILE MISSING")
+        second = write_sidecars(path, rec, stop_ms)
+        print(f"SAVED {second}" if second else "SECOND FILE MISSING")
+    else:
+        write_sidecars(path, rec, stop_ms)
 
 def cmd_done():
     state = load_state()
     if obs_running():
         cl = connect()
         if cl.get_record_status().output_active:
-            print("SAVED", cl.stop_record().output_path)
+            stop_ms = int(time.time() * 1000)
+            path = cl.stop_record().output_path
+            write_sidecars(path, state.get("recording", {}), stop_ms)
+            print("SAVED", path)
         if state.get("prev_collection"): cl.set_current_scene_collection(state["prev_collection"])
         if state.get("prev_profile"): cl.set_current_profile(state["prev_profile"])
         time.sleep(1)
         if state.get("we_started_obs"):
             subprocess.run(["taskkill", "/im", "obs64.exe"], capture_output=True)
+            for _ in range(CLOSE_CHECKS):   # started minimised to the tray, OBS can ignore a polite close
+                time.sleep(CLOSE_CHECK_GAP_S)
+                if not obs_running(): break
+            else:
+                subprocess.run(["taskkill", "/f", "/im", "obs64.exe"], capture_output=True)
     print("OBS back to", state.get("prev_profile", "its own profile"))
     try: os.remove(STATE)
     except OSError: pass

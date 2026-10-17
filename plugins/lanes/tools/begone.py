@@ -7,6 +7,9 @@
     python begone.py report <tool> <run|latest> [--game <project>]     one report in full (short by design)
     python begone.py ask <tool> <run|latest> <question...> [--game <project>]
                                            a short answer computed from the numbers, capped in size
+    python begone.py frames <tool> <run|latest> [attach | where | <from s> <to s> [--full]] [--game <project>]
+                                           the recording of that session, cut at the jittery seconds (0.76.0):
+                                           attach (again), where the frames are, or any stretch by log seconds
     python begone.py for "<what the job is>"                which tools to read for this job
     python begone.py tools                 every tool, what it watches, how a mod wires it in
 
@@ -189,7 +192,7 @@ def main(a):
         job = " ".join(a[1:]).lower()
         hits = [t["name"] for t in bc.tools() if any(w in job for w in t.get("jobs", []))]
         return ("read: " + ", ".join(hits)) if hits else "no BeG0nE tool is linked to this job"
-    if cmd in ("report", "ask") and len(a) >= 3:
+    if cmd in ("report", "ask", "frames") and len(a) >= 3:
         a = list(a)
         game = opt(a, "--game")
         t = bc.tool(a[1])
@@ -200,6 +203,14 @@ def main(a):
         run = find_run(t, a[2], game)
         if not run or not os.path.isdir(run):
             return f"no {t['name']} report {a[2]}" + (f" for {game}" if game else "")
+        if cmd == "frames":
+            fr = os.path.join(t["dir"], "frames.py")
+            if not os.path.isfile(fr):
+                return f"{t['name']} does not cut recordings"
+            rest = [x for x in a[3:] if x != "--game" and x != game] or ["where"]
+            r = subprocess.run([sys.executable, fr, rest[0], run] + rest[1:], capture_output=True, text=True,
+                               timeout=600)
+            return cap((r.stdout or r.stderr).strip())
         if cmd == "report":
             try:
                 with open(os.path.join(run, "report.md"), encoding="utf-8") as f:

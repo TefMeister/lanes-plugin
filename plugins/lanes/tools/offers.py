@@ -25,6 +25,8 @@ KNOWN = {
     "thanks": ("0.75.0", "star and follow, on GitHub, the people whose tools and findings your work uses"),
     "shortcut": ("0.53.0", "a desktop shortcut named Lanes that opens Claude Code in the plugin's look"),
     "openxr-sim": ("0.73.0", "the OpenXR Simulator, a pretend headset (with VR Bench since 0.74.0)"),
+    "begone-record": ("0.76.0", "record the game window by itself whenever BeG0nE logs a headset session, so every "
+                      "jitter can be seen frame by frame"),
 }
 
 
