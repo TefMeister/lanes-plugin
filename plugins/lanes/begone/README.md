@@ -7,7 +7,7 @@ the public [BeG0nE](https://github.com/TefMeister/BeG0nE) repo.
 | Tool | What it finds | Recorder a mod carries |
 | --- | --- | --- |
 | [Camera Jitter](camera-jitter/) | a stepped, jittery camera, and why | `jitterlog.h` (native) or `jitterlog.lua` (REFramework) |
-| [Ghost Hand](ghost-hand/) | gaps between the real hand and the player's hand: lag, offset, jumps, lost tracking, gestures that miss | `ghosthand.lua` (REFramework) |
+| [Ghost Hand](ghost-hand/) | gaps between the real hand and the player's hand: lag, offset, jumps, lost tracking, gestures that miss | `ghosthand.h` (native) or `ghosthand.lua` (REFramework) |
 | [Occlusion Drift](occlusion-drift/) | a two-handed aim drifting because one hand hides the other controller | none: read through Ghost Hand's tracked flags; per-game cure code in `games/` |
 
 ## How it works
