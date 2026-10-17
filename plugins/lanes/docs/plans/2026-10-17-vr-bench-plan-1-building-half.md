@@ -56,7 +56,7 @@ scoped at the end of this file and written after this plan is proven live.
 
 ## File structure
 
-**New repo `TefMeister/vr-bench` (public; Tefa 2026-10-17):**
+**New repo `TefMeister/vr-bench` (public; the maintainer 2026-10-17):**
 - `layer/vrbench_layer.cpp` — the hooks and the OpenXR chaining (from Hand Freeze's shape, under 800 lines).
 - `layer/vb_input.h` — pure: parse `input.json` v1 into `VbInput`; look a binding path up to a value. No Windows,
   no OpenXR types beyond plain floats, so a host test can run it.
@@ -108,7 +108,7 @@ scoped at the end of this file and written after this plan is proven live.
     FLOAT; an unknown path or a hand whose value is not `_set` returns NONE.
   - A hand-rolled JSON reader is fine (flat objects, numbers, bools, strings); no library.
 
-- [ ] **Step 1: create the repo, public (Tefa said so, 2026-10-17)**
+- [ ] **Step 1: create the repo, public (the maintainer said so, 2026-10-17)**
 
 Run: `gh repo create TefMeister/vr-bench --public --description "VR Bench: the OpenXR layer that plays a VR game for you - pretend hands, buttons and sticks from a file, and the look-at-this mark when you wear the headset" --clone` inside `github-backups/`
 Expected: an empty clone at `github-backups/vr-bench`.
@@ -149,7 +149,7 @@ Run: same as step 3. Expected: `9 passed, 0 failed`.
 
 `build.bat`: Hand Freeze's, with `vrbench_layer.cpp` → `dist\vrbench_layer.dll` and `dist\vrbench_layer32.dll`, then
 builds and runs `test\vb_input_test.cpp` and stops on a failure (the layer source lands in Task 2; until then
-`build.bat` builds the test only, guarded by `if exist layer\vrbench_layer.cpp`). `README.md`: what it is in Tefa's
+`build.bat` builds the test only, guarded by `if exist layer\vrbench_layer.cpp`). `README.md`: what it is in the maintainer's
 layout, the three setup choices, what it never does (no names, nothing switched on by installing). `CREDITS.md`:
 spec §8, including the placeholder line for the Discord author. `.gitignore`: `build/`, `dist/`, `*.exe`, `*.obj`.
 
@@ -335,14 +335,14 @@ def test_unregister_leaves_others_alone(self): # fake reg holding a HandFreeze m
   a fake. Result keys: `cpu, gpus, ram_gb, windows, runtime64, runtime32, headset` (`conf["bench_headset"]` or
   `"none"`), `tier`, `games`, `written`.
 - `tier(gpus: list[str], ram_gb: int) -> "light" | "full"`: light when `ram_gb < 24` or no GPU name matches
-  `GPU_FULL_RE = r"RTX|GTX 16[7-9]0|GTX 2|RX 6|RX 7|Arc"` **and** `GTX 1660` counts light (Tefa's dev PC);
+  `GPU_FULL_RE = (first draft; replaced by model-number matching in Task 5)` **and** `GTX 1660` counts light (the maintainer's dev PC);
   `conf["bench_tier"]` overrides.
 - `write(profile) -> PROFILE_FILE`; `read() -> dict | None`.
 
 - [ ] **Step 1: failing tests**
 ```python
 def test_tier_dev_pc_is_light(self):     # ["NVIDIA GeForce GTX 1660 SUPER", "Intel(R) HD Graphics 4000"], 16 -> "light"
-def test_tier_rtx_32gb_is_full(self):    # ["NVIDIA GeForce RTX 4080"], 32 -> "full"
+def test_tier_fast_card_32gb_is_full(self):    # ["NVIDIA GeForce 4080-class card"], 32 -> "full"
 def test_tier_conf_override(self):       # conf bench_tier=full with the light PC -> "full"
 def test_profile_written_and_read(self): # collect(fake) -> write -> read()["headset"] == "none"
 ```
@@ -431,7 +431,7 @@ def test_buttons_pass_on_log_line(self):              # fake game_log_tail grows
   Expected: `layer.log` says `on, game hardreset.exe, file v1`; the game's own log shows `controllers per s:` with
   both hands located while the simulator's command files are untouched; `vr_hands` PASS in ≥ 4 of 5 positions;
   `vr_buttons` PASS for right trigger (`fire` in the game log) and A (`jump`).
-- [ ] **Step 4: write the note** (Tefa's layout: what was run, what each stage said, the pictures' names, what broke),
+- [ ] **Step 4: write the note** (the maintainer's layout: what was run, what each stage said, the pictures' names, what broke),
   the board row (`[FLAT]` → done line), and the KNOWN.md diff; commit each repo on its own lane paths; push.
 - [ ] **Step 5: if anything failed**, fix it in the owning task with a new test, rebuild, rerun step 3, and only then
   move to Task 8.
@@ -490,7 +490,7 @@ def test_buttons_pass_on_log_line(self):              # fake game_log_tail grows
   lines; which lane may use it (`/lm`-class: it launches and drives; `/pd`, `/gr`, `/sr`, `/gs` never); the four
   commands (`learn`, `start`/`stop`, `profile`, `status`); the claim; the "needs the screen until plan 2" honesty
   line; the model line (`MODEL: OPUS` for a learn run, read like a guided test); the write-up shape (close-out box,
-  gate/model box, the stage table in Tefa's numbered rows).
+  gate/model box, the stage table in the maintainer's numbered rows).
 - [ ] **Step 2: `docs/PROTOCOL.md` §24 "VR Bench: learned by the robot, marked by the person (0.74.0)"**: the rule
   that a game handed over ("all yours") may have its first setup done by `learn` alone, with every press preceded
   by a look and recorded (supersedes the 2026-09-29 "setup with the person first" wording in §22 — add one line
@@ -505,7 +505,7 @@ def test_buttons_pass_on_log_line(self):              # fake game_log_tail grows
   `python tools/scrub-scan.py .`, `python tools/code-shape-scan.py tools/vrbench`, `bash tools/release.sh 0.74.0 --check`
   → all pass.
 - [ ] **Step 5: release** — `bash tools/release.sh 0.74.0 "VR Bench: a robot player for VR games on the OpenXR Simulator, installed from setup"`;
-  then `/lanes:update` on this PC and the one-line-per-version note to Tefa; `owed.sh add HOME` for the home PC's
+  then `/lanes:update` on this PC and the one-line-per-version note to the maintainer; `owed.sh add HOME` for the home PC's
   update + `bench_headset = real`.
 
 ---
