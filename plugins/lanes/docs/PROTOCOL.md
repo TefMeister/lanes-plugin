@@ -1221,6 +1221,8 @@ each game's menus and gameplay, keep what they learn per game, and improve the t
 - **Improve the tool** when it was missing something; the canonical copy is the toolkit's, copied into the plugin.
 - Unchanged: the first setup of an app is done with the person (`/lanes:menu`), still-camera and mouse tests come
   before movement routes, and playing through levels stays the person's job.
+- **0.74.0:** a VR game the person has handed over ("all yours") may have its first setup done by VR Bench's
+  `learn` alone, every press preceded by a look and recorded; see §24.
 
 ### Plugin updates are described
 
@@ -1254,3 +1256,29 @@ knowledge goes into the tools.
   for 21 days while 15 or more commits landed. The session then reads every description once against the
   project's own notes and rewrites what disagrees, in plain words, from those notes only. It never changes what a
   project is (visibility, a release, a decision). Its first run brought texts in 20 repos up to date.
+
+## 24. VR Bench: learned by the robot, marked by the person (0.74.0, 2026-10-17)
+
+Asked for by the maintainer, from an idea described on Discord: a robot player that, within an hour, has learned
+how to drive a game's menus, move the character on a flat screen, and move the VR head, hands and buttons, by itself
+and in the background, so the person only has to put the headset on to mark what is wrong.
+
+- **The pieces.** The OpenXR Simulator plays the headset (webhead2oo9's fork, for its 32-bit runtime and command
+  files); the VR Bench layer (TefMeister/vr-bench) answers the game's controller questions from
+  `%LOCALAPPDATA%\VRBench\input.json`; `tools/vrbench/` writes that file, takes the pictures and keeps the run.
+  `/lanes:bench` is the command; setup §3.6 and update steps 7-8 offer the three ways to install.
+- **First setup by the robot.** A game handed over may be set up by `vrbench learn` without the person, instead of
+  the guided setup of §22 and `/lanes:menu`. The rules that make that safe: every press is preceded by a look, every
+  input sent is written to `input.jsonl`, every stage ends with a verdict and its reason, and a run always gives its
+  claim back and switches the layer off, even after an error.
+- **One run, one game, one bitness.** `vrbench start` registers the layer for the next run of that game only, in the
+  32-bit or 64-bit OpenXR layer list as the game's own program says, and `stop` takes it out again. Left in the list
+  for good it would sit in every OpenXR game on the PC, the person's own play included, and a layer of the wrong
+  bitness is a silent no-op that reads as "the game ignores the controllers". Other layers are never touched.
+- **Recording is for development** (the maintainer, 2026-10-17, an exception to their no-recording rule of
+  2026-10-16): footage is kept in the person's transfer folder on each PC and never deleted by the tool. It comes
+  with the wearing half (the real headset, OBS Mirror).
+- **Not yet.** Background keyboard and mouse (until then the menus and flat stages need the game in front), the
+  in-headset "look at this" chord (left grip + right grip + left trigger, marking where the index finger or gun tip
+  points) and the debrief from marks are the next two plans in `docs/plans/`.
+- Tests: `tools/tests/vrbench_test.py`, `tools/tests/vrbench-fixture.sh`. The layer's own 51 checks live in its repo.

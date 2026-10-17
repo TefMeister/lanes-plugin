@@ -31,6 +31,7 @@ you have at the start of every session: *what can I actually do right now?*
 | `/gates` | Gate Board | Shows the work board. |
 | `/gate-watch` | Gate Watch | Tells you when another session finishes something. |
 | `/ideas` | Ideas | Files the ideas you jotted down, onto the right project. |
+| `/bench` | VR Bench | A robot player for VR games: with the pretend headset, it moves the head, both hands and every button by itself and writes down what the game did, so VR work can be tested with nobody in the headset. |
 | `/menu` | Menu-o-matiC, Move-o-matiC and State-o-matiC | You play a game's menus and a short route once while it records; after that it repeats them by itself, and can tell menu, loading, cutscene and gameplay apart. |
 | `/setup` | Setup | First-run setup: your name, this PC's name, and optional tools. |
 | `/update` | Update | Gets the newest version of the plugin, after asking you. |
@@ -125,6 +126,11 @@ to learn any of it up front: the sessions follow it for you, and you can switch 
   [webhead2oo9's fork](https://github.com/webhead2oo9/OpenXR-Simulator), which also runs 32-bit games): it shows a VR
   game's two eyes in a window on the desktop, so VR work can be checked with no headset plugged in. Downloading it
   never switches it on.
+- **VR Bench, a robot player for VR games (0.74.0).** With the pretend headset as its eyes, our
+  [VR Bench](https://github.com/TefMeister/vr-bench) plays both controllers by itself: it moves the head, the hands
+  and every button in turn, takes a picture after each, and writes down what the game did, so a session can learn
+  and test a VR game with nobody wearing anything (`/lanes:bench`). Setup offers it with webhead2oo9's simulator
+  build. The idea came from a description shared on Discord.
 - **Hand Freeze for VR (0.64.0).** `/lanes:setup` can install our small
   [Hand Freeze](https://github.com/TefMeister/hand-freeze-vr) app from GitHub: it holds both VR controllers
   still in any OpenXR game, so hand and weapon poses can be tuned with the mouse while the controllers lie
