@@ -176,8 +176,10 @@ to learn any of it up front: the sessions follow it for you, and you can switch 
 - **VR Bench, a robot player for VR games (0.74.0).** With the pretend headset as its eyes, our
   [VR Bench](https://github.com/TefMeister/vr-bench) plays both controllers by itself: it moves the head, the hands
   and every button in turn, takes a picture after each, and writes down what the game did, so a session can learn
-  and test a VR game with nobody wearing anything (`/lanes:bench`). Setup offers it with webhead2oo9's simulator
-  build. The idea came from a description shared on Discord.
+  and test a VR game with nobody wearing anything (`/lanes:bench`). Since 0.77.0 it also moves the body like a
+  player in a real room: a step forward, a step to the side, bending over and crouching. Setup offers it with
+  webhead2oo9's simulator build. The idea came from a description shared on Discord, and the room-scale moves from
+  a Discord user's tip.
 - **Hand Freeze for VR (0.64.0).** `/lanes:setup` can install our small
   [Hand Freeze](https://github.com/TefMeister/hand-freeze-vr) app from GitHub: it holds both VR controllers
   still in any OpenXR game, so hand and weapon poses can be tuned with the mouse while the controllers lie
@@ -283,7 +285,7 @@ any project. Expect changes: `/lanes:update` tells you what is new and never ins
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.76.0`, public, in daily use |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.77.0`, public, in daily use |
 
 ## Modding games?
 

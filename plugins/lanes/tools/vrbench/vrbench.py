@@ -15,9 +15,10 @@ from a file this tool writes. Design: docs/specs/2026-10-17-vr-bench-design.md.
                                       program in its `builds_app.<game>` folder)
     python vrbench.py stop            switch it off again and take it out of the OpenXR layer list
     python vrbench.py profile         note this PC's specs, OpenXR runtimes, headset and tier (light | full)
-    python vrbench.py learn <project> [--minutes 60] [--stage vr_head,vr_hands] [--tier light|full]
+    python vrbench.py learn <project> [--minutes 60] [--stage vr_head,vr_hands,vr_body] [--tier light|full]
                                       the learning hour: pre-flight, launch, menus, flat movement, the head, the
-                                      hands, the buttons, then a debrief; the game must already be running in the
+                                      hands, room-scale (stepping, bending over, crouching), the buttons, then a
+                                      debrief; the game must already be running in the
                                       simulator (only /lm or the person launches games)
 Exit 0 = done, 1 = could not (the reason is printed).
 """

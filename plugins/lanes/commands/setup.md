@@ -18,7 +18,7 @@ first, in full, every run. Never install from memory.
   That covers a browser sign-in, a store purchase, a Windows approval, and clicking inside Blender.
   For commands the user can type, suggest the `! <command>` form so the output lands in the session.
 - **Every offer is made once** (0.75.0, the maintainer: "any offer has to be one time only"). Before an offer
-  that `tools/offers.py list` names (thanks, shortcut, openxr-sim, begone-record), run `offers.py should <name>`; exit 3 means it
+  that `tools/offers.py list` names (thanks, shortcut, openxr-sim, begone-record, superpowers), run `offers.py should <name>`; exit 3 means it
   was made already on this PC, so skip it without a word. After asking, whatever the answer, run
   `offers.py made <name> <yes|no>`. The person can still ask for any of them by name later.
 - **Never touch a game folder.** Per-game frameworks (catalog section 7) are listed for reference
@@ -149,6 +149,18 @@ never the screen, and the files stay on this PC (the recordings folder). It need
 question**: *"Record the game by itself whenever the jitter checker is logging, so each jitter can be seen frame by
 frame?"* ("Yes" / "No thanks"). Yes writes `begone_record = yes` to lanes.conf; no writes `begone_record = no`.
 Either way run `offers.py made begone-record <answer>`. What it does: `docs/PROTOCOL.md` section 26.
+
+## 0.14 The superpowers skills (0.77.0, everyone, offered once)
+
+Only if `python "${CLAUDE_PLUGIN_ROOT}/tools/offers.py" should superpowers` says `offer`, and only if
+`claude plugin list` does not already show `superpowers@` (already there: run `offers.py made superpowers
+had-it` and say nothing). The maintainer asked for it to be offered on every install (2026-10-17). Say in plain
+words: superpowers (by obra, from Anthropic's official plugin list) is a set of working habits Claude follows on
+its own: think a job through before building it, hunt a bug down step by step instead of guessing, and check the
+work before calling it done. Ask **one question**: *"Add the superpowers skills, so Claude plans, debugs and checks
+its work more carefully?"* ("Yes" / "No thanks"). Yes runs `claude plugin install
+superpowers@claude-plugins-official` (it needs a restart of Claude Code to take effect; say so). Either way run
+`offers.py made superpowers <answer>`.
 
 ## 1. Scan
 

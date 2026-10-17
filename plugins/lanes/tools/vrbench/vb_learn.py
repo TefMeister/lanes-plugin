@@ -13,7 +13,7 @@ from collections import namedtuple
 
 import vb_settings as S
 
-STAGES = ["preflight", "launch", "menus", "flat", "vr_head", "vr_hands", "vr_buttons", "report"]
+STAGES = ["preflight", "launch", "menus", "flat", "vr_head", "vr_hands", "vr_body", "vr_buttons", "report"]
 ALWAYS = ("preflight", "report")
 NEEDS_SCREEN_LINE = "this game needs the screen for the flat stages until plan 2 (keys still go in through the front)"
 
@@ -44,9 +44,10 @@ class Learn:
     # ---- the machine ----
     def run_all(self):
         import vb_stages_flat as F
+        import vb_stages_body as B
         import vb_stages_vr as V
         funcs = {"preflight": preflight, "launch": F.launch, "menus": F.menus, "flat": F.flat,
-                 "vr_head": V.vr_head, "vr_hands": V.vr_hands, "vr_buttons": V.vr_buttons, "report": report}
+                 "vr_head": V.vr_head, "vr_hands": V.vr_hands, "vr_body": B.vr_body, "vr_buttons": V.vr_buttons, "report": report}
         started = self.tools.now()
         reason = None
         try:

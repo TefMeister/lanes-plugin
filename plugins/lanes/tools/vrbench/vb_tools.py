@@ -8,6 +8,7 @@ vb_learn and the stages only ever call these methods, so the tests swap in a fak
 """
 import glob
 import json
+import socket
 import os
 import subprocess
 import sys
@@ -71,6 +72,13 @@ class Tools:
         subprocess.run([sys.executable, MOM, "known", self.routes_dir, "--add", section, text], capture_output=True)
 
     def claim(self, take):
+        """take or release VR Bench's own claim; inside a live /lm session on this PC that already holds the game, the
+        run works under that claim and touches nothing (2026-10-17: taking a second claim failed, and was not needed)"""
+        if take:
+            held = subprocess.run(["bash", CLAIM, "check", self.project], capture_output=True, text=True).stdout
+            self._under_lm = "FRESH" in held and "/lm" in held and socket.gethostname().lower() in held.lower()
+        if getattr(self, "_under_lm", False):
+            return
         r = subprocess.run(["bash", CLAIM, "take" if take else "release", LANE, self.project],
                            capture_output=True, text=True)
         if take and r.returncode:
@@ -82,10 +90,14 @@ class Tools:
         vb_profile.write(vb_profile.collect(conf, vb_profile.Probes()))
 
     def layer_start(self, exe):
+        self._layer_was_on = os.path.exists(S.ENABLED_FILE)
         vb_layer.start(exe)
 
     def layer_stop(self):
-        vb_layer.stop()
+        """only a layer this run switched on goes off again: one already on was left on by its owner (2026-10-17:
+        learn used to switch it off at its end, and the next hand-made test had to switch it on again)"""
+        if not getattr(self, "_layer_was_on", False):
+            vb_layer.stop()
 
     def logs(self):
         return [p for p in (S.conf_get(f"vrbench_log.{self.project}"), S.LAYER_LOG) if p and os.path.isfile(p)]

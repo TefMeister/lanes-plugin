@@ -35,12 +35,24 @@ was on the PC's clock (`start_ms`, milliseconds since 1970: the moment OBS confi
 says it had already run), when it stopped, which game and which window. BeG0nE lines a jitter log up with it by that
 clock and cuts the jittery seconds out as frames (begone/camera-jitter/frames.py).
 
+THE GUARD (0.77.0): every `start` leaves a quiet guard that looks at OBS every 5 s while it records. If OBS closes,
+crashes (its crash boxes are closed for you) or stops recording mid-session, the guard writes when and why into
+%LOCALAPPDATA%\obs-rec-breaks.log, which the jitter reports quote, and starts a fresh recording if the game is still
+open. After an unclean close OBS asks "Crash Detected" on its next start and never comes up for the recorder;
+`start` clears the leftover marks first, and closes an OBS stuck on that question.
+
 Needs: OBS 28+ with its WebSocket server on (Tools -> WebSocket Server Settings; the password is read from OBS's own
 config file, never copied anywhere), and `pip install obsws-python`.
 """
 import ctypes, ctypes.wintypes as W, json, os, subprocess, sys, time
 
 OBS_EXE = r"C:\Program Files\obs-studio\bin\64bit\obs64.exe"
+CRASH_TITLE = "OBS Studio Crash Detected"   # the window OBS shows instead of starting, after an unclean close
+CRASH_BOXES = (CRASH_TITLE, "OBS has crashed!", "Source Cleanup Error")   # boxes OBS leaves on screen (2026-10-17)
+BREAKS_LOG = os.path.join(os.path.expandvars("%LOCALAPPDATA%"), "obs-rec-breaks.log")   # read by BeG0nE's frames.py
+GUARD_POLL_S = 5        # how often the guard looks at OBS while it records
+GUARD_MISSES = 3        # WebSocket polls in a row without an answer before OBS counts as stopped
+GUARD_RESTART_S = 120   # the most a fresh start may take (OBS may have to start first)
 OBS_CFG = os.path.expandvars(r"%APPDATA%\obs-studio\plugin_config\obs-websocket\config.json")
 def lanes_conf(key, default=None):
     """A value from lanes.conf ($LANES_CONFIG, else ~/.claude/lanes.conf): `key = value` lines, # comments."""
@@ -71,11 +83,13 @@ SIM_TITLE = "OpenXR Simulator"     # the simulator's preview window title starts
 SIM_LABEL = "OpenXR Simulator preview"
 SIM_WAIT_S, SIM_POLL_S = 900, 2.0   # the watcher looks for the preview every 2 s, for up to 15 min
 DETACHED_PROCESS, CREATE_NEW_PROCESS_GROUP = 0x00000008, 0x00000200
+NO_WINDOW = 0x08000000   # tasklist/taskkill from the windowless guard flashed a console every poll (2026-10-17)
 SRC_VIDEO, SRC_AUDIO = "game window", "game sound"
 SRC_SECOND, SECOND_FILTER = "second window", "record second window"
 OFF_CANVAS_X = 50000   # the second window sits in the game scene but far off the picture: drawn, never seen
 SR_RECORD_WHILE_RECORDING, SR_OFF = 3, 0          # Source Record's record_mode values
-SR_ENCODER = "obs_nvenc_h264_tex"
+SR_ENCODER = "obs_nvenc_h264_soft"   # 2026-10-17: the _tex one crashed OBS inside Source Record (nvenc_create_base)
+SR_SIZE_WAIT_S = 10                   # how long the second window may take to show a picture before it is recorded
 BOUNDS_SCALE_INNER = "OBS_BOUNDS_SCALE_INNER"
 WGC_METHOD = 2   # Windows Graphics Capture
 BLACK_MEAN = 2.0   # source picture darker than this on average = nothing captured
@@ -91,7 +105,7 @@ def save_state(s):
     json.dump(s, open(STATE, "w"), indent=1)
 
 def obs_running():
-    out = subprocess.run(["tasklist", "/fi", "imagename eq obs64.exe", "/nh"], capture_output=True, text=True).stdout
+    out = subprocess.run(["tasklist", "/fi", "imagename eq obs64.exe", "/nh"], capture_output=True, creationflags=NO_WINDOW, text=True).stdout
     return "obs64.exe" in out.lower()
 
 def connect():
@@ -108,8 +122,31 @@ def connect():
             time.sleep(CONNECT_GAP_S)
     sys.exit(f"could not reach OBS: {last}")
 
+def obs_stuck():
+    """OBS 31+ asks "OBS Studio Crash Detected" (normal or safe mode?) after an unclean close, and
+    --disable-shutdown-check does not stop it; until someone answers, its WebSocket never comes up (2026-10-17)."""
+    out = subprocess.run(["tasklist", "/v", "/fi", "imagename eq obs64.exe", "/fo", "csv", "/nh"],
+                         capture_output=True, creationflags=NO_WINDOW, text=True).stdout
+    return CRASH_TITLE.lower() in out.lower()
+
+def clear_crash_marks():
+    """with no OBS running, every run marker left in OBS's .sentinel folder is from a run that ended uncleanly"""
+    folder = os.path.join(os.path.expandvars("%APPDATA%"), "obs-studio", ".sentinel")
+    if obs_running() or not os.path.isdir(folder):
+        return
+    for name in os.listdir(folder):
+        if name.startswith("run_"):
+            try:
+                os.remove(os.path.join(folder, name))
+            except OSError:
+                pass
+
 def ensure_obs(state):
+    if obs_running() and obs_stuck():   # only waiting on the crash question, so recording nothing: start it again
+        subprocess.run(["taskkill", "/f", "/im", "obs64.exe"], capture_output=True, creationflags=NO_WINDOW)
+        time.sleep(2)
     if not obs_running():
+        clear_crash_marks()
         subprocess.Popen([OBS_EXE, "--minimize-to-tray", "--disable-shutdown-check", "--disable-updater"],
                          cwd=os.path.dirname(OBS_EXE))
         state["we_started_obs"] = True
@@ -217,6 +254,16 @@ def point_second(cl, spec, folder, label):
     item = cl.get_scene_item_id(SCENE, SRC_SECOND).scene_item_id
     cl.set_scene_item_transform(SCENE, item, {"positionX": OFF_CANVAS_X, "positionY": 0})
     cl.set_scene_item_enabled(SCENE, item, True)
+    # a window capture with no picture yet is 0x0, and Source Record starting NVENC on it divides by zero inside
+    # obs-nvenc (crashes 2026-10-17 18:20 and 18:47, both at the simulator window's start): wait for a size first
+    t_end = time.time() + SR_SIZE_WAIT_S
+    while time.time() < t_end:
+        tr = cl.get_scene_item_transform(SCENE, item).scene_item_transform
+        if tr.get("sourceWidth", 0) > 0 and tr.get("sourceHeight", 0) > 0: break
+        time.sleep(0.5)
+    else:
+        print(f"second recording skipped: {SRC_SECOND} showed no picture in {SR_SIZE_WAIT_S} s")
+        return
     rec = {"record_mode": SR_RECORD_WHILE_RECORDING, "path": folder, "rec_format": "mp4", "encoder": SR_ENCODER,
            "filename_formatting": f"{label}_second_%CCYY-%MM-%DD_%hh-%mm-%ss"}
     if SECOND_FILTER in [f["filterName"] for f in cl.get_source_filter_list(SRC_SECOND).filters]:
@@ -246,6 +293,7 @@ def cmd_start(exe, label, project, cls=None, also=None):
                           "project": project, "start_ms": start_ms}
     save_state(state)
     print(f"RECORDING {exe}{' + ' + also if also else ''} -> {folder} ({label})")
+    start_guard()
     if not also:
         start_sim_watch(exe)
         print(f"  watching for the OpenXR Simulator preview (up to {SIM_WAIT_S // 60} min): it is added by itself if it opens")
@@ -296,6 +344,81 @@ def cmd_simwatch(exe):
             save_state(state)
             return
         time.sleep(SIM_POLL_S)
+
+# ---- The guard (asked for by the maintainer, 2026-10-17: "can you add some sort of a checker that detects when obs
+# stops mid recording?"). That day OBS crashed twice mid-session inside the Source Record add-on, and the crash
+# boxes sat on the maintainer's screen while the session went on unrecorded. `start` leaves one guard per recording:
+# every GUARD_POLL_S it asks whether OBS is still open, still recording and free of crash boxes. When it is not, the
+# guard writes the break into BREAKS_LOG (the jitter reports quote it), closes the crash boxes, and starts a fresh
+# recording if the game is still open (that start leaves its own guard). It ends with the recording.
+def start_guard():
+    pyw = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
+    py = pyw if os.path.isfile(pyw) else sys.executable
+    subprocess.Popen([py, os.path.abspath(__file__), "guard"], close_fds=True,
+                     creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP)
+
+def crash_boxes():
+    """titles of OBS's crash boxes open on the screen right now"""
+    u, found = ctypes.windll.user32, []
+    def cb(h, _):
+        if u.IsWindowVisible(h):
+            buf = ctypes.create_unicode_buffer(256)
+            u.GetWindowTextW(h, buf, 256)
+            if buf.value in CRASH_BOXES: found.append(buf.value)
+        return True
+    u.EnumWindows(ctypes.WINFUNCTYPE(ctypes.c_bool, W.HWND, W.LPARAM)(cb), 0)
+    return found
+
+def log_break(rec, why, restarted):
+    line = (f"{int(time.time() * 1000)}\t{rec.get('project', '')}\t{rec.get('start_ms', 0)}\t{why}\t"
+            f"{'restarted' if restarted else 'not restarted'}\n")
+    try:
+        with open(BREAKS_LOG, "a", encoding="utf-8") as f: f.write(line)
+    except OSError:
+        pass
+
+def guard_check(misses):
+    """(why the recording broke or None, misses): OBS gone, a crash box up, or not recording; a WebSocket that does
+    not answer counts only after GUARD_MISSES polls in a row (OBS can be busy for a moment)"""
+    boxes = crash_boxes()
+    if boxes: return "OBS showed " + " and ".join(f'"{b}"' for b in boxes), 0
+    if not obs_running(): return "OBS closed", 0
+    try:
+        import obsws_python as obs
+        cfg = json.load(open(OBS_CFG))
+        cl = obs.ReqClient(host="localhost", port=cfg["server_port"], password=cfg.get("server_password", ""), timeout=5)
+        try:
+            return (None if cl.get_record_status().output_active else "OBS stopped recording"), 0
+        finally:
+            cl.disconnect()   # one left open each poll piled up in OBS (2026-10-17)
+    except Exception:
+        misses += 1
+        return ("OBS stopped answering" if misses >= GUARD_MISSES else None), misses
+
+def cmd_guard():
+    rec = load_state().get("recording")
+    if not rec: return
+    mine, misses = rec.get("start_ms"), 0
+    while True:
+        time.sleep(GUARD_POLL_S)
+        rec = load_state().get("recording")
+        if not rec or rec.get("start_ms") != mine and not rec.get("sim_since"): return   # stopped, or a newer start
+        if rec.get("sim_since"): mine = rec.get("start_ms")   # the simulator watcher restarted it on purpose
+        why, misses = guard_check(misses)
+        if not why: continue
+        if crash_boxes() or not obs_running() or why == "OBS stopped answering":
+            subprocess.run(["taskkill", "/f", "/im", "obs64.exe"], capture_output=True, creationflags=NO_WINDOW)   # clears the boxes too
+            time.sleep(2)
+        game_open = window_spec(rec.get("exe", ""), must=False) is not None
+        if game_open:
+            state = load_state(); state.pop("recording", None); save_state(state)
+            r = subprocess.run([sys.executable, os.path.abspath(__file__), "start", rec["exe"], rec["label"],
+                                "--game", rec.get("project", "")], capture_output=True, text=True, timeout=GUARD_RESTART_S)
+            log_break(rec, why, r.returncode == 0)
+        else:
+            state = load_state(); state.pop("recording", None); save_state(state)
+            log_break(rec, why, False)
+        return
 
 def cmd_sim(exe):
     """Is the OpenXR Simulator's preview up for this game? (what the watcher looks for)"""
@@ -375,16 +498,21 @@ def cmd_done():
             path = cl.stop_record().output_path
             write_sidecars(path, state.get("recording", {}), stop_ms)
             print("SAVED", path)
-        if state.get("prev_collection"): cl.set_current_scene_collection(state["prev_collection"])
+        if state.get("prev_collection"):
+            # Source Record keeps its output open, and OBS then quits with "Source Cleanup Error" while it switches
+            # collections (2026-10-17): take the add-on's filter off first
+            try: cl.remove_source_filter(SRC_SECOND, SECOND_FILTER); time.sleep(1)
+            except Exception: pass
+            cl.set_current_scene_collection(state["prev_collection"])
         if state.get("prev_profile"): cl.set_current_profile(state["prev_profile"])
         time.sleep(1)
         if state.get("we_started_obs"):
-            subprocess.run(["taskkill", "/im", "obs64.exe"], capture_output=True)
+            subprocess.run(["taskkill", "/im", "obs64.exe"], capture_output=True, creationflags=NO_WINDOW)
             for _ in range(CLOSE_CHECKS):   # started minimised to the tray, OBS can ignore a polite close
                 time.sleep(CLOSE_CHECK_GAP_S)
                 if not obs_running(): break
             else:
-                subprocess.run(["taskkill", "/f", "/im", "obs64.exe"], capture_output=True)
+                subprocess.run(["taskkill", "/f", "/im", "obs64.exe"], capture_output=True, creationflags=NO_WINDOW)
     print("OBS back to", state.get("prev_profile", "its own profile"))
     try: os.remove(STATE)
     except OSError: pass
@@ -397,6 +525,7 @@ def main():
         opt = lambda k: a[a.index(k) + 1] if k in a else None
         cmd_start(a[1], a[2], project, opt("--class"), opt("--also"))
     elif a[0] == "simwatch" and len(a) >= 2: cmd_simwatch(a[1])
+    elif a[0] == "guard": cmd_guard()
     elif a[0] == "sim" and len(a) >= 2: cmd_sim(a[1])
     elif a[0] == "stop": cmd_stop()
     elif a[0] == "check": cmd_check()
