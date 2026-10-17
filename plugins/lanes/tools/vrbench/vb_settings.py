@@ -7,6 +7,7 @@ Folders follow the environment so tests never touch the real ones:
   LANES_VRBENCH_LAYER_DIR  where install.ps1 put the layer (default %LOCALAPPDATA%\\Programs\\VRBench)
 """
 import os
+import re
 
 _LOCAL = os.environ.get("LOCALAPPDATA", os.path.expanduser("~"))
 
@@ -43,3 +44,25 @@ HANDS_LIGHT = 5
 STAGE_TIMEOUT_S = 600
 LEARN_MINUTES_DEFAULT = 60
 FOOTAGE_WARN_GB_DEFAULT = 20
+
+
+# ---- lanes.conf (LANES_CONFIG overrides, as in every lanes tool) ------------------------------------------------
+def conf_files():
+    if os.environ.get("LANES_CONFIG"):
+        return [os.environ["LANES_CONFIG"]]
+    home = os.path.expanduser("~")
+    return [os.path.join(home, ".claude", "lanes.conf"), os.path.join(home, ".config", "lanes", "lanes.conf")]
+
+
+def conf_get(key):
+    pat = re.compile(r"^\s*" + re.escape(key) + r"\s*=\s*(.*?)\s*(?:\s#.*)?$")
+    for path in conf_files():
+        try:
+            with open(path, encoding="utf-8", errors="replace") as f:
+                for line in f:
+                    m = pat.match(line.rstrip("\r\n"))
+                    if m and not line.lstrip().startswith("#"):
+                        return m.group(1).strip().strip('"').strip("'")
+        except OSError:
+            pass
+    return ""

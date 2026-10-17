@@ -10,7 +10,6 @@ LANES_VRBENCH_FAKEREG=<json file> stands in for the registry in tests.
 """
 import json
 import os
-import re
 
 import vb_settings as S
 
@@ -142,35 +141,14 @@ def stop():
 
 
 # ---- which exe a game name means ---------------------------------------------------------------------------------
-def _conf_files():
-    if os.environ.get("LANES_CONFIG"):
-        return [os.environ["LANES_CONFIG"]]
-    home = os.path.expanduser("~")
-    return [os.path.join(home, ".claude", "lanes.conf"), os.path.join(home, ".config", "lanes", "lanes.conf")]
-
-
-def _conf_get(key):
-    pat = re.compile(r"^\s*" + re.escape(key) + r"\s*=\s*(.*?)\s*(?:\s#.*)?$")
-    for path in _conf_files():
-        try:
-            with open(path, encoding="utf-8", errors="replace") as f:
-                for line in f:
-                    m = pat.match(line.rstrip("\r\n"))
-                    if m and not line.lstrip().startswith("#"):
-                        return m.group(1).strip().strip('"').strip("'")
-        except OSError:
-            pass
-    return ""
-
-
 def resolve_exe(target):
     """an exe path as given; else `vrbench_exe.<game>` in lanes.conf; else the only exe in `builds_app.<game>`"""
     if os.path.isfile(target):
         return target
-    exe = _conf_get(f"vrbench_exe.{target}")
+    exe = S.conf_get(f"vrbench_exe.{target}")
     if exe and os.path.isfile(exe):
         return exe
-    folder = _conf_get(f"builds_app.{target}")
+    folder = S.conf_get(f"builds_app.{target}")
     if folder and os.path.isdir(folder):
         exes = [f for f in os.listdir(folder) if f.lower().endswith(".exe")]
         if len(exes) == 1:
