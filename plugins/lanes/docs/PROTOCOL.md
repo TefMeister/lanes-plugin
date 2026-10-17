@@ -1301,3 +1301,29 @@ a mod looked at, an issue or a note with one useful fact. An account with no pro
 `thanks.py add <owner>`. It is logged in `~/.claude/lanes/thanks-log.tsv`. Following needs GitHub's `user:follow`
 permission once (`gh auth refresh -h github.com -s user:follow`); without it `thanks.py` says so and stars nothing
 half-way. When it is off, sessions do nothing and do not ask again.
+
+## 26. The recording and the jitter log, side by side (0.76.0, 2026-10-17)
+
+The maintainer: *"are automated recordings and begone tools working in tandem, so that at the timestamp of a jitter,
+you can also see the recording frame by frame where and how the jitter happened?"*, then *"please wire in the automated
+recording and BeG0nE tools working together ... this is one of these things that gives us best data early on"*.
+
+- **Switched on by `begone_record = yes`** (offered once, §25). The rider (begone/rider.py) starts `tools/obs-rec.py`
+  on the game's window the moment a jitter log starts growing, unless something is recording already; obs-rec adds
+  the OpenXR Simulator's preview by itself. When the log ends the rider stops the recording first, then files.
+- **One clock.** The log's header carries `wall_ms` (jitterlog.h since 0.76.0; an older mod's log uses the moment its
+  file was made), and every saved recording has `<file>.json` beside it with `start_ms`, the moment its first frame
+  was. Log second t is recording second (wall_ms - start_ms) / 1000 + t.
+- **Every filing cuts the frames** (begone/camera-jitter/frames.py): the first three jittery stretches and one smooth
+  turning second, from each recording that covers the log (headset view first), padded a quarter second either side.
+  Each folder holds every frame (left eye of a side-by-side picture, 640 wide), `sheet.jpg` (half a second on one
+  picture) and `frames.txt`: each frame's log second, recording time, and how much it changed from the one before,
+  marked HELD (the picture stood still while the view around it moved) or JUMPED (it caught up). The report ends with
+  "On the recording", naming the folders by their place under the recordings folder only.
+- **Reading it.** Sessions open `sheet.jpg` and the frames named HELD/JUMP, never the video itself. `begone.py frames
+  camera-jitter <run|latest> <from s> <to s>` cuts any other stretch; `attach` redoes a run (for example once a
+  recording that was still running has stopped); `where` lists the folders.
+- **Honest limits.** The recorder takes 60 pictures a second and the game draws its own rate, so one lone HELD
+  picture every few seconds can be the recorder repeating a frame; a HELD picture followed by a JUMP is the game. The
+  two clocks agree to about one frame. Only the game's own windows are recorded, never the screen; the frames stay
+  off GitHub.

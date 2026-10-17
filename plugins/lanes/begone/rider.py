@@ -11,6 +11,12 @@ Was BeG0nE's camera-jitter/ride-along/ride.py, which knew one tool. This one rea
 new tool is filed without touching this file. Where reports go: begone_common.home(); raw recordings are read from
 %LOCALAPPDATA%\BeG0nE\<log dir>\ and moved to done\ there (they stay on the PC that made them).
 
+RECORDING IN TANDEM (0.76.0, `begone_record = yes` in lanes.conf): the moment a log starts growing, the rider
+starts tools/obs-rec.py on that game's window (and the OpenXR Simulator's preview, which obs-rec adds by itself),
+unless something else is recording already. When the log ends it stops the recording first, then files, so the
+report is cut at its jittery seconds straight away (camera-jitter/frames.py). Only the game's own windows are
+recorded, never the screen.
+
 HOW IT KNOWS A VR SESSION IS ON, three ways (the 'never one method' rule): a recording growing in a tool's log
 folder (the only one that produces data); SteamVR running; a windowed process with an OpenXR/OpenVR dll loaded.
 """
@@ -40,6 +46,10 @@ OLD_STARTUP_CMD = os.path.join(os.path.dirname(STARTUP_CMD), "BeG0nE-jitter-ride
 STEAMVR_EXES = ("vrserver.exe", "vrcompositor.exe", "vrmonitor.exe")
 VR_DLLS = ("openxr_loader.dll", "openvr_api.dll")
 DETACHED_PROCESS = 0x00000008
+REC_TOOL = os.path.join(os.path.dirname(HERE), "tools", "obs-rec.py")
+REC_LABEL = "begone"            # recordings the rider makes are named begone_<date>_<time>.mp4
+REC_TIMEOUT_S = 90              # obs-rec may have to start OBS first
+REC_STATE = os.path.join(os.path.expandvars("%LOCALAPPDATA%"), "obs-rec-state.json")
 
 
 def say(msg):
@@ -140,6 +150,59 @@ def file_one(t, path, game=None):
     return r.stdout.strip().splitlines()[-1] if r.stdout.strip() else "filed"
 
 
+# ----- recording in tandem -----
+def record_wanted():
+    return bc.read_conf().get("begone_record", "").lower() == "yes" and os.path.isfile(REC_TOOL)
+
+
+def recording_now():
+    try:
+        with open(REC_STATE, encoding="utf-8") as f:
+            return bool(json.load(f).get("recording"))
+    except (OSError, ValueError):
+        return False
+
+
+def exe_of(pid):
+    try:
+        import psutil
+        return psutil.Process(int(pid)).name()
+    except Exception:
+        return None
+
+
+def rec(*args):
+    r = subprocess.run([sys.executable, REC_TOOL, *args], capture_output=True, text=True, timeout=REC_TIMEOUT_S,
+                       creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    out = (r.stdout or r.stderr or "").strip().splitlines()
+    return r.returncode == 0, (out[-1] if out else "")
+
+
+def start_recording(head, game):
+    """True when the rider started a recording for this session (and so must stop it)"""
+    if not record_wanted() or recording_now():
+        return False
+    exe = exe_of(head.get("pid", 0))
+    if not exe:
+        say("not recording: could not tell which program is logging")
+        return False
+    try:
+        ok, line = rec("start", exe, REC_LABEL, "--game", game)
+    except Exception as e:
+        ok, line = False, str(e)
+    say(line if ok else "could not record: " + line)
+    return ok
+
+
+def stop_recording():
+    try:
+        ok, line = rec("stop")
+        rec("done")
+        say("recording stopped: " + line)
+    except Exception as e:
+        say(f"could not stop the recording: {e}")
+
+
 def write_state(**kw):
     os.makedirs(bc.LOCAL, exist_ok=True)
     kw["at"] = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -153,7 +216,7 @@ def run():
     with open(PID_FILE, "w") as f:
         f.write(str(os.getpid()))
     say("rider up: " + ", ".join(t["name"] for t in bc.tools() if t.get("log_dir")))
-    last_proc_look, steam, loaded, announced = 0, False, [], set()
+    last_proc_look, steam, loaded, announced, ours = 0, False, [], set(), set()
     while True:
         now = time.time()
         if now - last_proc_look >= PROCESS_LOOK_EVERY_S:
@@ -165,9 +228,13 @@ def run():
             game = head.get("game", "?")
             if p not in announced and size >= MIN_LOG_BYTES:
                 say(f"VR SESSION: {game} is recording for {t['name']}"); announced.add(p)
+                if t.get("short") == "jitter" and start_recording(head, game):
+                    ours.add(p)
             if size < MIN_LOG_BYTES and now - mtime > SETTLE_S:
                 os.remove(p); continue          # never got going
             if log_ended(p) or now - mtime > SETTLE_S:
+                if p in ours:
+                    stop_recording(); ours.discard(p)   # stopped first, so the filing can cut it
                 try:
                     say(f"FILED {t['name']}: {file_one(t, p, game)}")
                 except Exception as e:  # one bad recording must not stop the rider

@@ -757,6 +757,14 @@ else
   fail "offers-fixture.sh failed"
 fi
 
+echo "frames.py - a jitter log lined up with the recording of the same session, cut at its jittery seconds (0.76.0)"
+if out=$("$PY" "$HERE/frames_test.py" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "frames_test.py failed"
+fi
+
 echo "vrbench install - VR Bench downloaded with the simulator, or on its own (0.74.0)"
 if out=$(bash "$HERE/vrbench-fixture.sh" 2>&1); then
   ok "$(printf '%s\n' "$out" | tail -n 1)"

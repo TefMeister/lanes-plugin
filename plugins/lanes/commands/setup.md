@@ -18,7 +18,7 @@ first, in full, every run. Never install from memory.
   That covers a browser sign-in, a store purchase, a Windows approval, and clicking inside Blender.
   For commands the user can type, suggest the `! <command>` form so the output lands in the session.
 - **Every offer is made once** (0.75.0, the maintainer: "any offer has to be one time only"). Before an offer
-  that `tools/offers.py list` names (thanks, shortcut, openxr-sim), run `offers.py should <name>`; exit 3 means it
+  that `tools/offers.py list` names (thanks, shortcut, openxr-sim, begone-record), run `offers.py should <name>`; exit 3 means it
   was made already on this PC, so skip it without a word. After asking, whatever the answer, run
   `offers.py made <name> <yes|no>`. The person can still ask for any of them by name later.
 - **Never touch a game folder.** Per-game frameworks (catalog section 7) are listed for reference
@@ -137,6 +137,18 @@ account, the people whose tools, mods or findings your work uses, even one usefu
 - **No thanks:** run `thanks.py off`. Nothing is starred or followed, and it is not asked again.
 No GitHub account or no `gh`: skip it and record `offers.py made thanks no-github`. What sessions do with it:
 `docs/PROTOCOL.md` section 25.
+
+## 0.13 Record the game while BeG0nE logs? (0.76.0, VR modders, offered once)
+
+Only if `python "${CLAUDE_PLUGIN_ROOT}/tools/offers.py" should begone-record` says `offer`, and only for someone
+who makes VR mods (BeG0nE is on: `begone =` in lanes.conf). Say in plain words: whenever the jitter checker logs a
+headset session, the game's own window (and the pretend headset's view) can be recorded at the same time, so
+every jittery second it finds can also be looked at picture by picture; only the game's windows are recorded,
+never the screen, and the files stay on this PC (the recordings folder). It needs OBS, FFmpeg and Python's
+`obsws-python` (and Pillow + numpy for the held/jumped count); offer whichever is missing first. Ask **one
+question**: *"Record the game by itself whenever the jitter checker is logging, so each jitter can be seen frame by
+frame?"* ("Yes" / "No thanks"). Yes writes `begone_record = yes` to lanes.conf; no writes `begone_record = no`.
+Either way run `offers.py made begone-record <answer>`. What it does: `docs/PROTOCOL.md` section 26.
 
 ## 1. Scan
 
