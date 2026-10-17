@@ -25,6 +25,7 @@ LAYER_JSON64 = "vrbench_layer.json"
 LAYER_JSON32 = "vrbench_layer32.json"
 
 SIM_DATA_DIR = os.environ.get("LANES_OPENXRSIM_DATA") or os.path.join(_LOCAL, "OpenXR-Simulator")
+SWEEP_CMD = "pose_sweep_command.json"         # the simulator turns the head on a sine wave by itself
 HEAD_CMD = "head_pose_command.json"           # x, y, z in metres; yaw, pitch, roll in radians [measured 2026-10-16]
 SHOT_REQ = "screenshot_request.json"
 SHOT_FILES = ("screenshot.png", "screenshot.bmp", "screenshot.jpg", "screenshot.jpeg")   # the simulator writes one

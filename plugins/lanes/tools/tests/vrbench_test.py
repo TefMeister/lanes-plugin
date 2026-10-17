@@ -49,14 +49,17 @@ class FakeProbes:
     def games(self): return ["Hard Reset Redux"]
 
 
-import vb_learn  # noqa: E402
+import vb_learn
+import vb_stages_vr  # noqa: E402
 
 
 class FakeTools:
     """everything the learning hour does to the outside world, answered from memory; `calls` keeps the order"""
 
-    def __init__(self, sim=True, jump_after=None, crash_in=None, hands=True, pictures_change=True):
+    def __init__(self, sim=True, jump_after=None, crash_in=None, hands=True, pictures_change=True, chatty=False,
+                 receipts=True):
         self.sim, self.jump_after, self.crash_in, self.hands, self.change = sim, jump_after, crash_in, hands, pictures_change
+        self.chatty, self.receipts, self.sent, self.heads, self.sweeps = chatty, receipts, [], [], []
         self.t, self.calls, self.log, self.pic_n, self.pressed = 0.0, [], [], 0, False
         self.hand_x = self.hand_y = 0.0
 
@@ -65,6 +68,8 @@ class FakeTools:
 
     def sleep(self, s):
         self.t += s
+        if self.chatty:   # like Hard Reset's mod: a counts line every second, whatever happens
+            self.log.append(f"[{self.t:.1f}] controls per s: updates {int(self.t * 37) % 90}, keys pressed 0")
 
     def sim_installed(self): return self.sim
     def resolve_exe(self, game): return "C:/Games/fake.exe"
@@ -95,7 +100,12 @@ class FakeTools:
     def turn(self, px, name): return self._pic(name)
     def probe(self, key, seconds): return True
     def picture_diff(self, a, b): return 0.0 if a.split("-")[-1] == b.split("-")[-1] else 10.0
-    def head(self, *pose): self.calls.append("head")
+    def sweep(self, on, yaw_amp=0.0, hz=0.0):
+        self.sweeps.append((self.t, on, yaw_amp, hz))
+
+    def head(self, *pose):
+        self.calls.append("head")
+        self.heads.append((self.t, pose))
     def sim_shot(self, name): return self._pic(name)
 
     def send(self, inp):
@@ -104,8 +114,11 @@ class FakeTools:
         if "grip_pose" in left:
             self.hand_x, self.hand_y = left["grip_pose"]["p"][0], left["grip_pose"]["p"][1]
         held = any(v for h in d["vr"].values() for k, v in h.items() if not k.endswith("_pose"))
-        if held:
-            self.log.append(f"pressed {d['vr']}")   # our mods log what they were sent
+        self.sent.append(d["vr"])
+        if held and self.receipts:
+            names = sorted(f"{h} {k}" for h, v in d["vr"].items() for k, x in v.items()
+                           if x and not k.endswith("_pose") and x != [0.0, 0.0])
+            self.log.append(f"pressed {names}")   # our mods log what they were sent, by name
 
     def hand_centroid(self, png):
         # the picture's y grows downwards, so a higher hand has a smaller y
@@ -249,7 +262,117 @@ class VrBenchTest(unittest.TestCase):
         res = learn(FakeTools(pictures_change=False), stages=["vr_buttons"])
         buttons = [s for s in res["stages"] if s["name"] == "vr_buttons"][0]
         self.assertEqual(buttons["result"], "PASS", buttons["how"])
-        self.assertIn("right trigger: the game logged something", buttons["how"])
+        self.assertIn("right trigger: the game logged", buttons["how"])
+
+    def test_buttons_chatty_log_alone_is_not_a_receipt(self):
+        # Hard Reset 2026-10-17: the mod logs a line every second, so "the log changed" passed every button
+        res = learn(FakeTools(pictures_change=False, chatty=True, receipts=False), stages=["vr_buttons"])
+        buttons = [s for s in res["stages"] if s["name"] == "vr_buttons"][0]
+        self.assertEqual(buttons["result"], "UNKNOWN", buttons["how"])
+        self.assertIn("right trigger: no visible effect", buttons["how"])
+
+    def test_buttons_chatty_log_with_receipt_names_the_line(self):
+        res = learn(FakeTools(pictures_change=False, chatty=True), stages=["vr_buttons"])
+        buttons = [s for s in res["stages"] if s["name"] == "vr_buttons"][0]
+        self.assertEqual(buttons["result"], "PASS", buttons["how"])
+        self.assertIn('right trigger: the game logged "pressed', buttons["how"])
+
+    def test_buttons_quote_the_changed_part(self):
+        class CountsLine(FakeTools):   # Hard Reset's receipt: one long counts line whose "last:" word changes
+            def sleep(self, s):
+                self.t += s
+                self.log.append(f"[{self.t:.1f}] controls per s: the game asked the pad 0 times, updates "
+                                f"{int(self.t * 37) % 90}, keys pressed 0 (last: none), sprint off, snap turns 0")
+
+            def send(self, inp):
+                d = inp.as_dict()
+                self.sent.append(d["vr"])
+                if any(v for h in d["vr"].values() for k, v in h.items() if not k.endswith("_pose")):
+                    self.log.append(f"[{self.t:.1f}] controls per s: the game asked the pad 0 times, updates 74, "
+                                    "keys pressed 1 (last: fire), sprint off, snap turns 0")
+        res = learn(CountsLine(pictures_change=False, chatty=True, receipts=False), stages=["vr_buttons"])
+        buttons = [s for s in res["stages"] if s["name"] == "vr_buttons"][0]
+        self.assertIn("(last: fire)", buttons["how"].split(";")[0])
+
+    def test_buttons_prefer_a_changed_familiar_line_over_a_one_off(self):
+        # Hard Reset: a "created so far by pool" line came at the same moment as "(last: fire)" and was quoted instead
+        class Both(FakeTools):
+            def sleep(self, s):
+                self.t += s
+                self.log.append(f"[{self.t:.1f}] controls per s: the game asked the pad 0 times, updates "
+                                f"{int(self.t * 37) % 90}, keys pressed 0 (last: none), sprint off, snap turns 0")
+
+            def send(self, inp):
+                d = inp.as_dict()
+                self.sent.append(d["vr"])
+                if any(v for h in d["vr"].values() for k, v in h.items() if not k.endswith("_pose")):
+                    self.log.append(f"[{self.t:.1f}] created so far by pool 12 / 40 / 3")
+                    self.log.append(f"[{self.t:.1f}] controls per s: the game asked the pad 0 times, updates 74, "
+                                    "keys pressed 1 (last: fire), sprint off, snap turns 0")
+        res = learn(Both(pictures_change=False, receipts=False), stages=["vr_buttons"])
+        buttons = [s for s in res["stages"] if s["name"] == "vr_buttons"][0]
+        self.assertIn("(last: fire)", buttons["how"].split(";")[0])
+
+    def test_buttons_ignore_a_line_that_comes_every_few_seconds(self):
+        class Periodic(FakeTools):   # like the pool counts line Hard Reset's mod prints now and then
+            def sleep(self, s):
+                before = int(self.t // 3)
+                super().sleep(s)
+                if int(self.t // 3) != before:
+                    self.log.append(f"[{self.t:.1f}] created so far by pool 12 / 40 / 3")
+        res = learn(Periodic(pictures_change=False, receipts=False), stages=["vr_buttons"])
+        buttons = [s for s in res["stages"] if s["name"] == "vr_buttons"][0]
+        self.assertEqual(buttons["result"], "UNKNOWN", buttons["how"])
+
+    def test_buttons_hold_every_other_input_released(self):
+        # the simulator turns some keys into controller presses (Space = right trigger): Hard Reset's jump also fired
+        tools = FakeTools(pictures_change=False)
+        learn(tools, stages=["vr_buttons"])
+        held = [d for d in tools.sent if any(v for h in d.values() for k, v in h.items() if not k.endswith("_pose"))]
+        for d in held:
+            self.assertEqual(set(d), {"left", "right"}, d)
+            for h in d.values():
+                for k in ("trigger", "squeeze", "stick", "a", "b", "x", "y", "menu", "stick_click"):
+                    self.assertIn(k, h, d)
+        a = [d for d in held if d["right"]["a"]][0]
+        self.assertEqual(a["right"]["trigger"], 0.0)
+
+    def test_head_ends_with_a_slow_smooth_sweep(self):
+        # BeG0nE's jitter checker needs a slow, smooth head turn; nobody should have to make it by hand. Head
+        # commands 20 times a second read as "stepped" (Hard Reset 2026-10-17), so the simulator sweeps by itself.
+        tools = FakeTools()
+        learn(tools, stages=["vr_head"])
+        self.assertEqual([on for _, on, _, _ in tools.sweeps], [True, False])
+        (t_on, _, amp, hz), (t_off, _, _, _) = tools.sweeps
+        self.assertGreaterEqual(t_off - t_on, 8.0)
+        self.assertGreaterEqual(amp, 20)
+        self.assertLessEqual(2 * math.pi * hz * amp, 30)   # peak speed in degrees a second: slow
+
+    def test_sim_sweep_uses_the_simulator_folder_by_default(self):
+        d, old = tempfile.mkdtemp(), vb_sim.S.SIM_DATA_DIR
+        vb_sim.S.SIM_DATA_DIR = d
+        try:
+            vb_sim.sweep(False)
+        finally:
+            vb_sim.S.SIM_DATA_DIR = old
+        self.assertTrue(os.path.isfile(os.path.join(d, "pose_sweep_command.json")))
+
+    def test_sim_sweep_writes_the_command(self):
+        d = tempfile.mkdtemp()
+        vb_sim.sweep(True, 30, 0.1, data_dir=d)
+        with open(os.path.join(d, "pose_sweep_command.json"), encoding="utf-8") as f:
+            cmd = json.load(f)
+        self.assertEqual(cmd, {"enabled": True, "yaw_amp_deg": 30.0, "pitch_amp_deg": 0.0, "roll_amp_deg": 0.0,
+                               "freq_hz": 0.1})
+
+    def test_menu_pressed_last_and_again_to_close(self):
+        # the menu button opened the game's pause menu and spoiled the stick tests after it
+        tools = FakeTools(pictures_change=False)
+        learn(tools, stages=["vr_buttons"])
+        held = [d for d in tools.sent if any(v for h in d.values() for k, v in h.items() if not k.endswith("_pose"))]
+        self.assertTrue(held[-1].get("left", {}).get("menu"), held[-1])
+        self.assertTrue(held[-2].get("left", {}).get("menu"), held[-2])
+        self.assertEqual(sum(1 for d in held if d.get("left", {}).get("menu")), 2)
 
     # ---- Task 5: the PC profile ----
     DEV_GPUS = ["NVIDIA GeForce GTX 1660 SUPER", "Intel(R) HD Graphics 4000"]
