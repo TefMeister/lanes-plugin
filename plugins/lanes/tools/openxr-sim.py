@@ -13,10 +13,12 @@ headset plugged in. Two public sources, both free:
             Claude Code (an MCP server)
 
     python openxr-sim.py status [--json]          on this PC or not, where, which release, and whether a newer one is out
-    python openxr-sim.py install [--fork] [--to FOLDER]
+    python openxr-sim.py install [--fork] [--bench] [--to FOLDER]
                                                   download the newest release into FOLDER (default: the folder it is
                                                   already in, else %LOCALAPPDATA%\\Programs\\OpenXR-Simulator); the same
-                                                  command updates it
+                                                  command updates it. --bench (0.74.0) then installs VR Bench too
+                                                  (tools/vrbench/vrbench.py install), the layer that plays a VR game
+                                                  for you through the simulator; `status --json` carries its status
     python openxr-sim.py decline                  remember that the person said no, so the offer is not repeated
 
 Exit 0 = done or nothing to do, 1 = could not (the reason is printed), 2 = not applicable here (not Windows).
@@ -41,6 +43,7 @@ import hashlib
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import urllib.request
@@ -156,7 +159,8 @@ def status(as_json):
     st = load_state()
     info = {"installed": folder is not None, "folder": folder, "source": src, "release": have or None,
             "has_32bit": bool(folder) and os.path.isfile(os.path.join(folder, DLL32)),
-            "latest_release": latest or None, "newer": newer, "declined": bool(st.get("declined")), "error": err}
+            "latest_release": latest or None, "newer": newer, "declined": bool(st.get("declined")), "error": err,
+            "bench": bench_status() if as_json else None}
     if as_json:
         print(json.dumps(info))
         return 0
@@ -171,6 +175,25 @@ def status(as_json):
     if err:
         print(f"Could not reach GitHub: {err}")
     return 0
+
+
+VRBENCH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vrbench", "vrbench.py")
+
+
+def bench_status():
+    """VR Bench's own status (0.74.0): the layer that plays a VR game for you through this simulator"""
+    try:
+        r = subprocess.run([sys.executable, VRBENCH, "status", "--json"], capture_output=True, text=True,
+                           timeout=NET_TIMEOUT_S)
+        return json.loads(r.stdout)
+    except Exception as e:
+        return {"installed": False, "error": str(e)}
+
+
+def bench_install():
+    print("Now VR Bench, which plays a VR game for you through the simulator:")
+    sys.stdout.flush()
+    return subprocess.run([sys.executable, VRBENCH, "install"]).returncode
 
 
 def dll_in_use(folder):
@@ -293,7 +316,10 @@ def main():
     if args[0] == "decline":
         return decline()
     to = args[args.index("--to") + 1] if "--to" in args and args.index("--to") + 1 < len(args) else None
-    return install("fork" if "--fork" in args else "original", to)
+    rc = install("fork" if "--fork" in args else "original", to)
+    if rc == 0 and "--bench" in args:
+        rc = bench_install()
+    return rc
 
 
 if __name__ == "__main__":

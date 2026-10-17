@@ -749,6 +749,14 @@ else
   fail "openxr-sim-fixture.sh failed"
 fi
 
+echo "vrbench install - VR Bench downloaded with the simulator, or on its own (0.74.0)"
+if out=$(bash "$HERE/vrbench-fixture.sh" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "vrbench-fixture.sh failed"
+fi
+
 echo "gu.py - the weekly tool check (0.67.0)"
 if out=$(bash "$HERE/gu-fixture.sh" 2>&1); then
   ok "$(printf '%s

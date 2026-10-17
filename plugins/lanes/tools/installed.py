@@ -17,8 +17,8 @@ from origin/main, after a quick fetch, because a note written elsewhere arrives 
 Like owed.sh, this NEVER commits: it writes one file and the close-out box reports it as unsaved until the session
 saves the board. Exit 0 always for brief/scan (a start-up check must never be why a session opens with an error).
 
-APPS it can find by itself (scan): Hand Freeze. A new app of ours adds one line to APPS.
-Tests set LANES_BOARD, LANES_CONFIG and LANES_HANDFREEZE_DIR.
+APPS it can find by itself (scan): Hand Freeze, VR Bench. A new app of ours adds one line to APPS.
+Tests set LANES_BOARD, LANES_CONFIG, LANES_HANDFREEZE_DIR and LANES_VRBENCH_LAYER_DIR.
 """
 import datetime
 import json
@@ -43,8 +43,20 @@ def handfreeze_found():
         return "release unknown"
 
 
+def vrbench_found():
+    """VR Bench's layer (0.74.0), where its install.ps1 put it"""
+    d = os.environ.get("LANES_VRBENCH_LAYER_DIR") or os.path.join(LOCALAPPDATA, "Programs", "VRBench")
+    if not any(os.path.isfile(os.path.join(d, f)) for f in ("vrbench_layer.dll", "vrbench_layer32.dll")):
+        return None
+    try:
+        with open(os.path.join(d, "lanes-release.txt"), encoding="utf-8") as f:
+            return f.read().strip() or "release unknown"
+    except OSError:
+        return "release unknown"
+
+
 # app name -> how to find it on this PC (returns the release, or None when absent)
-APPS = {"Hand Freeze": handfreeze_found}
+APPS = {"Hand Freeze": handfreeze_found, "VR Bench": vrbench_found}
 
 
 def conf_files():
