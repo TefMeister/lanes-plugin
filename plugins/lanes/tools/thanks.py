@@ -31,6 +31,7 @@ STATE_DIR = os.environ.get("LANES_STATE_DIR") or os.path.join(HOME, ".claude", "
 LOG = os.path.join(STATE_DIR, "thanks-log.tsv")
 LIST = os.path.join(HERE, "thanks-list.txt")
 GH = os.environ.get("LANES_GH") or "gh"
+GH_TIMEOUT_S = 60        # one gh call; a star or a follow answers in about a second
 SCOPE_FIX = "gh auth refresh -h github.com -s user:follow"
 NAME = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})(?:/[A-Za-z0-9._-]+)?$")
 
@@ -77,7 +78,7 @@ def set_conf(value):
 
 def gh(*args):
     try:
-        r = subprocess.run([GH, *args], capture_output=True, text=True, timeout=60)
+        r = subprocess.run([GH, *args], capture_output=True, text=True, timeout=GH_TIMEOUT_S)
         return r.returncode, (r.stdout or "") + (r.stderr or "")
     except (OSError, subprocess.TimeoutExpired) as e:
         return 127, str(e)
