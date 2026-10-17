@@ -73,9 +73,29 @@ def main():
               "the report says where to look")
         check("cut" in line, "attach answers in one line")
 
+        s = {"windows": [{"at_s": 1, "kind": "JITTER"}, {"at_s": 2, "kind": "smooth"}, {"at_s": 50, "kind": "JITTER"},
+                         {"at_s": 52, "kind": "smooth"}]}
+        got = [a for _, a, _ in frames.stretches(s, (40, 60))]
+        check(got == [50, 52], f"only seconds the recording holds are cut (got {got}; 2026-10-17: a late recording)")
+        check([a for _, a, _ in frames.stretches(s)] == [1, 50, 2], "with no recording span, every stretch as before")
+
+        breaks_log = os.path.join(t, "breaks.log")
+        frames.BREAKS_LOG = breaks_log
+        rows = [(START_MS + 5000, "restarted"), (START_MS + 999_000, "not restarted")]
+        open(breaks_log, "w").write("".join("\t".join([str(at), "selftest", str(START_MS), "OBS closed", how]) + "\n"
+                                            for at, how in rows))
+        b = frames.breaks(START_MS, 10)
+        check(len(b) == 1 and abs(b[0][0] - 5.0) < 1e-6 and b[0][2] == "restarted",
+              "a recording break inside the log is found, at its log second; one long after is not")
+        frames.attach(run, log, "selftest")
+        check("the recording broke at" in open(os.path.join(run, "report.md"), encoding="utf-8").read() or
+              not frames.breaks(frames.load_json(os.path.join(run, "recording.json")).get("wall_ms", 0), 99),
+              "the report quotes the break")
+
+        os.environ["LOCALAPPDATA"] = t   # never this PC's own recorder state: a recording may be running
         os.remove(video + ".json")
         line = frames.attach(run, log, "selftest")
-        check("no recording" in line, "no recording of that time: it says so")
+        check("no recording" in line, f"no recording of that time: it says so ({line})")
     finally:
         shutil.rmtree(t, ignore_errors=True)
     print(f"frames: {'FAIL' if fails else 'all passed'}")

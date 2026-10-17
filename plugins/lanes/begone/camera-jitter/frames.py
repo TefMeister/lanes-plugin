@@ -32,6 +32,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 import begone_common as bc  # noqa: E402
 
+BREAKS_LOG = os.path.join(os.environ.get("LOCALAPPDATA", ""), "obs-rec-breaks.log")   # obs-rec's guard writes it
+BREAK_SLACK_S = 30       # a break noted this soon after the log ended still belongs to its session
 MAX_SPANS = 3            # jittery stretches cut per session
 MAX_SPAN_S = 2.0         # a longer stretch is cut to its first this-many seconds
 PAD_S = 0.25             # seconds added before and after each cut, for the clocks' small disagreement
@@ -104,10 +106,15 @@ def recordings_for(game, wall_ms, seconds):
     return sorted(found, key=lambda v: 0 if (v[1].get("window") or "").startswith("OpenXR") else 1)
 
 
-def stretches(s):
-    """[(label, from s, to s)]: the first MAX_SPANS jittery stretches, then one smooth turning second"""
+def stretches(s, covered=None):
+    """[(label, from s, to s)]: the first MAX_SPANS jittery stretches, then one smooth turning second; with covered
+    = (from s, to s), only seconds the recording holds (2026-10-17: a recording that began six minutes into the log
+    had its three cuts taken from before it started, all empty)"""
+    windows = s.get("windows", [])
+    if covered:
+        windows = [w for w in windows if covered[0] <= float(w.get("at_s", 0)) and float(w.get("at_s", 0)) + 1 <= covered[1]]
     out, start, last = [], None, None
-    for w in s.get("windows", []) + [{"at_s": -1, "kind": "end"}]:
+    for w in windows + [{"at_s": -1, "kind": "end"}]:
         t, k = int(w.get("at_s", 0)), w.get("kind")
         if k == "JITTER":
             start = t if start is None else start
@@ -116,7 +123,7 @@ def stretches(s):
             out.append((f"jitter_{start}-{last + 1}s", start, min(last + 1, start + MAX_SPAN_S)))
             start = None
     out = out[:MAX_SPANS]
-    smooth = next((int(w["at_s"]) for w in s.get("windows", []) if w.get("kind") == "smooth"), None)
+    smooth = next((int(w["at_s"]) for w in windows if w.get("kind") == "smooth"), None)
     if smooth is not None:
         out.append((f"smooth_{smooth}-{smooth + 1}s", smooth, smooth + 1))
     return out
@@ -234,7 +241,8 @@ def attach(run, log=None, game=None):
         lines.append(f"- **{side.get('window') or 'game window'}**: `{os.path.basename(video)}`; the log starts "
                      f"{offset:.2f} s into it ({rec.get('clock')}).")
         cuts = []
-        for label, a, b in stretches(s):
+        covered = ((side["start_ms"] - rec["wall_ms"]) / 1000.0, (side["stop_ms"] - rec["wall_ms"]) / 1000.0)
+        for label, a, b in stretches(s, covered):
             out = frames_dir(game, run, label, video)
             n = cut(video, side, rec["wall_ms"], a, b, out)
             n, held, jumps = n if isinstance(n, tuple) else (n, None, None)
@@ -247,9 +255,27 @@ def attach(run, log=None, game=None):
             done += isinstance(n, int)
         rec["videos"].append({"file": os.path.basename(video), "window": side.get("window"), "offset_s": round(offset, 3),
                               "cuts": cuts})
+    for at_s, why, how in breaks(rec["wall_ms"], s.get("seconds", 0)):
+        lines.append(f"- ⚠️ the recording broke at {at_s:.0f} s of the log: {why} ({how}).")
     json.dump(rec, open(os.path.join(run, "recording.json"), "w", encoding="utf-8"), indent=1)
     write_part(run, lines)
     return f"on the recording: {done} stretches cut from {len(videos)} file(s)"
+
+
+def breaks(wall_ms, seconds):
+    """[(log second, why, restarted or not)] for every recording break obs-rec's guard noted inside this log"""
+    out = []
+    try:
+        with open(BREAKS_LOG, encoding="utf-8") as f:
+            for line in f:
+                p = line.rstrip("\n").split("\t")
+                if len(p) >= 5 and p[0].isdigit():
+                    at = (int(p[0]) - wall_ms) / 1000.0
+                    if 0 <= at <= seconds + BREAK_SLACK_S:
+                        out.append((at, p[3], p[4]))
+    except OSError:
+        pass
+    return out
 
 
 def main(a):

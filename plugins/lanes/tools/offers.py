@@ -27,6 +27,8 @@ KNOWN = {
     "openxr-sim": ("0.73.0", "the OpenXR Simulator, a pretend headset (with VR Bench since 0.74.0)"),
     "begone-record": ("0.76.0", "record the game window by itself whenever BeG0nE logs a headset session, so every "
                       "jitter can be seen frame by frame"),
+    "superpowers": ("0.77.0", "the superpowers skills plugin (obra): ways of working Claude follows, such as planning before "
+                    "building, debugging step by step and checking work before calling it done"),
 }
 
 
