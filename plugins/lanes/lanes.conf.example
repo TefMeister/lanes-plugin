@@ -157,3 +157,9 @@ role = DEV
 # Where the OpenXR Simulator lives on this PC, when it is not in the default folder (%LOCALAPPDATA%\Programs\
 # OpenXR-Simulator) and not registered with Windows (0.73.0). tools/openxr-sim.py finds and updates it there.
 # openxr_sim = <folder>
+#
+# VR Bench (0.74.0), which plays a VR game for you through the simulator. Set by /lanes:setup; change by hand any time.
+# bench_headset = real | none   (can a real VR headset be worn on this PC? set by /lanes:setup)
+# bench_tier = light | full     (VR Bench's strength; chosen from the PC's specs when unset)
+# bench_footage_warn_gb = 20    (say so when VR Bench's footage passes this many GB; nothing is deleted on its own)
+# vrbench_exe.<project> = <path to the game's program>   (when its builds_app folder holds more than one)

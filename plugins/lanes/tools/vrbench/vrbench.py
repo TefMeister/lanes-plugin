@@ -11,8 +11,9 @@ from a file this tool writes. Design: docs/specs/2026-10-17-vr-bench-design.md.
                                       only (a game name: `vrbench_exe.<game> = <path>` in lanes.conf, else the one
                                       program in its `builds_app.<game>` folder)
     python vrbench.py stop            switch it off again and take it out of the OpenXR layer list
+    python vrbench.py profile         note this PC's specs, OpenXR runtimes, headset and tier (light | full)
 
-More commands (learn, profile, install) arrive with the rest of plan 1.
+More commands (learn, install) arrive with the rest of plan 1.
 Exit 0 = done, 1 = could not (the reason is printed).
 """
 import json
@@ -56,7 +57,13 @@ def status():
               f"{', 32-bit games too' if sim.get('has_32bit') else ', 64-bit games only'}).")
     else:
         print("OpenXR Simulator: not on this PC.")
-    print(f"PC profile: {'on file' if os.path.isfile(S.PROFILE_FILE) else 'not made yet'}.")
+    import vb_profile
+    prof = vb_profile.read()
+    if prof:
+        print(f"PC profile: {prof['tier']} tier; headset {'can be worn here' if prof['headset'] == 'real' else 'none here'}"
+              f"; made {prof['written']}.")
+    else:
+        print("PC profile: not made yet (`vrbench.py profile`).")
     print(f"Runs on disk: {_runs()}.")
     return 0
 
@@ -80,9 +87,23 @@ def stop():
     return 0
 
 
+def profile():
+    import vb_profile
+    conf = {k: S.conf_get(k) for k in ("bench_headset", "bench_tier")}
+    prof = vb_profile.collect(conf, vb_profile.Probes())
+    vb_profile.write(prof)
+    print(f"VR Bench profile: {prof['cpu']}; {', '.join(prof['gpus']) or 'graphics card unknown'}; {prof['ram_gb']} GB.")
+    print(f"  OpenXR runtime: {prof['runtime64'] or 'none'} (64-bit games), {prof['runtime32'] or 'none'} (32-bit games).")
+    print(f"  Headset: {'can be worn here' if prof['headset'] == 'real' else 'none (simulator only)'}; "
+          f"tier: {prof['tier']}; {len(prof['games'])} Steam games installed.")
+    return 0
+
+
 def main(argv):
     if argv[:1] == ["status"]:
         return status()
+    if argv[:1] == ["profile"]:
+        return profile()
     if argv[:1] == ["start"] and len(argv) == 2:
         return start(argv[1])
     if argv[:1] == ["stop"]:
