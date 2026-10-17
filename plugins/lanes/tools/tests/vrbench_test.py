@@ -24,12 +24,38 @@ atexit.register(shutil.rmtree, TMP, True)
 os.environ["LANES_VRBENCH_DIR"] = os.path.join(TMP, "VRBench")
 os.environ["LANES_OPENXRSIM_DATA"] = os.path.join(TMP, "OpenXR-Simulator")
 os.environ["LANES_VRBENCH_LAYER_DIR"] = os.path.join(TMP, "Programs", "VRBench")
+FAKEREG = os.path.join(TMP, "fakereg.json")
+os.environ["LANES_VRBENCH_FAKEREG"] = FAKEREG
+os.environ["LANES_CONFIG"] = os.path.join(TMP, "lanes.conf")
 sys.path.insert(0, os.path.join(TOOLS, "vrbench"))
 
 import vb_settings  # noqa: E402
 import vb_input  # noqa: E402
 import vb_sim  # noqa: E402
 import vb_run  # noqa: E402
+import vb_layer  # noqa: E402
+
+HAND_FREEZE = r"C:\Somewhere\HandFreeze\hand_freeze_layer.json"
+
+
+def fake_exe(name, machine):
+    """the smallest file exe_bits reads: 'MZ', the PE offset at 0x3c, 'PE\\0\\0', then the machine word"""
+    path = os.path.join(TMP, name)
+    data = bytearray(0x40 + 6)
+    data[0:2] = b"MZ"
+    data[0x3c:0x40] = (0x40).to_bytes(4, "little")
+    data[0x40:0x44] = b"PE\0\0"
+    data[0x44:0x46] = machine.to_bytes(2, "little")
+    with open(path, "wb") as f:
+        f.write(data)
+    return path
+
+
+def manifests_installed():
+    os.makedirs(vb_settings.LAYER_DIR, exist_ok=True)
+    for n in (vb_settings.LAYER_JSON64, vb_settings.LAYER_JSON32):
+        with open(os.path.join(vb_settings.LAYER_DIR, n), "w") as f:
+            f.write("{}")
 
 # the same file as kFile in vr-bench/test/vb_input_test.cpp, which the layer's parser is tested against
 KFILE = {"v": 1, "mode": {"poses": "set", "buttons": "set"},
@@ -96,6 +122,51 @@ class VrBenchTest(unittest.TestCase):
                            capture_output=True, text=True, env=env)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("layer", r.stdout.lower())
+
+    # ---- Task 4: the switch and the per-bitness registration ----
+    def setUp(self):
+        with open(FAKEREG, "w") as f:
+            json.dump({HAND_FREEZE: 0}, f)   # someone else's layer is always there
+        manifests_installed()
+        vb_layer.disable()
+
+    def test_exe_bits_reads_pe_header(self):
+        self.assertEqual(vb_layer.exe_bits(fake_exe("a32.exe", 0x14c)), 32)
+        self.assertEqual(vb_layer.exe_bits(fake_exe("a64.exe", 0x8664)), 64)
+
+    def test_start_registers_only_that_bitness(self):
+        vb_layer.start(fake_exe("g32.exe", 0x14c))
+        self.assertEqual(vb_layer.registered(), [vb_layer.manifest_for(32)])
+        self.assertTrue(os.path.exists(vb_settings.ENABLED_FILE))
+
+    def test_start_replaces_other_bitness(self):
+        vb_layer.register(64)
+        vb_layer.start(fake_exe("g32b.exe", 0x14c))
+        self.assertEqual(vb_layer.registered(), [vb_layer.manifest_for(32)])
+
+    def test_stop_unregisters_and_disables(self):
+        vb_layer.start(fake_exe("g64.exe", 0x8664))
+        vb_layer.stop()
+        self.assertEqual(vb_layer.registered(), [])
+        self.assertFalse(os.path.exists(vb_settings.ENABLED_FILE))
+
+    def test_unregister_leaves_others_alone(self):
+        vb_layer.register(64)
+        vb_layer.unregister_all()
+        with open(FAKEREG) as f:
+            self.assertEqual(json.load(f), {HAND_FREEZE: 0})
+
+    def test_start_by_game_name(self):
+        exe = fake_exe("named.exe", 0x8664)
+        with open(os.environ["LANES_CONFIG"], "w") as f:
+            f.write(f"vrbench_exe.some-game-vr = {exe}\n")
+        self.assertEqual(vb_layer.resolve_exe("some-game-vr"), exe)
+        r = subprocess.run([sys.executable, os.path.join(TOOLS, "vrbench", "vrbench.py"), "start", "some-game-vr"],
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual(vb_layer.registered(), [vb_layer.manifest_for(64)])
+        subprocess.run([sys.executable, os.path.join(TOOLS, "vrbench", "vrbench.py"), "stop"], capture_output=True)
+        self.assertEqual(vb_layer.registered(), [])
 
 
 if __name__ == "__main__":
