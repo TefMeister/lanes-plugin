@@ -31,11 +31,12 @@ sys.path.insert(0, HERE)
 import vb_settings as S  # noqa: E402
 
 OPENXR_SIM = os.path.join(os.path.dirname(HERE), "openxr-sim.py")
+SIM_STATUS_TIMEOUT_S = 60   # the simulator status check reads GitHub; a slow network must not hang the bench
 
 
 def _simulator():
     try:
-        r = subprocess.run([sys.executable, OPENXR_SIM, "status", "--json"], capture_output=True, text=True, timeout=60)
+        r = subprocess.run([sys.executable, OPENXR_SIM, "status", "--json"], capture_output=True, text=True, timeout=SIM_STATUS_TIMEOUT_S)
         return json.loads(r.stdout)
     except Exception as e:
         return {"installed": False, "error": str(e)}
