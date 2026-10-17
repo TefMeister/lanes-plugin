@@ -121,26 +121,9 @@ to learn any of it up front: the sessions follow it for you, and you can switch 
 - **Your PCs know what the other has (0.65.0).** Each PC keeps a small note of which of our apps
   it has, and every session start says when another PC has one this PC does not. When you say a job is
   done on the other PC, the session that hears it clears that PC's reminder, quoting you.
-- **A pretend headset (0.73.0).** `/lanes:setup` and the next `/lanes:update` offer the
-  [OpenXR Simulator](https://github.com/elliotttate/OpenXR-Simulator) by elliotttate (or
-  [webhead2oo9's fork](https://github.com/webhead2oo9/OpenXR-Simulator), which also runs 32-bit games): it shows a VR
-  game's two eyes in a window on the desktop, so VR work can be checked with no headset plugged in. Downloading it
-  never switches it on.
-- **See every jitter frame by frame (0.76.0).** While the jitter checker logs a headset session, the game's
-  window can be recorded by itself; each report then comes with the jittery seconds cut out as pictures, and
-  which pictures stood still or jumped on screen. Offered once.
 - **Offers are made once, and thanks on GitHub (0.75.0).** Everything Lanes offers to add is asked once, at the
   first setup or on the update that brings it, and never again whatever the answer. One new offer: sessions can
   star and follow, on your GitHub, the people whose tools, mods or findings your work uses.
-- **VR Bench, a robot player for VR games (0.74.0).** With the pretend headset as its eyes, our
-  [VR Bench](https://github.com/TefMeister/vr-bench) plays both controllers by itself: it moves the head, the hands
-  and every button in turn, takes a picture after each, and writes down what the game did, so a session can learn
-  and test a VR game with nobody wearing anything (`/lanes:bench`). Setup offers it with webhead2oo9's simulator
-  build. The idea came from a description shared on Discord.
-- **Hand Freeze for VR (0.64.0).** `/lanes:setup` can install our small
-  [Hand Freeze](https://github.com/TefMeister/hand-freeze-vr) app from GitHub: it holds both VR controllers
-  still in any OpenXR game, so hand and weapon poses can be tuned with the mouse while the controllers lie
-  on the desk. `/lanes:update` says when a newer Hand Freeze is out.
 - **Conversations stay short, and nothing is lost (0.63.0).** Claude Code summarises a
   conversation by itself when it is nearly full. Lanes can make that happen earlier (40% full by
   default), which keeps each session sharper and cheaper. Just before every summary it saves a
@@ -176,10 +159,29 @@ to learn any of it up front: the sessions follow it for you, and you can switch 
   (so you can still see the Claude Code window), and you are asked to confirm it once; every blur and
   screen effect (blood on the screen, the red low-health tint, shake, grain) is switched off in VR, so
   there is only gameplay; any VR mod someone else is already building is looked for before starting.
-- **Game recording.** Test runs can be recorded with OBS automatically: only the game's own window
-  and sound, never your desktop.
+- **Game recording (optional).** Test runs can be recorded with OBS: only the game's own window and
+  sound, never your desktop. Since 0.76.0 it can instead run only beside the jitter recorder, so every
+  jitter report comes with its jittery seconds cut out of the recording frame by frame, each picture
+  marked as standing still or jumping on screen. Offered once.
 - **Ideas, from anywhere.** Jot an idea into your ideas repo, even from your phone's browser. The next
   session files it under the right game, and that game's next session lists it for you to pick from.
+
+### Testing VR with nobody in the headset
+
+- **A pretend headset (0.73.0).** `/lanes:setup` and the next `/lanes:update` offer the
+  [OpenXR Simulator](https://github.com/elliotttate/OpenXR-Simulator) by elliotttate (or
+  [webhead2oo9's fork](https://github.com/webhead2oo9/OpenXR-Simulator), which also runs 32-bit games): it shows a VR
+  game's two eyes in a window on the desktop, so VR work can be checked with no headset plugged in. Downloading it
+  never switches it on.
+- **VR Bench, a robot player for VR games (0.74.0).** With the pretend headset as its eyes, our
+  [VR Bench](https://github.com/TefMeister/vr-bench) plays both controllers by itself: it moves the head, the hands
+  and every button in turn, takes a picture after each, and writes down what the game did, so a session can learn
+  and test a VR game with nobody wearing anything (`/lanes:bench`). Setup offers it with webhead2oo9's simulator
+  build. The idea came from a description shared on Discord.
+- **Hand Freeze for VR (0.64.0).** `/lanes:setup` can install our small
+  [Hand Freeze](https://github.com/TefMeister/hand-freeze-vr) app from GitHub: it holds both VR controllers
+  still in any OpenXR game, so hand and weapon poses can be tuned with the mouse while the controllers lie
+  on the desk. `/lanes:update` says when a newer Hand Freeze is out.
 
 ### Several sessions at once, safely
 
@@ -209,7 +211,7 @@ official links:
 | Reverse engineering | x64dbg with its Claude connection and ready-made workflows, Ghidrust (reads and decompiles a game's .exe without running it) |
 | Driving games unattended | a virtual gamepad driver (ViGEmBus) and its Python side |
 | 3D | Blender and Blender MCP, so Claude can build models with you, live, in your Blender |
-| VR | SteamVR, Virtual Desktop (for Quest headsets) |
+| VR | SteamVR, Virtual Desktop (for Quest headsets), the OpenXR Simulator (a pretend headset), VR Bench (a robot player) and Hand Freeze |
 | Videos | DaVinci Resolve (free) to edit, FFmpeg so Claude can cut and convert recordings |
 
 Per-game frameworks (REFramework, UEVR and similar) are only suggested when a game needs one.
@@ -270,17 +272,18 @@ tuning numbers and more styles live in [terminal-themes](https://github.com/TefM
 **Check it first.** Don't take our word that it is safe. [`AUDIT.md`](AUDIT.md) is a request you
 paste into your own Claude Code, which then reviews every file before you install.
 
-## Early version
+## Still growing
 
 The way of working behind it has been in development since early August 2026. It became this
-plugin on 2026-09-09, and has been in daily use on two PCs since then. It was built for turning flat games into VR, so many
-examples and optional tools lean that way. The lanes themselves work for any project. Expect changes: `/lanes:update` tells you
-what is new and never installs without asking. The full manual is in
+plugin on 2026-09-09 and has been in daily use on two PCs since then, with a new version most days
+(the newest are the robot VR player and jitter reports cut frame by frame). It was built for turning
+flat games into VR, so many examples and optional tools lean that way. The lanes themselves work for
+any project. Expect changes: `/lanes:update` tells you what is new and never installs without asking. The full manual is in
 [`plugins/lanes/README.md`](plugins/lanes/README.md).
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.76.0`, early public release |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.76.0`, public, in daily use |
 
 ## Modding games?
 
