@@ -49,6 +49,76 @@ class FakeProbes:
     def games(self): return ["Hard Reset Redux"]
 
 
+import vb_learn  # noqa: E402
+
+
+class FakeTools:
+    """everything the learning hour does to the outside world, answered from memory; `calls` keeps the order"""
+
+    def __init__(self, sim=True, jump_after=None, crash_in=None, hands=True, pictures_change=True):
+        self.sim, self.jump_after, self.crash_in, self.hands, self.change = sim, jump_after, crash_in, hands, pictures_change
+        self.t, self.calls, self.log, self.pic_n, self.pressed = 0.0, [], [], 0, False
+        self.hand_x = self.hand_y = 0.0
+
+    def now(self):
+        return self.t
+
+    def sleep(self, s):
+        self.t += s
+
+    def sim_installed(self): return self.sim
+    def resolve_exe(self, game): return "C:/Games/fake.exe"
+    def known(self): return "# fake\n\n## Controls\n\n- 2026-10-17 music volume: Options > Audio\n"
+    def known_add(self, section, text): self.calls.append(f"known {section}")
+    def claim(self, take): self.calls.append(f"claim {take}")
+    def profile(self): self.calls.append("profile")
+    def layer_start(self, exe): self.calls.append("layer_start")
+    def layer_stop(self): self.calls.append("layer_stop")
+    def logs(self): return []
+    def find_route(self, start, end): return f"routes/{start}_to_{end}.json"
+
+    def mom(self, args):
+        self.calls.append("mom " + args[0])
+        if self.jump_after == "menus" and args[0] == "run" and "keybindings" in args[1]:
+            self.t += 61 * 60   # the hour runs out while the menus stage is busy
+        return {"code": 0, "events": []}
+
+    def _pic(self, name):
+        self.pic_n += 1
+        return f"{name}-{self.pic_n if self.change else 0}.png"
+
+    def flat_shot(self, name):
+        if self.crash_in == "flat":
+            raise RuntimeError("the window vanished")
+        return self._pic(name)
+
+    def turn(self, px, name): return self._pic(name)
+    def probe(self, key, seconds): return True
+    def picture_diff(self, a, b): return 0.0 if a.split("-")[-1] == b.split("-")[-1] else 10.0
+    def head(self, *pose): self.calls.append("head")
+    def sim_shot(self, name): return self._pic(name)
+
+    def send(self, inp):
+        d = inp.as_dict()
+        left = d["vr"].get("left", {})
+        if "grip_pose" in left:
+            self.hand_x, self.hand_y = left["grip_pose"]["p"][0], left["grip_pose"]["p"][1]
+        held = any(v for h in d["vr"].values() for k, v in h.items() if not k.endswith("_pose"))
+        if held:
+            self.log.append(f"pressed {d['vr']}")   # our mods log what they were sent
+
+    def hand_centroid(self, png):
+        # the picture's y grows downwards, so a higher hand has a smaller y
+        return (640 + self.hand_x * 1000, 400 - self.hand_y * 1000) if self.hands else None
+
+    def game_log_tail(self, n): return self.log[-n:]
+
+
+def learn(tools, stages=None):
+    run = vb_run.Run.new("fake-game")
+    return vb_learn.Learn("fake-game", 60, stages, "full", run, tools).run_all()
+
+
 HAND_FREEZE = r"C:\Somewhere\HandFreeze\hand_freeze_layer.json"
 
 
@@ -137,14 +207,58 @@ class VrBenchTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("layer", r.stdout.lower())
 
+    # ---- Task 6: the learning hour, with fake tools ----
+    def test_preflight_refuses_without_simulator(self):
+        tools = FakeTools(sim=False)
+        res = learn(tools)
+        self.assertTrue(res["reason"].startswith("simulator"), res["reason"])
+        with open(os.path.join(res["folder"], "run.json")) as f:
+            self.assertTrue(json.load(f)["reason"].startswith("simulator"))
+
+    def test_stages_run_in_order_and_record(self):
+        res = learn(FakeTools())
+        with open(os.path.join(res["folder"], "run.json")) as f:
+            stages = json.load(f)["stages"]
+        self.assertEqual([s["name"] for s in stages], vb_learn.STAGES)
+        self.assertEqual({s["verdict"] for s in stages}, {"PASS"}, stages)
+
+    def test_time_limit_stops_early(self):
+        tools = FakeTools(jump_after="menus")
+        res = learn(tools)
+        self.assertEqual(res["reason"], "time")
+        self.assertEqual(res["stages"][-1]["name"], "menus")
+        self.assertTrue(os.path.isfile(os.path.join(res["folder"], "debrief.md")))
+
+    def test_claim_and_layer_released_on_crash(self):
+        tools = FakeTools(crash_in="flat")
+        res = learn(tools)
+        self.assertTrue(res["reason"].startswith("error: "), res["reason"])
+        self.assertEqual(tools.calls[-2:], ["layer_stop", "claim False"])
+
+    def test_only_requested_stages(self):
+        res = learn(FakeTools(), stages=["vr_head"])
+        self.assertEqual([s["name"] for s in res["stages"]], ["preflight", "vr_head", "report"])
+
+    def test_hands_unknown_without_centroid(self):
+        res = learn(FakeTools(hands=False), stages=["vr_hands"])
+        hands = [s for s in res["stages"] if s["name"] == "vr_hands"][0]
+        self.assertEqual(hands["result"], "UNKNOWN")
+        self.assertIn("no hands drawn", hands["how"])
+
+    def test_buttons_pass_on_log_line(self):
+        res = learn(FakeTools(pictures_change=False), stages=["vr_buttons"])
+        buttons = [s for s in res["stages"] if s["name"] == "vr_buttons"][0]
+        self.assertEqual(buttons["result"], "PASS", buttons["how"])
+        self.assertIn("right trigger: the game logged something", buttons["how"])
+
     # ---- Task 5: the PC profile ----
     DEV_GPUS = ["NVIDIA GeForce GTX 1660 SUPER", "Intel(R) HD Graphics 4000"]
 
     def test_tier_dev_pc_is_light(self):
         self.assertEqual(vb_profile.tier(self.DEV_GPUS, 16), "light")
 
-    def test_tier_rtx_32gb_is_full(self):
-        self.assertEqual(vb_profile.tier(["NVIDIA GeForce RTX 4080"], 32), "full")
+    def test_tier_fast_card_32gb_is_full(self):
+        self.assertEqual(vb_profile.tier(["AMD Radeon RX 7900 XTX"], 32), "full")
 
     def test_tier_conf_override(self):
         prof = vb_profile.collect({"bench_tier": "full"}, FakeProbes(self.DEV_GPUS, 16))

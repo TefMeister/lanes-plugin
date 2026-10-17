@@ -18,7 +18,9 @@ import time
 
 import vb_settings as S
 
-GPU_FULL_RE = re.compile(r"RTX|GTX 16[7-9]0|GTX 2|RX 6|RX 7|Arc", re.I)   # GTX 1660 (the dev PC) stays light
+# full: NVIDIA GeForce 2000-series and newer, AMD Radeon RX 6000/7000/9000, Intel Arc; a GTX 1660 (the dev PC) and
+# older stay light. Matched by model number, so a card name never has to be spelled out here.
+GPU_FULL_RE = re.compile(r"GeForce \w+ [2-9]\d{3}\b|Radeon RX [679]\d{3}\b|\bArc\b", re.I)
 RAM_FULL_GB = 24
 RUNTIME_KEYS = {64: r"SOFTWARE\Khronos\OpenXR\1", 32: r"SOFTWARE\WOW6432Node\Khronos\OpenXR\1"}
 PROBE_TIMEOUT_S = 60
