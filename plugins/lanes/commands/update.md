@@ -73,11 +73,21 @@ description: (Update) Checks GitHub for a newer version of the lanes plugin, say
    `python "${CLAUDE_PLUGIN_ROOT}/tools/openxr-sim.py" status --json`.
    - `installed` false and `declined` false: offer it in one plain sentence - a pretend headset that shows a VR game's
      two eyes in a window on the desktop, so VR work can be checked with no headset plugged in, by elliotttate - and
-     ask (AskUserQuestion: "Download it" / "Download the fork for 32-bit games too" / "No thanks"). The first runs
-     `openxr-sim.py install`, the second `openxr-sim.py install --fork`, the third `openxr-sim.py decline` so it is
-     not offered again. Say that it is NOT switched on by downloading it.
+     ask with the three choices of `/lanes:setup` §3.6 (0.74.0), plus "No thanks":
+     "OpenXR Simulator (webhead2oo9's build) + VR Bench" (Recommended) runs `openxr-sim.py install --fork --bench`;
+     "OpenXR Simulator (webhead2oo9's build) only" runs `openxr-sim.py install --fork`;
+     "OpenXR Simulator (elliotttate's original)" runs `openxr-sim.py install`;
+     "No thanks" runs `openxr-sim.py decline` so it is not offered again. With VR Bench chosen, ask setup's headset
+     question once if lanes.conf has no `bench_headset` yet. Say that nothing is switched on by downloading.
    - `newer` true: one plain line that a newer simulator is out, and ask ("Update it" / "Not now"); yes runs
      `openxr-sim.py install` (add `--fork` when `source` is `fork`). It refuses while a game has it loaded.
+   - Otherwise, or if `error` is set: say nothing.
+
+8. **VR Bench, every run** (0.74.0), after step 7:
+   `python "${CLAUDE_PLUGIN_ROOT}/tools/vrbench/vrbench.py" status --json`.
+   - `installed` false: say nothing (step 7 and `/lanes:setup` offer it; do not nag).
+   - `newer` true: one plain line that a newer VR Bench is out, and ask ("Update VR Bench" / "Not now"); yes runs
+     `vrbench.py install`. It refuses while a run is on; if it says so, leave it for the next update.
    - Otherwise, or if `error` is set: say nothing.
 
 Never update without a yes in this session. A yes from an earlier session does not count.
