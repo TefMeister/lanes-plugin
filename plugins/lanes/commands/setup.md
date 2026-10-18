@@ -156,16 +156,27 @@ account, the people whose tools, mods or findings your work uses, even one usefu
 No GitHub account or no `gh`: skip it and record `offers.py made thanks no-github`. What sessions do with it:
 `docs/PROTOCOL.md` section 25.
 
-## 0.13 Record the game while BeG0nE logs? (0.76.0, VR modders, offered once)
+## 0.13 BeG0nE: with automatic recordings (recommended), or on its own? (0.80.0, VR modders, offered once)
 
-Only if `python "${CLAUDE_PLUGIN_ROOT}/tools/offers.py" should begone-record` says `offer`, and only for someone
-who makes VR mods (BeG0nE is on: `begone =` in lanes.conf). Say in plain words: whenever the jitter checker logs a
-headset session, the game's own window (and the pretend headset's view) can be recorded at the same time, so
-every jittery second it finds can also be looked at picture by picture; only the game's windows are recorded,
-never the screen, and the files stay on this PC (the recordings folder). It needs OBS, FFmpeg and Python's
-`obsws-python` (and Pillow + numpy for the held/jumped count); offer whichever is missing first. Ask **one
-question**: *"Record the game by itself whenever the jitter checker is logging, so each jitter can be seen frame by
-frame?"* ("Yes" / "No thanks"). Yes writes `begone_record = yes` to lanes.conf; no writes `begone_record = no`.
+Ask this **when the person sets up the BeG0nE tools** (the VR group's BeG0nE row, or `begone =` already in lanes.conf),
+and only if `python "${CLAUDE_PLUGIN_ROOT}/tools/offers.py" should begone-record` says `offer`. The maintainer
+(2026-10-19): *"the begone toolset can either be set up with the added recordings feature that is recommended or just
+on it's own"*. Say in plain words: BeG0nE logs every headset or pretend-headset session of a mod wired to it and
+files a short report; with recordings on, the game's own window (and the pretend headset's view) is filmed for the
+whole session by itself, so every fault it finds can be looked at picture by picture. Only the game's windows are
+recorded, never the screen, and the files stay on this PC. Ask **one question**: *"Set up BeG0nE with automatic
+recordings (recommended), or BeG0nE on its own?"* ("With recordings (Recommended)" / "BeG0nE on its own").
+
+- **On its own:** write `begone_record = no`. Done.
+- **With recordings:** ask **where the recordings go** (one question, these options):
+  1. *"A Lanes recordings folder in my Videos folder (Recommended)"*: create `%USERPROFILE%\Videos\Lanes recordings`
+     and write `recordings = <that folder>`.
+  2. *"My transfer folder"*: only when `transfer =` is set (section 0.9); recordings then go to its `Videos` folder,
+     so write nothing for `recordings`.
+  3. *"Another folder I choose"*: ask for it, create it if missing, write `recordings = <folder>`.
+  Then write `begone_record = yes`, and offer whatever of OBS (with the Source Record add-on and its WebSocket
+  server on), FFmpeg and Python's `obsws-python`, Pillow and numpy is missing.
+
 Either way run `offers.py made begone-record <answer>`. What it does: `docs/PROTOCOL.md` section 26.
 
 ## 0.14 The superpowers skills (0.77.0, everyone, offered once)

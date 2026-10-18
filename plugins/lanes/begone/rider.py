@@ -16,6 +16,11 @@ starts tools/obs-rec.py on that game's window (and the OpenXR Simulator's previe
 unless something else is recording already. When the log ends it stops the recording first, then files, so the
 report is cut at its jittery seconds straight away (camera-jitter/frames.py). Only the game's own windows are
 recorded, never the screen.
+0.80.0 (the maintainer: "please have BeG0nE tools automatically log everything and automatically start video
+recording whenever we actually launch games in either openxr simulator or in vr"): ANY tool's log starts the
+recording, not only the jitter log, and one recording covers the whole session: it stops when no tool's log is
+growing any more. A log whose header names no process (the Lua recorders write pid=lua) is matched to the windowed
+program that has an OpenXR / OpenVR dll loaded.
 
 HOW IT KNOWS A VR SESSION IS ON, three ways (the 'never one method' rule): a recording growing in a tool's log
 folder (the only one that produces data); SteamVR running; a windowed process with an OpenXR/OpenVR dll loaded.
@@ -178,11 +183,14 @@ def rec(*args):
     return r.returncode == 0, (out[-1] if out else "")
 
 
-def start_recording(head, game):
+def start_recording(head, game, vr_exes=()):
     """True when the rider started a recording for this session (and so must stop it)"""
     if not record_wanted() or recording_now():
         return False
-    exe = exe_of(head.get("pid", 0))
+    pid = head.get("pid", "")
+    exe = exe_of(pid) if str(pid).isdigit() else None
+    if not exe and vr_exes:
+        exe = vr_exes[0]          # the Lua recorders write pid=lua: the windowed program with a VR dll loaded
     if not exe:
         say("not recording: could not tell which program is logging")
         return False
@@ -216,35 +224,38 @@ def run():
     with open(PID_FILE, "w") as f:
         f.write(str(os.getpid()))
     say("rider up: " + ", ".join(t["name"] for t in bc.tools() if t.get("log_dir")))
-    last_proc_look, steam, loaded, announced, ours = 0, False, [], set(), set()
+    last_proc_look, steam, loaded, announced = 0, False, [], set()
+    rec_on = False                  # the rider started the recording that is running now (one per session)
     while True:
         now = time.time()
         if now - last_proc_look >= PROCESS_LOOK_EVERY_S:
             steam, loaded = vr_processes()
             last_proc_look = now
-        live = []
+        live, ended = [], []
         for t, p, size, mtime in recordings():
             head = log_head(p)
             game = head.get("game", "?")
             if p not in announced and size >= MIN_LOG_BYTES:
                 say(f"VR SESSION: {game} is recording for {t['name']}"); announced.add(p)
-                if t.get("short") == "jitter" and start_recording(head, game):
-                    ours.add(p)
+                if not rec_on and start_recording(head, game, loaded):   # 0.80.0: any tool's log starts it
+                    rec_on = True
             if size < MIN_LOG_BYTES and now - mtime > SETTLE_S:
                 os.remove(p); continue          # never got going
             if log_ended(p) or now - mtime > SETTLE_S:
-                if p in ours:
-                    stop_recording(); ours.discard(p)   # stopped first, so the filing can cut it
-                try:
-                    say(f"FILED {t['name']}: {file_one(t, p, game)}")
-                except Exception as e:  # one bad recording must not stop the rider
-                    say(f"could not file {os.path.basename(p)}: {e}")
-                done = os.path.join(os.path.dirname(p), "done")
-                os.makedirs(done, exist_ok=True)
-                shutil.move(p, os.path.join(done, os.path.basename(p)))
-                announced.discard(p)
+                ended.append((t, p, game))
             else:
                 live.append(f"{game} ({t['short']})")
+        if rec_on and not live:
+            stop_recording(); rec_on = False    # the session is over: stopped first, so the filing can cut it
+        for t, p, game in ended:
+            try:
+                say(f"FILED {t['name']}: {file_one(t, p, game)}")
+            except Exception as e:  # one bad recording must not stop the rider
+                say(f"could not file {os.path.basename(p)}: {e}")
+            done = os.path.join(os.path.dirname(p), "done")
+            os.makedirs(done, exist_ok=True)
+            shutil.move(p, os.path.join(done, os.path.basename(p)))
+            announced.discard(p)
         write_state(vr=bool(live or steam or loaded), recording=live, steamvr=steam, vr_dll_in=loaded,
                     code=HERE)
         time.sleep(POLL_S)
