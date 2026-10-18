@@ -13,6 +13,8 @@
 # display_name = User
 
 # WHERE THE BOARD IS.
+# No board yet? tools/estate.py makes it, and the other repos below, and writes these lines for you
+# (docs/NEW-ACCOUNT.md, 0.78.0).
 # The board is an ordinary git repo with a status/ folder holding one
 # <project>.md per project. Make it PRIVATE: it is your working notes.
 # Overridden by $LANES_BOARD, and by a path passed on the command line.

@@ -121,6 +121,10 @@ to learn any of it up front: the sessions follow it for you, and you can switch 
 - **Your PCs know what the other has (0.65.0).** Each PC keeps a small note of which of our apps
   it has, and every session start says when another PC has one this PC does not. When you say a job is
   done on the other PC, the session that hears it clears that PC's reminder, quoting you.
+- **A whole GitHub setup, step by step (new in 0.78.0).** A guide takes you from no GitHub account to the
+  full working setup, and Claude builds the rest: the private work board, ideas, hand-over, build and
+  session-log repos, a copy for each kind of session, and a repo per project with its folders and inboxes.
+  It shows the plan first, never overwrites anything, and makes nothing public without asking.
 - **Offers are made once, and thanks on GitHub (0.75.0).** Everything Lanes offers to add is asked once, at the
   first setup or on the update that brings it, and never again whatever the answer. One new offer: sessions can
   star and follow, on your GitHub, the people whose tools, mods or findings your work uses.
@@ -284,7 +288,7 @@ any project. Expect changes: `/lanes:update` tells you what is new and never ins
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.77.1`, public, in daily use |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.78.0`, public, in daily use |
 
 ## Modding games?
 

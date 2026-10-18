@@ -319,6 +319,10 @@ rg_bash 'gh api user/repos -f name=x'
 [ "$RC" = "2" ] && ok "an API repo create without private=true is refused" || fail "API create should be refused (rc=$RC)"
 rg_bash 'gh api user/repos -f name=x -F private=true'
 [ "$RC" = "0" ] && [ -z "$OUT" ] && ok "an API create with private=true passes" || fail "API private create should pass (rc=$RC)"
+rg_bash 'python "$P/tools/estate.py" project my-game --public'
+assert_contains '"ask"' "$OUT" "a public project from estate.py asks"
+rg_bash 'python "$P/tools/estate.py" project my-game'
+[ "$RC" = "0" ] && [ -z "$OUT" ] && ok "a private project from estate.py passes" || fail "estate.py private project should pass (rc=$RC)"
 rg_bash 'gh repo view someone/x; git push'
 [ "$RC" = "0" ] && [ -z "$OUT" ] && ok "other gh commands pass" || fail "other gh commands should pass (rc=$RC)"
 run_hook repo-guard.py 'this is not json'

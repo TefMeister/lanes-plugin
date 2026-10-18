@@ -131,6 +131,10 @@ folder holding one `<project>.md` per project — your working notes, in a shape
 cp lanes.conf.example ~/.claude/lanes.conf   # then edit `board = ...`
 ```
 
+**No board yet, or a brand-new GitHub account?** `docs/NEW-ACCOUNT.md` walks you through it step by step,
+and `tools/estate.py make --root <folder>` builds the board and the other private repos, their copies for
+each kind of session, and the config lines for you (`/lanes:setup` offers it).
+
 `$LANES_BOARD` overrides the config file, and a path passed on the command line overrides both.
 There are deliberately **no built-in path guesses**: a guess that finds a stale clone reports your
 disk's past instead of the project's present, which is the one failure the board exists to avoid.

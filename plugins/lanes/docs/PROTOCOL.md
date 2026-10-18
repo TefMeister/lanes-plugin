@@ -1327,3 +1327,23 @@ recording and BeG0nE tools working together ... this is one of these things that
   picture every few seconds can be the recorder repeating a frame; a HELD picture followed by a JUMP is the game. The
   two clocks agree to about one frame. Only the game's own windows are recorded, never the screen; the frames stay
   off GitHub.
+
+## 27. A new GitHub account, set up the Lanes way (0.78.0, 2026-10-18)
+
+The maintainer asked whether Lanes offers to set up a dedicated GitHub account "with all the systems we have going
+on, the folders, guards and countless other mechanics that make it all work"; it did not, and they said "add it",
+then "it has to come with a step by step instructions on how to do it all".
+
+- **The person's hands:** making the account, installing Git and gh, `gh auth login`. `docs/NEW-ACCOUNT.md` is the
+  step-by-step guide; `/lanes:setup` §0.6.5 offers it once to anyone with no board yet.
+- **`tools/estate.py make --root <folder>`** makes the private base repos from the plugin's templates (`board`,
+  `ideas`, `staging`, `builds`, `session-logs`; `--skip` and `--name` change the set), clones them into the root,
+  makes the four lane roots beside it and fills them with `root-sync.sh --fix`, and writes `root`, `board`,
+  `ideas`, `builds` and `session_logs` into lanes.conf. `plan` shows the same without doing it.
+- **`estate.py project <name>`** makes a project repo with `dev-archive/`, `notes/`, `engine-research/` (dossier +
+  inbox) and `external-research/` (index + inbox), its board page with a first `[PD]` row, and its copy in every
+  lane root. Private unless `--public`, which the repo guard asks about first (the 0.58.0 rule, `hooks/repo-guard.py`).
+- **Never destructive.** A clone already there, or a repo already on GitHub, is used as it is (a second PC just
+  clones); a folder that is not a clone stops it; a lanes.conf key already pointing elsewhere is left alone and
+  reported. It never deletes and never makes anything public on its own. Tested by `tools/tests/estate-fixture.sh`
+  against a stand-in GitHub.

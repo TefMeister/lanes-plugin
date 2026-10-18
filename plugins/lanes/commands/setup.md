@@ -18,7 +18,7 @@ first, in full, every run. Never install from memory.
   That covers a browser sign-in, a store purchase, a Windows approval, and clicking inside Blender.
   For commands the user can type, suggest the `! <command>` form so the output lands in the session.
 - **Every offer is made once** (0.75.0, the maintainer: "any offer has to be one time only"). Before an offer
-  that `tools/offers.py list` names (thanks, shortcut, openxr-sim, begone-record, superpowers), run `offers.py should <name>`; exit 3 means it
+  that `tools/offers.py list` names (thanks, shortcut, openxr-sim, begone-record, superpowers, estate), run `offers.py should <name>`; exit 3 means it
   was made already on this PC, so skip it without a word. After asking, whatever the answer, run
   `offers.py made <name> <yes|no>`. The person can still ask for any of them by name later.
 - **Never touch a game folder.** Per-game frameworks (catalog section 7) are listed for reference
@@ -60,6 +60,24 @@ and **"Choose a name"** (they type it through "Other").
   name another PC already has, and the computer's real name; if refused, say why and ask again.
 - ⚠️ **Never suggest the computer's real name.**
 - Nobody set one? The first claim or reminder takes the next free PC number by itself.
+
+## 0.6.5 A whole GitHub setup in one go? (0.78.0, only if no board is set yet, offered once)
+
+Only if `lanes.conf` has no `board =` yet and `python "${CLAUDE_PLUGIN_ROOT}/tools/offers.py" should estate` says
+`offer`. Say in plain words: Lanes works best with a few private repos (the work board, ideas, hand-overs between
+PCs, saved builds, session write-ups), a copy of each for every kind of session, and a repo per project with its
+folders and inboxes ready; Claude can build all of it on a GitHub account, new or one they already have, and shows
+the plan before making anything. Ask **one question**: *"Set up your GitHub the Lanes way, with the work board,
+the ideas repo and the rest, all private?"* Options: **"Yes"** and **"Not now"**. Either way run
+`offers.py made estate <yes|no>`.
+- **Yes:** follow `${CLAUDE_PLUGIN_ROOT}/docs/NEW-ACCOUNT.md`. Steps 1 to 3 are the person's own hands (making
+  the account, installing Git and gh, `! gh auth login`): hand them over as one plain block, skipping what
+  `python "${CLAUDE_PLUGIN_ROOT}/tools/estate.py" check` shows is done. Ask for the folder (step 4), run
+  `estate.py plan --root <folder>`, show it in plain words, and on a yes run `estate.py make --root <folder>`
+  (with `--skip`/`--name` if they asked). Name each repo before it is made; all are private. A first project:
+  `estate.py project <name>`, private unless they say public (the guard asks again).
+- **Not now:** say they can ask for it any time ("set up my GitHub the Lanes way").
+After a yes, 0.7 below is already done when `builds =` is set: skip it.
 
 ## 0.7 Keep every build? (0.26.0, only if they mod or build something that gets installed)
 

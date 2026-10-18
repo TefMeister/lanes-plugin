@@ -11,6 +11,7 @@ WHAT IT DOES
   `gh repo create --public` / `--internal` .... the person is ASKED (permissionDecision "ask"), so a
                                                 public repo can never appear without them seeing it.
   `gh repo edit ... --visibility public` ...... asked, the same way.
+  `estate.py project <name> --public` ......... asked, the same way (0.78.0): the tool calls gh itself.
   `gh api` creating a repo (POST user/repos or orgs/<org>/repos) without private=true ... refused;
                                                 with private=false or visibility=public ... asked.
   Anything else ............................... passes, silent.
@@ -68,6 +69,9 @@ def refuse(reason):
 
 def judge(cmd):
     """Return ('ask'|'refuse'|None, reason) for one command line."""
+    for m in re.finditer(r"\bestate\.py['\"]?\s+project\b([^;&|\n]*)", cmd):
+        if re.search(r"--public\b", m.group(1)):
+            return "ask", ASK_PUBLIC
     # Each `gh repo create` is judged with the text up to the next command separator.
     for m in re.finditer(r"\bgh(?:\.exe)?\s+repo\s+create\b([^;&|\n]*)", cmd):
         args = m.group(1)
@@ -98,7 +102,7 @@ def main():
     if data.get("tool_name") not in ("Bash", "PowerShell"):
         return
     cmd = (data.get("tool_input") or {}).get("command") or ""
-    if "gh" not in cmd or conf_says_public():
+    if ("gh" not in cmd and "estate.py" not in cmd) or conf_says_public():
         return
     verdict, reason = judge(cmd)
     if verdict == "ask":
