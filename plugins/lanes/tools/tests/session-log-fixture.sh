@@ -38,6 +38,7 @@ git -C "$T/logs" commit -q --allow-empty -m start && git -C "$T/logs" push -q -u
 echo "stray" > "$T/logs/not-mine.txt"
 printf 'session_logs = %s\nmachine_name = PC9\n' "$T/logs" > "$LANES_CONFIG"
 
+export LANES_SESSIONLOG_NOW=2026-10-01T12:34:00   # steps 2-3 share one pinned minute: a slow PC must not split them
 out=$(printf 'Did the shake test.\nUser: no shake.\n' | "$PY" "$TOOL" write "my game" "shake test" 2>&1)
 has "saved my-game/" "$out" "write: saved under the project's folder"
 has "pushed" "$out" "write: pushed to the clone's remote"
@@ -51,6 +52,7 @@ hasnt "not-mine.txt" "$remote" "a stray file in the clone was NOT pushed"
 # 3. same minute, same slug: never overwrite
 out=$(printf 'Second one.\n' | "$PY" "$TOOL" write "my game" "shake test" 2>&1)
 has "shake-test-2.md" "$out" "same minute: a second file, not an overwrite"
+unset LANES_SESSIONLOG_NOW
 
 # 4. list and search
 printf 'Other game, the hunch is gone.\n' | "$PY" "$TOOL" write other hunch >/dev/null 2>&1

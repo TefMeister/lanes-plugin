@@ -87,6 +87,13 @@ def logs_root():
     return os.path.expanduser(root)
 
 
+def clock():
+    """Now, or the fixed time a test pins with LANES_SESSIONLOG_NOW (ISO), so "two in one minute" is
+    tested on purpose instead of hoping a slow PC does not cross a minute between two writes (0.79.0)."""
+    pinned = os.environ.get("LANES_SESSIONLOG_NOW")
+    return datetime.datetime.fromisoformat(pinned) if pinned else datetime.datetime.now()
+
+
 def write(project, slug, body, important=False):
     root = logs_root()
     if not root:
@@ -94,7 +101,7 @@ def write(project, slug, body, important=False):
     if not body.strip():
         print("session-log: nothing on stdin, nothing written.")
         return 1
-    now = datetime.datetime.now()
+    now = clock()
     folder = os.path.join(root, clean(project))
     os.makedirs(folder, exist_ok=True)
     stem = f"{now:%Y-%m-%d_%H%M}_" + (IMPORTANT_TAG + "_" if important else "") + clean(slug)
