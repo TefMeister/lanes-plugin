@@ -27,6 +27,8 @@ KNOWN = {
     "openxr-sim": ("0.73.0", "the OpenXR Simulator, a pretend headset (with VR Bench since 0.74.0)"),
     "begone-record": ("0.76.0", "record the game window by itself whenever BeG0nE logs a headset session, so every "
                       "jitter can be seen frame by frame"),
+    "estate": ("0.78.0", "set up a new GitHub account the Lanes way: the board, ideas, staging, builds and session-logs "
+               "repos, a copy for each kind of session, and a repo per project with its folders (tools/estate.py)"),
     "superpowers": ("0.77.0", "the superpowers skills plugin (obra): ways of working Claude follows, such as planning before "
                     "building, debugging step by step and checking work before calling it done"),
 }
