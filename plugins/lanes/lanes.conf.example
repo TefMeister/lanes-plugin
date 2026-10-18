@@ -133,6 +133,13 @@ role = DEV
 # Documents\BeG0nE recordings. Overridden by $LANES_BEGONE.
 # begone = /path/to/your/BeG0nE-clone
 
+# BEG0NE RECORDINGS (0.76.0; one recording per session since 0.80.0). /lanes:setup asks once whether BeG0nE comes with
+# automatic recordings (recommended) or on its own, and where they go: a "Lanes recordings" folder in your Videos
+# folder, your transfer folder's Videos, or a folder you choose (`recordings =`). Unset, they go to the transfer
+# folder's Videos when `transfer =` is set, else Videos\Lanes recordings.
+# begone_record = yes
+# recordings = /path/to/your/recordings/folder
+
 # THE WEEKLY TOOL CHECK, /lanes:gu (0.67.0, PROTOCOL section 23). Each line may repeat.
 #   twin   = <master copy> | <second copy>   two copies of the same tool (file or folder) that must match
 #   watch  = <name> | <owner/repo>           someone else's tool on GitHub: say when a new release is out

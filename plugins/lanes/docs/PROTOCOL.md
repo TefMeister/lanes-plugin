@@ -1308,6 +1308,15 @@ The maintainer: *"are automated recordings and begone tools working in tandem, s
 you can also see the recording frame by frame where and how the jitter happened?"*, then *"please wire in the automated
 recording and BeG0nE tools working together ... this is one of these things that gives us best data early on"*.
 
+- **0.80.0: any tool's log starts it, one recording per session.** The maintainer: *"please have BeG0nE tools
+  automatically log everything and automatically start video recording whenever we actually launch games in either
+  openxr simulator or in vr"*. The rider now starts the recording when ANY tool's log starts growing (Ghost Hand as
+  well as the jitter log), keeps it running while any tool's log grows, and stops it when none does. A Lua recorder's
+  header says `pid=lua`; the recording then goes to the windowed program that has an OpenXR / OpenVR dll loaded. So a
+  mod wired to the recorders (§20: every VR mod) is recorded whenever it runs in the headset or the OpenXR Simulator.
+  **The headset picture:** REFramework games show both eyes side by side in their own window, which is what is
+  recorded. Jabbah's OpenXR OBS Mirror layer was considered and left out: it supports Direct3D 11 only, and the RE
+  games are Direct3D 12 (checked 2026-10-19).
 - **Switched on by `begone_record = yes`** (offered once, §25). The rider (begone/rider.py) starts `tools/obs-rec.py`
   on the game's window the moment a jitter log starts growing, unless something is recording already; obs-rec adds
   the OpenXR Simulator's preview by itself. When the log ends the rider stops the recording first, then files.
