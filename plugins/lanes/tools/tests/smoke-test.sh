@@ -757,6 +757,14 @@ else
   fail "offers-fixture.sh failed"
 fi
 
+echo "estate.py - a new GitHub account set up the Lanes way, private, never overwriting (0.78.0)"
+if out=$(bash "$HERE/estate-fixture.sh" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "estate-fixture.sh failed"
+fi
+
 echo "frames.py - a jitter log lined up with the recording of the same session, cut at its jittery seconds (0.76.0)"
 if out=$("$PY" "$HERE/frames_test.py" 2>&1); then
   ok "$(printf '%s\n' "$out" | tail -n 1)"
