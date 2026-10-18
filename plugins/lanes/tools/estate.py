@@ -36,6 +36,7 @@ PLUGIN = os.path.dirname(HERE)
 GH = os.environ.get("LANES_GH") or "gh"
 GH_TIMEOUT_S = 120        # one gh call; creating and pushing a small repo takes a few seconds
 GIT_TIMEOUT_S = 120
+SYNC_TIMEOUT_S = 600      # root-sync.sh copying every repo into four lane roots
 LANE_SUFFIXES = ("-pd", "-gr", "-sr", "-gs")   # the lane roots root-sync.sh finds by itself
 NAME_OK = re.compile(r"^[A-Za-z0-9._-]{1,100}$")
 
@@ -317,7 +318,7 @@ def sync_lane_roots(root):
     bash = shutil.which("bash")
     if not bash:
         return "the lane roots were made, but bash was not found to copy the repos into them: run tools/root-sync.sh --fix"
-    rc, out, err = run([bash, os.path.join(HERE, "root-sync.sh"), "--fix", root], timeout=600)
+    rc, out, err = run([bash, os.path.join(HERE, "root-sync.sh"), "--fix", root], timeout=SYNC_TIMEOUT_S)
     return "every lane root holds every repo" if rc == 0 else f"copying into the lane roots failed: {(err or out)[:300]}"
 
 
