@@ -148,10 +148,12 @@ never the computer's own name.
 
 **Optional tools.** The first session after installing offers a guided setup, `/lanes:setup`: for
 every tool the lanes have used (Git, Python and its packages, llvm-mingw, CMake, MSVC build tools,
-Rust, Lua, x64dbg and x64dbg-automate, Ghidrust, Blender + Blender MCP, a virtual gamepad driver,
-SteamVR and Virtual Desktop) it offers to install it, gives you the official download link to do it
-yourself, or skips it. The catalog with every link is `docs/TOOLS.md`; the offer is made once per
-machine, and `LANES_SETUP_NUDGE=0` turns it off.
+Rust, Lua, x64dbg and x64dbg-automate, Ghidrust, Steamless, a virtual gamepad driver, Blender + Blender
+MCP, CubeKit, GIMP + gimp-mcp, Real-ESRGAN, SteamVR, Virtual Desktop, the OpenXR Simulator, Hand Freeze,
+VR Bench, OBS with Source Record, FFmpeg, DaVinci Resolve and a synced transfer folder) it offers to
+install it, gives you the official download link to do it yourself, or skips it. The catalog,
+`docs/TOOLS.md`, says what each tool is for and who made it, and its section 9 describes everything
+Lanes does by itself. The offer is made once per machine, and `LANES_SETUP_NUDGE=0` turns it off.
 
 **Staying up to date.** At session start (at most every few hours) the plugin checks GitHub for a
 newer version. If there is one, the session tells you what changed, in plain words, and offers to

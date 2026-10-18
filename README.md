@@ -121,7 +121,11 @@ to learn any of it up front: the sessions follow it for you, and you can switch 
 - **Your PCs know what the other has (0.65.0).** Each PC keeps a small note of which of our apps
   it has, and every session start says when another PC has one this PC does not. When you say a job is
   done on the other PC, the session that hears it clears that PC's reminder, quoting you.
-- **A whole GitHub setup, step by step (new in 0.78.0).** A guide takes you from no GitHub account to the
+- **Every tool says what it is for and who made it (new in 0.79.0).** Setup's tool list names the maker of
+  each tool with a link, describes it in plain words, and now also offers Steamless, CubeKit, GIMP with its
+  Claude link, Real-ESRGAN and the OBS recording tools. It asks only about what fits your work, and a new
+  section describes everything Lanes does by itself.
+- **A whole GitHub setup, step by step (0.78.0).** A guide takes you from no GitHub account to the
   full working setup, and Claude builds the rest: the private work board, ideas, hand-over, build and
   session-log repos, a copy for each kind of session, and a repo per project with its folders and inboxes.
   It shows the plan first, never overwrites anything, and makes nothing public without asking.
@@ -251,7 +255,9 @@ can simply ask Claude Code in your own words. Some examples:
 ```
 
 Then run `/lanes:setup`. It asks what to call you and this PC, then offers the optional tools:
-debuggers, Blender, build tools, VR. Say no once and it never asks again.
+debuggers and decompilers, build tools, Blender and GIMP with their Claude links, VR helpers, and
+recording tools. Each one comes with what it is for and who made it (the full list, with links, is
+[`plugins/lanes/docs/TOOLS.md`](plugins/lanes/docs/TOOLS.md)). Say no once and it never asks again.
 
 **The Inspector (optional, new in 0.37.0).** Switch it on and every piece of code Claude writes is
 looked over: anything messy is noted for a decision before it is uploaded. It never edits code.
@@ -288,7 +294,7 @@ any project. Expect changes: `/lanes:update` tells you what is new and never ins
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.78.0`, public, in daily use |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.79.0`, public, in daily use |
 
 ## Modding games?
 

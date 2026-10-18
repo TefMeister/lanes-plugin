@@ -261,6 +261,80 @@ def openxr_sim():
         return False
 
 
+def conf_value(key):
+    """One value from lanes.conf, for tools that live wherever the person unzipped them (0.79.0)."""
+    files = ([os.environ["LANES_CONFIG"]] if os.environ.get("LANES_CONFIG") else
+             [os.path.join(HOME, ".claude", "lanes.conf"), os.path.join(HOME, ".config", "lanes", "lanes.conf")])
+    for c in files:
+        try:
+            for line in open(c, encoding="utf-8"):
+                k, _, v = line.partition("=")
+                if k.strip() == key and v.strip():
+                    return os.path.expandvars(v.split(" #")[0].strip().strip('"'))
+        except OSError:
+            pass
+    return None
+
+
+def in_conf_folder(key, exe):
+    folder = conf_value(key)
+    return bool(folder) and os.path.isfile(os.path.join(folder, exe))
+
+
+def gimp():
+    return any_glob(os.path.join(LOCALAPPDATA, "Programs", "GIMP 3", "bin", "gimp-3*.exe"),
+                    os.path.join(PROGRAMFILES, "GIMP 3", "bin", "gimp-3*.exe"))
+
+
+def gimp_mcp(mcp):
+    return bool({"gimp", "gimp-mcp"} & mcp) and any_glob(
+        os.path.join(APPDATA, "GIMP", "*", "plug-ins", "gimp-mcp-plugin", "gimp-mcp-plugin.py"))
+
+
+def realesrgan():
+    exe = "realesrgan-ncnn-vulkan.exe"
+    return (on_path("realesrgan-ncnn-vulkan") or in_conf_folder("realesrgan", exe)
+            or os.path.isfile(os.path.join(LOCALAPPDATA, "Programs", "Real-ESRGAN", exe)))
+
+
+def cubekit():
+    return any_glob(os.path.join(APPDATA, "Blender Foundation", "Blender", "*", "extensions", "*", "blender_cubekit"))
+
+
+def obs_dir():
+    return os.path.join(PROGRAMFILES, "obs-studio")
+
+
+def obs():
+    return os.path.isfile(os.path.join(obs_dir(), "bin", "64bit", "obs64.exe"))
+
+
+def source_record():
+    progdata = os.environ.get("ProgramData", r"C:\ProgramData")
+    return (os.path.isdir(os.path.join(progdata, "obs-studio", "plugins", "source-record"))
+            or os.path.isfile(os.path.join(obs_dir(), "obs-plugins", "64bit", "source-record.dll")))
+
+
+# Our own apps with no download yet: setup names them as coming, and offers them once GitHub has a release.
+UNRELEASED_CHECK = {"windowview": "TefMeister/window-view-vr", "handposer": "TefMeister/hand-poser-vr"}
+RELEASE_TIMEOUT_S = 5
+
+
+def has_release(repo):
+    """True / False when GitHub answers, None when it cannot be asked (offline): never guess "not released"."""
+    import urllib.error
+    import urllib.request
+    try:
+        urllib.request.urlopen(urllib.request.Request(f"https://api.github.com/repos/{repo}/releases/latest",
+                                                      headers={"User-Agent": "lanes-setup-scan"}),
+                               timeout=RELEASE_TIMEOUT_S).close()
+        return True
+    except urllib.error.HTTPError as e:
+        return False if e.code == 404 else None
+    except (OSError, ValueError):
+        return None
+
+
 def catalog():
     mcp = mcp_servers()
     plugins = claude_plugins()
@@ -283,10 +357,16 @@ def catalog():
          lambda: x64dbg_automate_plugin() and py_imports("x64dbg_automate") and "x64dbg" in mcp, False, False),
         ("re", "x64dbg-skills", "x64dbg-skills (Claude Code plugin)", lambda: "x64dbg-skills" in plugins, False, False),
         ("re", "ghidrust", "Ghidrust + MCP", lambda: "ghidrust" in mcp, False, False),
+        ("re", "steamless", "Steamless (unwraps a Steam game's .exe so it can be read)",
+         lambda: in_conf_folder("steamless", "Steamless.exe"), False, True),
         ("drive", "vigembus", "ViGEmBus (virtual gamepad driver)", lambda: service_running("ViGEmBus"), True, False),
         ("drive", "vgamepad", "vgamepad (Python)", lambda: py_imports("vgamepad"), False, False),
         ("3d", "blender", "Blender", blender, False, False),
         ("3d", "blender-mcp", "Blender MCP (server + add-on)", lambda: "blender" in mcp and blender_addon(), False, False),
+        ("3d", "cubekit", "CubeKit (Blender add-on: pixel-style cube models)", cubekit, False, False),
+        ("3d", "gimp", "GIMP (image editor)", gimp, False, False),
+        ("3d", "gimp-mcp", "gimp-mcp (lets Claude work inside GIMP)", lambda: gimp_mcp(mcp), False, False),
+        ("3d", "realesrgan", "Real-ESRGAN (enlarges small pictures 4x)", realesrgan, False, False),
         ("vr", "steamvr", "SteamVR", lambda: steam_app_installed(250820), False, True),
         ("vr", "virtualdesktop", "Virtual Desktop Streamer", lambda: process_running("VirtualDesktop.Streamer.exe")
          or os.path.isdir(os.path.join(PROGRAMFILES, "Virtual Desktop Streamer")), False, True),
@@ -296,14 +376,22 @@ def catalog():
         ("vr", "vrbench", "VR Bench (plays a VR game for you on the simulator; marks the spot you point at in the headset)",
          lambda: any(os.path.isfile(os.path.join(LOCALAPPDATA, "Programs", "VRBench", f))
                      for f in ("vrbench_layer.dll", "vrbench_layer32.dll")), False, False),
+        ("vr", "windowview", "Window View (desktop windows inside a VR game; untested)",
+         lambda: os.path.isdir(os.path.join(LOCALAPPDATA, "Programs", "WindowView")), False, False),
+        ("vr", "handposer", "Hand Poser (finger sliders for RE Engine games; untested)",
+         lambda: os.path.isfile(os.path.join(LOCALAPPDATA, "Programs", "HandPoser", "HandPoser.exe")), False, False),
         ("video", "resolve", "DaVinci Resolve (free)", resolve, False, True),
         ("video", "ffmpeg", "FFmpeg", ffmpeg, False, False),
+        ("video", "obs", "OBS Studio (records a window)", obs, True, False),
+        ("video", "source-record", "Source Record (OBS plugin: one window to its own file)", source_record, True, True),
+        ("video", "obsws", "obsws-python (lets a session start and stop OBS)", lambda: py_imports("obsws_python"), False, False),
+        ("video", "mega", "MEGA desktop app, or another sync app (transfer = set)", lambda: bool(conf_value("transfer")), False, True),
     ]
 
 
 GROUP_TITLES = {"core": "1. Core", "build": "2. Building mod code", "re": "3. Reverse engineering",
-                "drive": "4. Driving an app unattended", "3d": "5. 3D and assets", "vr": "6. VR",
-                "video": "8. Recording and editing videos"}
+                "drive": "4. Driving an app unattended", "3d": "5. 3D, images and assets", "vr": "6. VR",
+                "video": "8. Recording, editing videos and moving big files"}
 
 
 def load_state():
@@ -342,7 +430,7 @@ def main():
         except Exception:  # a broken check must read as "not found", never crash the scan
             present = False
         rows.append({"group": group, "id": tid, "name": name, "present": present,
-                     "needs_admin": admin, "manual_only": manual, "detail": None})
+                     "needs_admin": admin, "manual_only": manual, "detail": None, "released": None})
     for row in rows:
         if row["id"] == "blender-mcp" and row["present"]:
             # Say whether the link ANSWERS, so setup can skip the in-Blender steps for someone who
@@ -350,6 +438,11 @@ def main():
             row["detail"] = ("link live: Blender is open and answering" if blender_link_live()
                              else "installed, but not answering: open Blender, press N, "
                                   "MCP for Blender tab, Start MCP Server")
+        if row["id"] in UNRELEASED_CHECK and not row["present"]:
+            # Ours, but maybe not downloadable yet: setup must not offer an install that cannot happen.
+            row["released"] = has_release(UNRELEASED_CHECK[row["id"]])
+            if row["released"] is False:
+                row["detail"] = "not offered yet: no download until it has been tested"
     if args.json:
         print(json.dumps({"state_file": STATE_FILE, "state": load_state(), "tools": rows}, indent=2))
         return 0
@@ -359,7 +452,7 @@ def main():
             flags = (" (needs admin)" if r["needs_admin"] else "") + (" (manual download)" if r["manual_only"] else "")
             suffix = f" - {r['detail']}" if r["detail"] else ("" if r["present"] else flags)
             print(f"  {'[x]' if r['present'] else '[ ]'} {r['name']}{suffix}")
-    missing = sum(1 for r in rows if not r["present"])
+    missing = sum(1 for r in rows if not r["present"] and r["released"] is not False)
     print(f"\n{len(rows) - missing} of {len(rows)} present. Details and links: docs/TOOLS.md")
     return 0
 
