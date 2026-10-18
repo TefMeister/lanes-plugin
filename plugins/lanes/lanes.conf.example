@@ -165,3 +165,8 @@ role = DEV
 # bench_tier = light | full     (VR Bench's strength; chosen from the PC's specs when unset)
 # bench_footage_warn_gb = 20    (say so when VR Bench's footage passes this many GB; nothing is deleted on its own)
 # vrbench_exe.<project> = <path to the game's program>   (when its builds_app folder holds more than one)
+
+# Tools that are unzipped wherever you like instead of installed (0.79.0): the folder each one sits in, so
+# /lanes:setup sees it is there and sessions know where to find it.
+# steamless = <folder holding Steamless.exe>
+# realesrgan = <folder holding realesrgan-ncnn-vulkan.exe>   (default %LOCALAPPDATA%\Programs\Real-ESRGAN)
