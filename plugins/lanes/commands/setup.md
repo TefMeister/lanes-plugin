@@ -194,9 +194,9 @@ Do not ask again about a tool they skipped unless they ask.
 ## 2. One group at a time
 
 Go through the groups in the catalog's order: **core → building → reverse engineering → driving
-apps → 3D → VR → recording and editing videos**. For each group with anything missing, ask **one question** (AskUserQuestion,
-multi-select). List each missing tool as an option labelled with what it is for, then add these
-choices:
+apps → 3D and images → VR → recording, videos and moving big files**. For each group with anything missing, ask **one question** (AskUserQuestion,
+multi-select). List each missing tool as an option labelled with what it is for **and who made it**
+(the catalog names them; 0.79.0), then add these choices:
 
 - **"Install the ticked ones for me"**: you run the catalog's command for each, one at a time,
   showing the command first.
@@ -205,6 +205,21 @@ choices:
 - **"Skip this group"**.
 
 Present tools are not asked about. A group with nothing missing is one line: "Core: all present."
+
+**Rows the scan marks "not offered yet"** (one of ours with no download yet, such as Window View) are never
+asked about: say in one line, per group, that it is coming and what it will be for, and move on. Once
+GitHub has a release the scan stops marking it and it is offered like any other row.
+
+**Fit the offer to the person** (0.79.0). Ask about a row only when it fits what they do: the VR rows
+other than SteamVR and the simulator only for someone with a headset or making VR mods; Hand Poser and
+RE Mesh Editor only for RE Engine games; Steamless only for someone who reads game programs; GIMP,
+gimp-mcp and Real-ESRGAN only for someone who works on pictures or textures; the recording rows only for
+someone who records or uses BeG0nE. When unsure, ask the group's question once with a line saying what
+the group is for, and let "Skip this group" do the rest.
+
+**Section 9 of the catalog** (what Lanes itself brings) is not installed and not asked about. When the walk-through
+ends, offer it in one line: "Want a short tour of what Lanes does by itself?" and, on yes, give that section in
+plain words, a line per row.
 
 **After each install, run that tool's check** from the catalog, and say plainly whether it passed.
 A failed install is reported with its error. Do not quietly move on, and do not retry blindly.
