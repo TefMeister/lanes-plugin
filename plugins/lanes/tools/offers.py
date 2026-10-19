@@ -29,6 +29,8 @@ KNOWN = {
                       "jitter can be seen frame by frame"),
     "estate": ("0.78.0", "set up a new GitHub account the Lanes way: the board, ideas, staging, builds and session-logs "
                "repos, a copy for each kind of session, and a repo per project with its folders (tools/estate.py)"),
+    "unlock-all": ("0.81.0", "look for a developer mode, cheat or file that unlocks every weapon and item before modding "
+                   "a game, so nobody has to play through it first (tools/unlock.py)"),
     "superpowers": ("0.77.0", "the superpowers skills plugin (obra): ways of working Claude follows, such as planning before "
                     "building, debugging step by step and checking work before calling it done"),
 }

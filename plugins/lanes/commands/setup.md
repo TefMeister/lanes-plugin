@@ -156,6 +156,17 @@ account, the people whose tools, mods or findings your work uses, even one usefu
 No GitHub account or no `gh`: skip it and record `offers.py made thanks no-github`. What sessions do with it:
 `docs/PROTOCOL.md` section 25.
 
+## 0.12.5 Unlock everything before modding a game? (0.81.0, game modders, offered once)
+
+Only if `python "${CLAUDE_PLUGIN_ROOT}/tools/offers.py" should unlock-all` says `offer`, and only for people who mod
+games (skip it, recording `offers.py made unlock-all not-modding`, when the projects are not games). Say in plain
+words: many games keep weapons and items locked until you have played far enough, and a mod often has to be tested
+with all of them; most games have a way round it (a developer mode, a cheat or console command, a setting, a
+command-line switch, a bonus file). Ask **one question** (AskUserQuestion): *"Should sessions look for a way to
+unlock every weapon and item in each game, as one of the first things, before modding it?"* Options **"Yes"** and
+**"No thanks"**. Then `python "${CLAUDE_PLUGIN_ROOT}/tools/unlock.py" on` or `off`, and `offers.py made unlock-all
+yes` or `no`. What sessions do with it: `docs/PROTOCOL.md` section 28.
+
 ## 0.13 BeG0nE: with automatic recordings (recommended), or on its own? (0.80.0, VR modders, offered once)
 
 Ask this **when the person sets up the BeG0nE tools** (the VR group's BeG0nE row, or `begone =` already in lanes.conf),

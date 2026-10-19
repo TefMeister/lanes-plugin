@@ -173,6 +173,13 @@ nothing to do. Name anything it `SKIPPED` or `FAILED` in the write-up.
    what the game ships (options, config and ini files, engine console settings, command-line switches, shader
    and post-process names) and write down each effect, its switch, and how sure that is, so the live session only
    has to flip them and look. `docs/PROTOCOL.md` §19.
+5a2. **`unlock_all = yes` and no unlock route in a game project's notes yet? Finding it is a `/pd` job** (0.81.0).
+   Search the game's files, without running it, for a way to have every weapon and item from the start: a
+   developer or debug mode, cheat and console commands (and the item and weapon class names they take), a setting
+   in a config or ini file, a command-line switch, a registry value, a bonus or unlock file, the save format, or a
+   script hook (REFramework, UE4SS, a GZDoom launcher's `+give`). Write down each route found, how sure it is and
+   exactly what to type or set, so the first live session only has to use it. Found nothing: say so on the board, so
+   nobody searches twice. `docs/PROTOCOL.md` §28.
 5b. **⚠ Before you build a lever, say which step runs LAST.** Write one line: *this runs at step N
    of M, the thing I want to change is decided at step K, N is before/after K.* If your change lands
    after the value is decided, you are annotating it, not fixing it — move upstream. Build it so it
