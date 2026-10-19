@@ -121,7 +121,10 @@ to learn any of it up front: the sessions follow it for you, and you can switch 
 - **Your PCs know what the other has (0.65.0).** Each PC keeps a small note of which of our apps
   it has, and every session start says when another PC has one this PC does not. When you say a job is
   done on the other PC, the session that hears it clears that PC's reminder, quoting you.
-- **Every tool says what it is for and who made it (new in 0.80.0).** Setup's tool list names the maker of
+- **Unlock everything before modding a game (new in 0.81.0).** Offered once: sessions look for a developer mode,
+  cheat, setting or file that gives every weapon and item from the start, find it in the game's files with no game
+  running, and build it into the launcher on the first run, so nobody has to play through a game before modding it.
+- **Every tool says what it is for and who made it (0.80.0).** Setup's tool list names the maker of
   each tool with a link, describes it in plain words, and now also offers Steamless, CubeKit, GIMP with its
   Claude link, Real-ESRGAN and the OBS recording tools. It asks only about what fits your work, and a new
   section describes everything Lanes does by itself.
@@ -294,7 +297,7 @@ any project. Expect changes: `/lanes:update` tells you what is new and never ins
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.80.0`, public, in daily use |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.81.0`, public, in daily use |
 
 ## Modding games?
 

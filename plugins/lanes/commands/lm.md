@@ -274,6 +274,12 @@ done:
    where each lives and whether it held. One that cannot be switched off yet becomes its own board row.
    `docs/PROTOCOL.md` §19.
 
+5. **Unlock everything** (0.81.0, only with `unlock_all = yes` in lanes.conf): use the route `/pd` wrote down (or
+   look for one: developer mode, console or cheat command, setting, command line, unlock file), so every weapon and
+   item is there without playing through the game first. Check in the game that it held, and put the working route
+   into the project's launcher or settings so every later run starts unlocked. A route that needs the person (a
+   menu only they can reach, a code from the game's box) is asked for once. `docs/PROTOCOL.md` §28.
+
 Why the window comes before any real work:
 - **Measurements carry between machines only if the picture is the same shape.** Anything keyed to
   the aspect ratio (projection matrices, screenshot comparisons) is meaningless when copied from a
