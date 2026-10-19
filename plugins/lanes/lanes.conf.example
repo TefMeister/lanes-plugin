@@ -138,6 +138,10 @@ role = DEV
 # folder, your transfer folder's Videos, or a folder you choose (`recordings =`). Unset, they go to the transfer
 # folder's Videos when `transfer =` is set, else Videos\Lanes recordings.
 # begone_record = yes
+
+# Unlock everything before modding a game (0.81.0, tools/unlock.py, PROTOCOL section 28): the first sessions on a game
+# look for a developer mode, cheat, setting or file that gives every weapon and item from the start. Asked once.
+# unlock_all = yes
 # recordings = /path/to/your/recordings/folder
 
 # THE WEEKLY TOOL CHECK, /lanes:gu (0.67.0, PROTOCOL section 23). Each line may repeat.

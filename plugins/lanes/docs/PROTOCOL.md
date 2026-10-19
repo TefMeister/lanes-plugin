@@ -1356,3 +1356,23 @@ then "it has to come with a step by step instructions on how to do it all".
   clones); a folder that is not a clone stops it; a lanes.conf key already pointing elsewhere is left alone and
   reported. It never deletes and never makes anything public on its own. Tested by `tools/tests/estate-fixture.sh`
   against a stand-in GitHub.
+
+## 28. Unlock everything before modding a game (0.81.0, 2026-10-19)
+
+The maintainer: *"make it a rule to have all the weapons in the game from beginning, if it is so possible to enable
+in developer settings, to check for it as one of the first things before modding any game, to be able to unlock
+everything basically so i wouldn't be required to play through the game and unlock them first before modding."*
+Offered once (section 25, `unlock-all`); `unlock_all = yes` in lanes.conf switches it on (`tools/unlock.py`).
+
+When it is on, unlocking everything is one of the first jobs on a new game, right after the game runs windowed with
+its music muted and its screen effects off:
+- **`/pd`, no game running:** search the game's files for a route: a developer or debug mode, cheat and console
+  commands (with the exact weapon and item names they take), a config or ini setting, a command-line switch, a
+  registry value, a bonus or unlock file, the save format, or a script hook the mod already uses (REFramework Lua,
+  UE4SS, a GZDoom `+give` on the launcher). Write each route down with how sure it is (`[inferred-static]` until it
+  has worked in the game) and what exactly to type or set. "Nothing found" is written down too.
+- **`/lm`, the first runs:** use the route, check in the game that every weapon and item is there, and put it into
+  the project's launcher or settings so every later run starts that way. Give ammo by name rather than with a blanket
+  "give all" when the game stores switches as ammo or items (Ashes 2063 keeps "the lantern is lit" as one).
+- It is for testing the mod, never shipped: a release does not unlock anything for players.
+
