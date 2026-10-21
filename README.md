@@ -2,17 +2,7 @@
 
 ![lanes plugin banner](assets/banner/banner.png)
 
-**A Claude Code plugin for running several Claude sessions at once, across your projects, without
-them undoing each other's work.**
-
-## What it is
-
-**The problem.** Two Claude sessions working on one set of files quietly overwrite each other.
-Nothing crashes. The work just disappears.
-
-**The fix.** Every session works in a **lane**, and each lane owns its own files. When one lane has
-something for another, it leaves a new file in that lane's inbox instead of editing its files. New
-files never clash, so git can always merge them.
+**A growing collection of tools, skills and programs, that we use in our modding journey.**
 
 **A shared board.** One list of every job, each tagged with what it needs. It answers the question
 you have at the start of every session: *what can I actually do right now?*
