@@ -2,7 +2,7 @@
 
 ![lanes plugin banner](../../assets/banner/banner.png)
 
-**Run several Claude Code sessions at once without them treading on each other.**
+**A growing collection of tools, skills and programs for Claude Code, primarily meant for flat-to-VR video game modding.** Among them: run several Claude Code sessions at once without them treading on each other.
 
 Open two or three terminals, start a Claude session in each, and they will happily edit the
 same files, rebase over each other's uncommitted work, and quietly undo one another's fixes.
