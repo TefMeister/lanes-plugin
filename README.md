@@ -2,7 +2,7 @@
 
 ![lanes plugin banner](assets/banner/banner.png)
 
-**A growing collection of tools, skills and programs, that we use in our modding journey.**
+**A growing collection of tools, skills and programs for Claude Code, primarily meant for flat-to-VR video game modding.**
 
 **A shared board.** One list of every job, each tagged with what it needs. It answers the question
 you have at the start of every session: *what can I actually do right now?*

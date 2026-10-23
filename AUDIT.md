@@ -45,8 +45,4 @@ and why, plus the version number (from plugins/lanes/.claude-plugin/plugin.json)
   trusting a stranger's README.
 - The plugin's own tests are in `plugins/lanes/tools/tests/`. Your Claude may read them, but it
   should not need to run them to answer the questions above.
-<!-- Deliberate: this is the security contact, and a page inviting people to audit the code
-     needs somewhere for them to report what they find. It is also already public in every
-     commit's author field, so hiding it here would achieve nothing.
-     scrub-scan:allow -->
-- Found something? Open an issue on this repository, or email **(an issue on this repository)**.
+- Found something? Open an issue on this repository.
