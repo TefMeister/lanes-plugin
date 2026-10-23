@@ -15,7 +15,15 @@ unasked; mention it in one line and carry on.
 - **Never launch, drive or close an app**, and never touch a project's own files (boards, notes, builds). This lane
   looks after tools, and since 0.69.0 also the texts the public reads (step 6): repo descriptions and front pages.
 - **Ask before installing or updating anything on this PC** that is not a git pull of our own clone: the lanes
-  plugin, Hand Freeze, an outside tool. One question listing them all (AskUserQuestion, multi-select), not one each.
+  plugin, Hand Freeze, an outside tool, a PC program, a Python package. **Look first, ask at the END of the run**:
+  one question listing them all (AskUserQuestion, multi-select; split into several questions of up to four options
+  when there are more), not one each, and install only what is ticked. **Each option says what it could break**, in
+  plain words ("could break: the debugger's helper, it pins an older version"; "a compiler: every build changes";
+  "needs a restart of Claude Code"), or "no known risk"; anything that even possibly breaks something is warned
+  about, so the person can leave it unticked (0.82.1; asked for by the maintainer: "please warn if the updates would
+  even possibly break something, so user can decide ... have them all optional at the end of the run as questions
+  user can tick or leave unticked"). A test run that changes nothing (pip check, an import test in a scratch copy)
+  may come before the question, so the warning is measured rather than guessed.
   **Unless the person said not to ask:** `gu_ask = no` in lanes.conf (the scan's first lines say which). Then update
   everything that needs it without asking, and report what was done (0.68.0; asked for by the maintainer: "update
   everything that needs an update, no need to ask me, it's more for users who are not me").
