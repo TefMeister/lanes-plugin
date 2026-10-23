@@ -1260,6 +1260,14 @@ knowledge goes into the tools.
   project's own notes and rewrites what disagrees, in plain words, from those notes only. It never changes what a
   project is (visibility, a release, a decision). Its first run brought texts in 20 repos up to date.
 
+**Test build before keeping an update (0.83.0, 2026-10-23).** `tools/gu_guard.py` sorts each update into
+build-critical (a compiler, Visual Studio's build tools, CMake, Python itself, the debugger, Blender, a Python
+package's major jump, or a `critical =` entry) and low risk. Only the critical ones are tested: their old versions
+are noted, every `build_check =` builds once, the update goes in, the checks build again, and a check that built
+before and fails now puts the update back (`putback`). One update at a time. A check already failing before cannot
+judge, and is named. Asked for by the maintainer, who wanted the work future-proof against tool updates but not a
+test build for an archiver.
+
 ## 24. VR Bench: learned by the robot, marked by the person (0.74.0, 2026-10-17)
 
 Asked for by the maintainer, from an idea described on Discord: a robot player that, within an hour, has learned

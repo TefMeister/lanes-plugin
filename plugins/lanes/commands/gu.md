@@ -24,6 +24,10 @@ unasked; mention it in one line and carry on.
   even possibly break something, so user can decide ... have them all optional at the end of the run as questions
   user can tick or leave unticked"). A test run that changes nothing (pip check, an import test in a scratch copy)
   may come before the question, so the warning is measured rather than guessed.
+  **Sort them first** (0.83.0): `python "${CLAUDE_PLUGIN_ROOT}/tools/gu_guard.py" risk winget:<Id> ...
+  pip:<name>:<have>:<new> ...` marks each BUILD-CRITICAL (a compiler, Visual Studio's build tools, CMake, Python
+  itself, the debugger, Blender, a Python package's major jump, anything in `critical =`) or low risk. A critical
+  one's option says "could break: <why>; test-built before it is kept"; a low one needs no test build.
   **Unless the person said not to ask:** `gu_ask = no` in lanes.conf (the scan's first lines say which). Then update
   everything that needs it without asking, and report what was done (0.68.0; asked for by the maintainer: "update
   everything that needs an update, no need to ask me, it's more for users who are not me").
@@ -72,6 +76,20 @@ Five sections. If one is empty because nothing is set up for it in `lanes.conf` 
    pins, not code** (0.73.2): on 2026-10-16 `mcp` 1.29 → 2.3 passed it while removing `FastMCP`, which a debugger's
    MCP server imports. After a major jump, import-test every Python MCP server listed in `~/.claude.json` (and any
    tool the jump touches); one that fails puts the package back.
+   **Test build before keeping a build-critical update** (0.83.0; asked for by the maintainer: "is there a way to
+   make our work VS Build Tools future proof? and any other program or tool we use", then "filter it to things
+   that can actually break things and not simple win-zip"). Low-risk ticks install as before. For the ticked
+   critical ones:
+   1. `gu_guard.py before <every ticked critical item>`: notes the version each replaces and builds every
+      `build_check =` once (the known-good result). A check already failing here cannot judge; say so.
+   2. Install ONE of them, then `gu_guard.py after`. `SAFE` = keep it, go to the next. `BROKEN BY THE UPDATE`
+      (exit 1) = `gu_guard.py putback <item>`, run `after` again to see it build, and tell the person what broke
+      and that it was put back (its line under the check shows what failed). One at a time, so the culprit is
+      never in doubt.
+   3. No `build_check =` lines yet: offer once to add them, one per thing the person builds (a game add-on's
+      build script, a Visual Studio project, `@msvc`, `@blender`, `@pip`), choosing scripts that only build and
+      test, never ones that copy into a game folder. Until then a critical update is offered with the plain
+      warning only.
 6. **Texts on GitHub** (0.69.0; asked for by the maintainer after a finished mod's description still named v1.0.2
    and its front page sent people to an older download while v1.1.5 was out: *"go over the whole github and bring
    all the texts and descriptions up to date"*). Section 5 of the scan lists what the checks caught across every
