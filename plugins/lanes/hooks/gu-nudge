@@ -12,5 +12,6 @@ for cand in python3 python py; do
   PY="$cand"; break
 done
 [ -n "$PY" ] || exit 0
+"$PY" "${PLUGIN_ROOT}/tools/features.py" is-on gu_nudge >/dev/null 2>&1 || exit 0   # chosen at setup on a new install (0.82.0)
 "$PY" "$PLUGIN_ROOT/tools/gu.py" nudge 2>/dev/null | "$PY" "$SCRIPT_DIR/emit_context.py"
 exit 0

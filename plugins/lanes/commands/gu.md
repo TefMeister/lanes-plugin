@@ -38,6 +38,9 @@ Five sections. If one is empty because nothing is set up for it in `lanes.conf` 
    - Lanes plugin newer: list each version in between with one plain line (from `/lanes:update`'s `changes`), then
      follow `/lanes:update` on a yes.
    - Hand Freeze newer: `python "${CLAUDE_PLUGIN_ROOT}/tools/hand-freeze.py" install` on a yes.
+   - RE Engine MCP or UEVR-MCP newer (`python "${CLAUDE_PLUGIN_ROOT}/tools/engine-mcp.py" status`, 0.82.0):
+     `engine-mcp.py install re` or `install uevr`, the same as the first install. Not while a session is using it.
+     A game that already holds the game half gets the new one from its own next session (`engine-mcp.py game ...`).
    - One of our clones **behind**: `git pull --rebase`. **Ahead or unsaved**: read what it is first. If it is
      finished work, commit what belongs together and push. If it may belong to a live session, leave it and say so.
 2. **Two copies of the same thing.** Look at the files that differ (`git log` on both sides beats file dates). Copy
