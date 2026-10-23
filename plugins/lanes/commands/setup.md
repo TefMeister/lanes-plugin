@@ -61,28 +61,26 @@ and **"Choose a name"** (they type it through "Other").
 - ⚠️ **Never suggest the computer's real name.**
 - Nobody set one? The first claim or reminder takes the next free PC number by itself.
 
-## 0.6.2 Which built-in extras? (0.82.0, new installs only)
+## 0.6.2 Which built-in extras? (0.82.0; sets and links 0.84.0; new installs only)
 
-Run `python "${CLAUDE_PLUGIN_ROOT}/tools/features.py" pending`. **Exit 1 means nothing to ask** (a PC that had Lanes
-before 0.82.0 keeps every extra on, and nobody there is asked): say nothing and move on. Otherwise every extra it
-lists is OFF until answered here. Ask in **two multi-select questions** (AskUserQuestion), worded for someone who is
-not a programmer, each option saying what it does:
+Run `python "${CLAUDE_PLUGIN_ROOT}/tools/features.py" ask --json`. **Exit 1 means nothing to ask** (a PC that had
+Lanes before keeps every extra on, and nobody there is asked): say nothing and move on. Otherwise it gives the
+unanswered extras grouped in their **sets**, each extra OFF until answered here. Then:
 
-1. *"Which of these should Lanes do for you?"*: **The green look** (`theme`: puts the plugin's old-green-monitor look
-   on this terminal; `/lanes:theme restore` undoes it) · **Check before agreeing** (`talk_rule`: Claude never says "you
-   are right" before checking what you said) · **Weekly tool reminder** (`gu_nudge`: one line when the weekly tool
-   check is due) · **Keep full conversation logs** (`keep_transcripts`: copies each conversation out of Claude Code's
-   30-day clean-up, kept on this PC only).
-2. **Only for someone making VR mods** (ask once whether they do, if it is not plain already; otherwise switch both
-   off): *"For VR mods, which of these?"*: **BeG0nE recorders** (`begone_ride`: a quiet helper that starts with every
-   session and turns each headset test of a mod wired to it into a short report on jitter and hand faults) ·
-   **Gameplay only in VR** (`vr_effects_off`: sessions switch off every blur and screen effect a game paints over the
-   picture, such as motion blur, blood on the screen and the low-health tint).
+1. **First print the list as clickable links**, one line per extra, grouped by set, so the person can read up before
+   choosing: `- [<label>](<link>): <description without the Read more part>`. Under a set marked `together`, put its
+   `note` in one line (why they are suggested together).
+2. **Ask one multi-select question per set** (AskUserQuestion, all in one call), header = the set's title cut to 12
+   characters, options = its extras with their `label` and `description` exactly as given (the description already
+   carries "Goes well with: ..." and the link). For a `together` set say in the question that they are suggested
+   together, e.g. *"Keeping your tools up to date: these two work best together. Which should Lanes do?"*
+3. The **For VR mods** set is only for someone making VR mods: ask once whether they do, if it is not plain
+   already; if not, switch that set off without asking it.
 
 Then `features.py on <name>` for each ticked one and `features.py off <name>` for the rest, so none is pending again.
 When `theme` was ticked, run `python "${CLAUDE_PLUGIN_ROOT}/tools/theme.py" apply` and say in one line that Claude
-Code's own colours follow after a restart. Say in one line that `features.py on|off <name>` changes any of them later.
-Skipping setup leaves them all off.
+Code's own colours follow after a restart. Say in one line that `features.py on|off <name>` changes any of them
+later, and that the whole list with links is in the plugin's `docs/EXTRAS.md`. Skipping setup leaves them all off.
 
 ## 0.6.5 A whole GitHub setup in one go? (0.78.0, only if no board is set yet, offered once)
 

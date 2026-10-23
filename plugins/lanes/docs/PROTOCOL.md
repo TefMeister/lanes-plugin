@@ -1260,13 +1260,7 @@ knowledge goes into the tools.
   project's own notes and rewrites what disagrees, in plain words, from those notes only. It never changes what a
   project is (visibility, a release, a decision). Its first run brought texts in 20 repos up to date.
 
-**Test build before keeping an update (0.83.0, 2026-10-23).** `tools/gu_guard.py` sorts each update into
-build-critical (a compiler, Visual Studio's build tools, CMake, Python itself, the debugger, Blender, a Python
-package's major jump, or a `critical =` entry) and low risk. Only the critical ones are tested: their old versions
-are noted, every `build_check =` builds once, the update goes in, the checks build again, and a check that built
-before and fails now puts the update back (`putback`). One update at a time. A check already failing before cannot
-judge, and is named. Asked for by the maintainer, who wanted the work future-proof against tool updates but not a
-test build for an archiver.
+The test builds before an update are section 31.
 
 ## 24. VR Bench: learned by the robot, marked by the person (0.74.0, 2026-10-17)
 
@@ -1428,5 +1422,49 @@ tool-check reminder, and keeping full conversation logs (section 21). `tools/fea
   for VR modders). Skipping setup leaves them off.
 - `name = on|off` in lanes.conf always wins; `features.py on|off <name>` writes it. Hooks and commands ask
   `features.py is-on <name>`.
+- Since 0.84.0 the test builds before updates (section 31) are a seventh extra, every extra carries a link and a
+  set, and every future feature is one (section 32).
 - Left out on purpose, because they protect the person or the work: the naming rule, new repos private, the guards,
   the close-out box, the update check. The Inspector, thanks, the shortcut and the unlock route were already offers.
+
+## 31. Test build before keeping an update (0.83.0, 2026-10-23)
+
+Asked for by the maintainer: *"is there a way to make our work VS Build Tools future proof? and any other program
+or tool we use for that matter?"*, then *"is there any way to filter it to things that can actually break things
+and not simple win-zip"*. An extra (`update_safety`, section 32).
+
+- `tools/gu_guard.py risk` sorts each update the weekly tool check (section 23) finds into **build-critical** (a
+  compiler, Visual Studio's build tools, CMake, Python itself, the debugger, Blender, a Python package's major
+  jump, or a `critical = <part of the name> | <why>` line in lanes.conf) and **low risk** (an archiver, a small
+  bump). The question at the end of the check says "could break: ..." beside each critical one.
+- Only the critical ones are tested. `before` notes the version each replaces and builds every
+  `build_check = <name> | <folder> | <command>` once; the update goes in; `after` builds them again. A check that
+  built before and fails now is **broken by the update**: `putback` installs the exact old version again, and the
+  person is told what broke.
+- One update at a time, so the one to blame is never in doubt. A check already failing before cannot judge, and is
+  named as such.
+- Build checks name only scripts that build and test, never ones that copy into a game or app folder.
+
+## 32. Every feature is optional, and says where to read more (0.84.0, 2026-10-23)
+
+The maintainer: *"please make this and every future Lanes feature optional, so it is as modular as it can be, but
+do suggest some features to be installed together, as they complement each other. also for the description,
+please add a clickable link to either our Github or someone elses, should the user wish to read up more about it,
+before installing."*
+
+- **One list.** `tools/features.py` holds every extra: a short name, what it does in plain words, a link to read
+  more (this plugin's own page for it, or the maker's GitHub), and the **set** it belongs to. `docs/EXTRAS.md` is
+  written from that list (`features.py doc`) and the smoke test fails when it falls behind.
+- **Sets.** Extras that make each other more useful sit in one set marked *best together*, and setup says so beside
+  each of them ("Goes well with: ..."). Today: the weekly tool reminder with the test builds before updates, and
+  the BeG0nE recorders with gameplay only in VR. The everyday helpers each stand alone.
+- **Setup asks from the list** (`features.py ask --json`): one question per set, the set's note first, each choice
+  with its description, its pairing and its link. A new extra appears there by itself.
+- **Every future feature is one of them.** A new feature gets its entry, is gated with `features.py is-on`, and its
+  CHANGELOG line ends with `On or off:` and its name (or "nothing new" for a fix). `release.sh` refuses a
+  version whose CHANGELOG line has no `On or off:`, and `features.py lint` (in the smoke test) refuses an extra
+  with no link, a link to a heading or file that is not there, or no set.
+- **Updating keeps what you had** (section 30): a PC that had Lanes before has every extra on, a new extra included,
+  and `features.py off <name>` takes any one away. A new install chooses each at setup.
+- Still not optional, because they protect the person or the work: the naming rule, new repos private, the guards,
+  the close-out box, the update check.

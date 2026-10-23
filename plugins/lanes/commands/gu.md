@@ -78,8 +78,9 @@ Five sections. If one is empty because nothing is set up for it in `lanes.conf` 
    tool the jump touches); one that fails puts the package back.
    **Test build before keeping a build-critical update** (0.83.0; asked for by the maintainer: "is there a way to
    make our work VS Build Tools future proof? and any other program or tool we use", then "filter it to things
-   that can actually break things and not simple win-zip"). Low-risk ticks install as before. For the ticked
-   critical ones:
+   that can actually break things and not simple win-zip"). Only when `features.py is-on update_safety` exits 0
+   (an extra since 0.84.0; when it is off, a critical update keeps its "could break" warning and installs without
+   the test build). Low-risk ticks install as before. For the ticked critical ones:
    1. `gu_guard.py before <every ticked critical item>`: notes the version each replaces and builds every
       `build_check =` once (the known-good result). A check already failing here cannot judge; say so.
    2. Install ONE of them, then `gu_guard.py after`. `SAFE` = keep it, go to the next. `BROKEN BY THE UPDATE`

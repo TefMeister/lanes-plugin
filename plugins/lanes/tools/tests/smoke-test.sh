@@ -811,6 +811,10 @@ else
   fail "gu-fixture.sh failed"
 fi
 
+echo "features.py - every extra has a link and a set, and docs/EXTRAS.md is current (0.84.0)"
+if out=$("$PY" "$TOOLS/features.py" lint 2>&1); then ok "$out"; else printf '%s\n' "$out"; fail "features.py lint"; fi
+if out=$("$PY" "$TOOLS/features.py" doc --check 2>&1); then ok "$out"; else fail "$out"; fi
+
 echo "gu_guard.py - test build before keeping an update (0.83.0)"
 if out=$(bash "$HERE/gu-guard-fixture.sh" 2>&1); then
   ok "$(printf '%s\n' "$out" | tail -n 1)"

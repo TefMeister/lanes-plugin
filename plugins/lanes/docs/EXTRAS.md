@@ -1,0 +1,27 @@
+# Lanes extras
+
+Every extra below is optional: each PC switches it on or off (`features.py on|off <name>`). A new
+install chooses at `/lanes:setup`; a PC that had Lanes before keeps what it had. Sets marked **best
+together** are suggested as a pair. Written by `tools/features.py doc`; edit the list there, not here.
+
+## Everyday helpers
+
+Small things for every session. Each one works on its own.
+
+- **The green look** (`theme`): puts the plugin's old-green-monitor look on this terminal; /lanes:theme restore undoes it. [Read more](https://github.com/TefMeister/lanes-plugin/blob/main/plugins/lanes/commands/theme.md)
+- **Check before agreeing** (`talk_rule`): Claude never says "you are right" before checking what you said. [Read more](https://github.com/TefMeister/lanes-plugin/blob/main/plugins/lanes/hooks/talk-rule)
+- **Keep full conversation logs** (`keep_transcripts`): copies each conversation out of Claude Code's 30-day clean-up, kept on this PC only. [Read more](https://github.com/TefMeister/lanes-plugin/blob/main/plugins/lanes/docs/PROTOCOL.md#21-keep-conversations-short-an-earlier-summary-that-loses-nothing-0630-2026-10-13)
+
+## Keeping your tools up to date (best together)
+
+The reminder brings the weekly tool check round, and the test builds make sure an update it installs does not break what you build.
+
+- **Weekly tool reminder** (`gu_nudge`): one line at session start when the weekly tool check (/lanes:gu) is a week old. [Read more](https://github.com/TefMeister/lanes-plugin/blob/main/plugins/lanes/docs/PROTOCOL.md#23-the-weekly-tool-check-lanesgu-0670-2026-10-14). Goes well with: Test builds before updates.
+- **Test builds before updates** (`update_safety`): in the weekly tool check, an update that could break what you build (a compiler, Visual Studio, Python, Blender) is test-built first and put back if your work stops building. [Read more](https://github.com/TefMeister/lanes-plugin/blob/main/plugins/lanes/docs/PROTOCOL.md#31-test-build-before-keeping-an-update-0830-2026-10-23). Goes well with: Weekly tool reminder.
+
+## For VR mods (best together)
+
+One keeps the headset picture down to the gameplay, the other reports when that picture or the hands are not smooth, so its reports are about the mod and not about blur.
+
+- **BeG0nE recorders** (`begone_ride`): a quiet helper that starts with every session and turns each headset test of a mod wired to it into a short report on jitter and hand faults. [Read more](https://github.com/TefMeister/BeG0nE). Goes well with: Gameplay only in VR.
+- **Gameplay only in VR** (`vr_effects_off`): sessions switch off every blur and screen effect a game paints over the picture, such as motion blur, blood on the screen and the low-health tint. [Read more](https://github.com/TefMeister/lanes-plugin/blob/main/plugins/lanes/docs/PROTOCOL.md#19-gameplay-only-every-blur-and-screen-effect-off-in-vr-0600-2026-10-12). Goes well with: BeG0nE recorders.
