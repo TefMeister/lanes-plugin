@@ -277,7 +277,7 @@ retelling.
 elliotttate (OpenXR Simulator, OpenXR OBS Mirror), webhead2oo9 (the simulator fork with the 32-bit runtime, command
 files and MCP helper), mbucchia (OpenXR-Layer-Template, the shape the layers follow), Khronos (OpenXR headers,
 Apache-2.0 OR MIT), OBS Studio and exeldro's Source Record, and the Discord author of the VR-bench idea (name to be
-added). The plugin's CREDITS and the `vr-bench` repo's README both carry them, with the standing "email us if you
+added). The plugin's CREDITS and the `vr-bench` repo's README both carry them, with the standing "open an issue on GitHub if you
 should be credited and are not" line.
 
 ## 9. Left to the builder
