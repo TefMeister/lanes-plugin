@@ -155,6 +155,7 @@ role = DEV
 #                                            builds (0.83.0, tools/gu_guard.py). A command starting `bash ` runs
 #                                            in Git's bash. Only scripts that build and test, never install.
 #   critical = <part of a winget Id or pip name> | <what it could break>   one more build-critical tool
+#   update_safety = off                      no test builds at all (an extra, 0.84.0; see docs/EXTRAS.md)
 # Many tools publish real updates as nightly builds on a separate repo (praydog/UEVR-nightly,
 # praydog/REFramework-nightly); watch that one when the main page's releases are years old.
 # twin = /path/to/toolkit/tools/menu-o-matic | /path/to/lanes-plugin/plugins/lanes/tools/menu-o-matic
