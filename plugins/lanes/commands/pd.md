@@ -167,7 +167,8 @@ nothing to do. Name anything it `SKIPPED` or `FAILED` in the write-up.
    means the split — move-only, backed up, proven to change nothing — is this session's job first.
    New probes go in their own files, tunable numbers get names, disproved probes go to `archive/`.
    `docs/PROTOCOL.md` §6.
-5a. **No screen-effects list in a game project's notes yet? Making it is a `/pd` job** (0.60.0). In VR every blur
+5a. **No screen-effects list in a game project's notes yet? Making it is a `/pd` job** (0.60.0; only when
+   `features.py is-on vr_effects_off` exits 0, an extra a new install chooses at setup since 0.82.0). In VR every blur
    and every effect painted on the screen goes off: motion blur, depth of field, grain, vignette, colour fringing,
    lens flares and dirt, blood or rain on the screen, the low-health red tint, damage flashes, screen shake. Search
    what the game ships (options, config and ini files, engine console settings, command-line switches, shader
@@ -180,6 +181,11 @@ nothing to do. Name anything it `SKIPPED` or `FAILED` in the write-up.
    script hook (REFramework, UE4SS, a GZDoom launcher's `+give`). Write down each route found, how sure it is and
    exactly what to type or set, so the first live session only has to use it. Found nothing: say so on the board, so
    nobody searches twice. `docs/PROTOCOL.md` §28.
+5a3. **Live-game MCP servers are NOT for `/pd`** (0.82.0, `docs/PROTOCOL.md` §29): RE Engine MCP and UEVR-MCP talk to
+   a running game, so `/pd` never calls their tools and never runs `engine-mcp.py game`. What `/pd` may use: what a
+   live session already got from them (UEVR-MCP's USMAP and project dumps, saved object listings), and UEVR-MCP's
+   commands that read the game's .exe with nothing running (`UevrMcpServer.exe ps-resolve <exe>`, `ps-symbols <exe>
+   <pattern>`, `ps-xref`, `ps-disasm`), which find engine functions in a game's program file.
 5b. **⚠ Before you build a lever, say which step runs LAST.** Write one line: *this runs at step N
    of M, the thing I want to change is decided at step K, N is before/after K.* If your change lands
    after the value is decided, you are annotating it, not fixing it — move upstream. Build it so it
@@ -207,16 +213,15 @@ nothing to do. Name anything it `SKIPPED` or `FAILED` in the write-up.
 
 ---
 
-## 📰 Keep the public front page moving — every session, not every success
+## 📰 Keep the public front page moving — with real progress only (changed 0.82.0)
 
-If this estate has a public front page (a profile README, a landing page), **add a dated line to it
-before you finish, whether or not anything advanced.** A dead end, a correction, a look that found
-nothing — all of it counts.
-
-⭐ **The reason is not vanity, and it changes what belongs there.** The point is that the page reads
-as *alive*: work that is visibly ongoing invites collaboration and reuse, and a page that only moves
-on good news is a press release rather than a record. A quiet day, written down honestly, is worth
-more than a gap.
+If this estate has a public front page (a profile README, a landing page, a recent-activity page), **add a dated
+line to it when the work actually moved forward**: something now works that did not, a cause was found, a piece was
+built and proven, a release went out. **Leave out lines that only say something is waiting**: "still to be tested",
+"ready for a headset test", "nothing new", a build made but not yet tried. Those fill the page without telling a
+reader anything (the maintainer, 2026-10-23: *"please only list things that have actually progressed in our work and
+leave out lines that say still to be tested - they just fill the recent activity page"*). A dead end that settles a
+question IS progress and may go in; a session that only queued a test is not. The waiting lines belong on the board.
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/tools/frontpage-scan.sh"     # is the page behind the boards?
@@ -224,7 +229,8 @@ bash "${CLAUDE_PLUGIN_ROOT}/tools/frontpage-scan.sh"     # is the page behind th
 
 It compares the newest date on any board against the newest date on the page and says when the page
 has fallen behind. It is **read-only and never writes the line for you** — an auto-generated entry
-would be exactly the bland noise this rule exists to avoid. Configure it with `frontpage = <path>` in
+would be exactly the bland noise this rule exists to avoid. A page behind the boards after a session that only
+queued tests is fine: say so in one line and add nothing. Configure it with `frontpage = <path>` in
 `lanes.conf`; with nothing configured it says so and exits quietly.
 
 ⚠️ **Keep it in the page's own voice and keep it short.** One or two lines per item, plain language,

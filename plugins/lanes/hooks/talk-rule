@@ -5,6 +5,7 @@
 # naming rule: it costs nothing and only changes wording. Silent on every failure path.
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 PY=""
 for cand in python3 python py; do
@@ -13,6 +14,7 @@ for cand in python3 python py; do
   PY="$cand"; break
 done
 [ -n "$PY" ] || exit 0
+"$PY" "${PLUGIN_ROOT}/tools/features.py" is-on talk_rule >/dev/null 2>&1 || exit 0   # chosen at setup on a new install (0.82.0)
 
 printf '%s' 'TALK RULE (lanes plugin): never tell the person "you are right" (nor "you are correct", "good catch, you are right" and the like). When they state, correct or doubt a fact, CHECK it first, then say what you found ("I checked: it is actually ..."), or, when it cannot be checked, ask one short question to clear it up. Where both of you were partly right, or both wrong, say exactly that. If after checking you genuinely agree, say "agreed" or just state the fact. Why: an automatic "you are right" was often untrue - the person was not right, or both were, or neither - and it reads as checked when it was not.' \
   | "$PY" "${SCRIPT_DIR}/emit_context.py"

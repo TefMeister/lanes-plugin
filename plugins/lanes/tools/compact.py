@@ -216,6 +216,9 @@ def keep_transcript(inp, conf):
     src = inp.get("transcript_path") or ""
     if not src or not os.path.isfile(src):
         return ""
+    import features  # an extra a new install chooses at setup (0.82.0)
+    if not features.is_on("keep_transcripts"):
+        return ""
     # Claude Code's folder names spell the whole working path out; cut short, a deep root stays under
     # Windows' 260-character path limit (a session id alone keeps every file name unique)
     folder = os.path.basename(os.path.dirname(src))[-FOLDER_MAX_CHARS:].lstrip("-") or "sessions"

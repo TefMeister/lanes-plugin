@@ -49,11 +49,11 @@ role = DEV
 # board_dir = board-repo
 
 # YOUR PUBLIC FRONT PAGE, if you have one.
-# The file people land on - a profile README, a landing page. Every session is
-# expected to add a dated line to it, whether or not anything advanced: a dead
-# end or a correction keeps the page honest, and a page that only moves on good
-# news reads as a press release. frontpage-scan.sh warns when it falls behind
-# the boards; it never writes the entry for you.
+# The file people land on - a profile README, a landing page. A session adds a
+# dated line to it when the work actually moved forward (0.82.0): lines that only
+# say something is still to be tested stay on the board, not on the page.
+# frontpage-scan.sh warns when it falls behind the boards; it never writes the
+# entry for you.
 # Overridden by $LANES_FRONTPAGE. Unset means the check stays quiet.
 # frontpage = /path/to/profile-repo/README.md
 
@@ -154,6 +154,17 @@ role = DEV
 # praydog/REFramework-nightly); watch that one when the main page's releases are years old.
 # twin = /path/to/toolkit/tools/menu-o-matic | /path/to/lanes-plugin/plugins/lanes/tools/menu-o-matic
 # watch = UEVR | praydog/UEVR
+# The two live-game MCP servers (0.82.0) are updated by `python tools/engine-mcp.py install re|uevr`; /lanes:gu runs
+# `engine-mcp.py status` and does that for each one that says a newer one is out.
+
+# BUILT-IN EXTRAS (0.82.0, tools/features.py). A PC that had Lanes before 0.82.0 keeps all six on; a new install has
+# them off until /lanes:setup asks. `on` or `off` here always wins. features.py on|off <name> writes these for you.
+# theme = on              the green-monitor look put on the terminal
+# talk_rule = on          never "you are right" before checking
+# begone_ride = on       the BeG0nE rider at every session start (the `begone =` key above is only its reports folder)
+# vr_effects_off = on     blur and screen effects off in VR games
+# gu_nudge = on           one line when the weekly tool check is due
+# keep_transcripts = on   full conversation logs copied out of the 30-day clean-up
 
 # KEEP CONVERSATIONS SHORT (0.63.0, PROTOCOL section 21).
 # Claude Code summarises a conversation by itself when it is nearly full. `tools/compact.py on` moves that

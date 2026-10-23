@@ -267,7 +267,8 @@ done:
      windows themselves (a user's rule, 2026-10-14: "whenever windowed i can set the session window so i
      can see it"). At most ask, without waiting, whether a new or changed window looks the right size.
    - **Once per project.** After they have said yes, store it (`mom windowcheck <window> --route <route.json> --confirmed`); later sessions only measure, and ask again only if the window changed size or turned fullscreen.
-4. **Gameplay only: switch off every blur and screen effect for VR** (0.60.0). Motion blur, depth of field,
+4. **Gameplay only: switch off every blur and screen effect for VR** (0.60.0; only when `features.py is-on
+   vr_effects_off` exits 0, an extra a new install chooses at setup since 0.82.0). Motion blur, depth of field,
    film grain, vignette, colour fringing, lens flares and dirt, blood spatter or rain drops on the screen, the
    low-health red tint, damage flashes, screen shake. Use the switches `/pd` found (or find them: menu, config,
    engine settings, command line, then the shader pass), turn them off, look at the picture, and write down
@@ -304,6 +305,15 @@ or registry key before changing it.
 - **✅ Say when the app may be closed.** When the person is running it for you, end a request with "keep it
   running" while you still need it, and open the reply with `✅ **You can quit the game now.**` the moment you do not
   (0.56.0, PROTOCOL §5).
+- **🔎 Look inside the running game instead of guessing** (0.82.0, `docs/PROTOCOL.md` §29). An RE Engine game with
+  REFramework, or an Unreal Engine game with UEVR, can be read live by MCP: `python "${CLAUDE_PLUGIN_ROOT}/tools/engine-mcp.py"
+  status` says whether this PC has the server (`reframework` or `uevr` in `claude mcp list`), and `engine-mcp.py game re
+  <game folder>` / `game uevr <game .exe>` puts the small game half in (a new numbered build, like any file). Then ask the
+  game: which object holds the camera, the hands, the weapon; what a value really is now; what the game calls when a
+  button is pressed (UEVR's ProcessEvent listener and function hooks; a C# test plugin hot-reloaded in an RE Engine game).
+  Never write a value into the game without saying so in the write-up. A test plugin is a probe: its own file, archived
+  when disproved. The game half stays while the project uses it and comes out with `--remove` before a build goes to
+  anyone, or when the project stops using it. Both listen on the same port, so one such game runs at a time.
 - **Judge by eye where eyes are the right instrument.** A statistic that disagrees with what is
   plainly on screen is a broken statistic.
 - **Every install stays a dev build.** Never revert a change to make something usable again, and
@@ -382,16 +392,15 @@ itself was missing something, improve it. Each run should leave the app easier t
 
 ---
 
-## 📰 Keep the public front page moving — every session, not every success
+## 📰 Keep the public front page moving — with real progress only (changed 0.82.0)
 
-If this estate has a public front page (a profile README, a landing page), **add a dated line to it
-before you finish, whether or not anything advanced.** A dead end, a correction, a look that found
-nothing — all of it counts.
-
-⭐ **The reason is not vanity, and it changes what belongs there.** The point is that the page reads
-as *alive*: work that is visibly ongoing invites collaboration and reuse, and a page that only moves
-on good news is a press release rather than a record. A quiet day, written down honestly, is worth
-more than a gap.
+If this estate has a public front page (a profile README, a landing page, a recent-activity page), **add a dated
+line to it when the work actually moved forward**: something now works that did not, a cause was found, a piece was
+built and proven, a release went out. **Leave out lines that only say something is waiting**: "still to be tested",
+"ready for a headset test", "nothing new", a build made but not yet tried. Those fill the page without telling a
+reader anything (the maintainer, 2026-10-23: *"please only list things that have actually progressed in our work and
+leave out lines that say still to be tested - they just fill the recent activity page"*). A dead end that settles a
+question IS progress and may go in; a session that only queued a test is not. The waiting lines belong on the board.
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/tools/frontpage-scan.sh"     # is the page behind the boards?
@@ -399,7 +408,8 @@ bash "${CLAUDE_PLUGIN_ROOT}/tools/frontpage-scan.sh"     # is the page behind th
 
 It compares the newest date on any board against the newest date on the page and says when the page
 has fallen behind. It is **read-only and never writes the line for you** — an auto-generated entry
-would be exactly the bland noise this rule exists to avoid. Configure it with `frontpage = <path>` in
+would be exactly the bland noise this rule exists to avoid. A page behind the boards after a session that only
+queued tests is fine: say so in one line and add nothing. Configure it with `frontpage = <path>` in
 `lanes.conf`; with nothing configured it says so and exits quietly.
 
 ⚠️ **Keep it in the page's own voice and keep it short.** One or two lines per item, plain language,

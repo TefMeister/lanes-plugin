@@ -757,6 +757,26 @@ else
   fail "offers-fixture.sh failed"
 fi
 
+echo "features.py - the extras a new install chooses at setup; an update keeps them on (0.82.0)"
+if out=$(bash "$HERE/features-fixture.sh" 2>&1); then
+  ok "$(printf '%s
+' "$out" | tail -n 1)"
+else
+  printf '%s
+' "$out" | grep FAIL
+  fail "features-fixture.sh failed"
+fi
+
+echo "engine-mcp.py - the two look-inside-the-game servers; the game half in and out exactly (0.82.0)"
+if out=$(bash "$HERE/engine-mcp-fixture.sh" 2>&1); then
+  ok "$(printf '%s
+' "$out" | tail -n 1)"
+else
+  printf '%s
+' "$out" | grep FAIL
+  fail "engine-mcp-fixture.sh failed"
+fi
+
 echo "estate.py - a new GitHub account set up the Lanes way, private, never overwriting (0.78.0)"
 if out=$(bash "$HERE/estate-fixture.sh" 2>&1); then
   ok "$(printf '%s\n' "$out" | tail -n 1)"
