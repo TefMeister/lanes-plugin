@@ -49,6 +49,9 @@ grep -q "\`$VERSION\`" README.md && rv="$VERSION" || rv="(not found)"
 [ "$mv" = "$VERSION" ] || stop "marketplace.json says $mv, not $VERSION (this is the one the installer reads)"
 [ "$cv" = "$VERSION" ] || stop "the newest CHANGELOG line is $cv, not $VERSION"
 [ "$rv" = "$VERSION" ] || stop "the front page does not name $VERSION"
+# every feature is optional (0.84.0, PROTOCOL section 32): the CHANGELOG line names its on/off switch
+grep -m1 -E '^- \*\*[0-9]+\.[0-9]+\.[0-9]+\*\*' "$REL/CHANGELOG.md" | grep -q "On or off:" \
+  || stop "the CHANGELOG line for $VERSION does not end with \"On or off: \`<extra>\`.\" (or \"On or off: nothing new.\"): every new feature is an extra in tools/features.py"
 ok "version $VERSION in plugin.json, marketplace.json, CHANGELOG and the front page"
 
 # 2. everything committed
