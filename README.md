@@ -111,7 +111,13 @@ to learn any of it up front: the sessions follow it for you, and you can switch 
 - **Your PCs know what the other has (0.65.0).** Each PC keeps a small note of which of our apps
   it has, and every session start says when another PC has one this PC does not. When you say a job is
   done on the other PC, the session that hears it clears that PC's reminder, quoting you.
-- **Unlock everything before modding a game (new in 0.81.0).** Offered once: sessions look for a developer mode,
+- **Look inside the running game, and choose the extras (new in 0.82.0).** Setup now offers praydog's RE Engine MCP
+  and elliotttate's UEVR-MCP: with them, Claude can read and change a running Resident Evil or Unreal Engine game's
+  own objects and values live instead of guessing from memory, and the game half goes in only from that game's own
+  session. A new install also chooses six built-in extras at setup (the green look, the BeG0nE recorders, screen
+  effects off in VR and three more) instead of getting them all; a PC updating keeps them as they were. And the
+  activity page now gets a line only when work actually moved forward.
+- **Unlock everything before modding a game (0.81.0).** Offered once: sessions look for a developer mode,
   cheat, setting or file that gives every weapon and item from the start, find it in the game's files with no game
   running, and build it into the launcher on the first run, so nobody has to play through a game before modding it.
 - **Every tool says what it is for and who made it (0.80.0).** Setup's tool list names the maker of
@@ -210,7 +216,7 @@ official links:
 | --- | --- |
 | Core | Git (with Git Bash), the GitHub command-line tool, Python and its helper packages, uv, 7-Zip |
 | Building mod code | llvm-mingw, CMake, Visual Studio Build Tools (C++), Rust, Lua |
-| Reverse engineering | x64dbg with its Claude connection and ready-made workflows, Ghidrust (reads and decompiles a game's .exe without running it) |
+| Reverse engineering | x64dbg with its Claude connection and ready-made workflows, Ghidrust (reads and decompiles a game's .exe without running it), RE Engine MCP and UEVR-MCP (look inside a running RE Engine or Unreal game) |
 | Driving games unattended | a virtual gamepad driver (ViGEmBus) and its Python side |
 | 3D | Blender and Blender MCP, so Claude can build models with you, live, in your Blender |
 | VR | SteamVR, Virtual Desktop (for Quest headsets), the OpenXR Simulator (a pretend headset), VR Bench (a robot player) and Hand Freeze |
@@ -287,7 +293,7 @@ any project. Expect changes: `/lanes:update` tells you what is new and never ins
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.81.0`, public, in daily use |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.82.0`, public, in daily use |
 
 ## Modding games?
 

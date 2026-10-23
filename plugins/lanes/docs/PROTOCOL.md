@@ -1073,7 +1073,8 @@ plugin as well"*.
 
 ### The rule
 
-- **Every VR mod still in early development has BeG0nE's jitter recorder wired in, without being asked.** Copy
+- **Every VR mod still in early development has BeG0nE's jitter recorder wired in, without being asked** (while the
+  `begone_ride` extra is on: always on a PC that had Lanes before 0.82.0, chosen at setup on a new install). Copy
   `begone/camera-jitter/jitterlog.h` (or `jitterlog.lua` for REFramework) from the plugin into the mod's source
   (since 0.62.0; before, from the BeG0nE clone's `camera-jitter/ride-along/`), and call:
   `jl_init(<project>, <runtime>)` at load; `jl_vr_on()` / `jl_vr_off()` when the headset session starts and stops;
@@ -1104,6 +1105,8 @@ low health red tint, so there is only gameplay during gameplay."*
 
 ### The rule
 
+- **On or off per PC** (0.82.0): the `vr_effects_off` extra (`tools/features.py`). On for every PC that had Lanes
+  before 0.82.0; a new install chooses at setup. When it is off, this whole section is skipped.
 - **In VR, a game shows the world and nothing painted over it.** Every effect that sits on the screen rather than in
   the world is switched off: motion blur, depth of field, radial / speed / camera blur, film grain, vignette,
   chromatic aberration (colour fringing), lens flares and lens dirt, screen-space blood spatter, rain or water drops
@@ -1376,3 +1379,46 @@ its music muted and its screen effects off:
   "give all" when the game stores switches as ammo or items (Ashes 2063 keeps "the lantern is lit" as one).
 - It is for testing the mod, never shipped: a release does not unlock anything for players.
 
+## 29. Look inside the running game: RE Engine MCP and UEVR-MCP (0.82.0, 2026-10-23)
+
+The maintainer: *"please bake these features into Lanes"*, with links to praydog's
+[re-engine-mcp](https://github.com/praydog/re-engine-mcp) and elliotttate's [uevr-mcp](https://github.com/elliotttate/uevr-mcp).
+Both put a small plugin inside a running game that answers on `localhost:8899`, and an MCP server that hands it to
+Claude: the game's own objects, values and functions, read and changed live. RE Engine MCP is for RE Engine games with
+a nightly REFramework and its C# add-on; UEVR-MCP for Unreal Engine 4.22 to 5.5 games with UEVR (also live Lua, head and
+controller poses, screenshots from the graphics card, function hooks, a listener for every call the game makes, and
+dumps of its class layout).
+
+- **Two halves.** The PC half (`tools/engine-mcp.py install re|uevr`: fetch, build or unzip, register with Claude Code)
+  is offered by `/lanes:setup` to people modding that kind of game and kept current by `/lanes:gu`. The game half
+  (`engine-mcp.py game re <folder>` / `game uevr <exe>`) is put in only by that game's own live session (`/lm`, `/ms`),
+  as a numbered build like any other file, and taken out with `--remove` (exactly the listed files) before a build
+  goes to anyone, or when the project stops using it.
+- **Ask the game before guessing.** Where a session would otherwise read memory and infer what a number means, it asks:
+  which object holds the camera, the hands, the weapon; what a value is right now; what the game calls when a button
+  is pressed. A finding read live is tagged `[measured]`; it still needs a test before it is `[verified-live]`.
+- **Changing the game live is a lever** (section 11): say which step runs last, measure before and after, and say in the
+  write-up what was written. A C# test plugin or Lua snippet sent in is a probe (section 6): its own file, archived when
+  disproved.
+- **`/pd` never calls the live tools.** It may read what a live session saved (dumps, listings) and UEVR-MCP's commands
+  that read the game's .exe with nothing running (`ps-resolve`, `ps-symbols`, `ps-xref`, `ps-disasm`).
+- **One at a time.** Both answer on the same port, so only one game with either plugin runs on a PC at once (section 3a
+  already allows only one running app).
+- UEVR-MCP's dumper mode (`game uevr <exe> --dumper`) turns UEVR's VR drawing off for that game: for dumping only, and
+  `--remove` takes it out again.
+
+## 30. Extras a new install chooses (0.82.0, 2026-10-23)
+
+The maintainer: *"see if there are any features of Lanes plugin that are not optional right now, but can be made
+optional at the first install. no need to make them optional for people updating the plugin as they already have
+these features anyway."* Six things were on for everyone with no question: the green look put on the terminal,
+the talk rule, the BeG0nE rider (and with it section 18), blur and screen effects off in VR (section 19), the weekly
+tool-check reminder, and keeping full conversation logs (section 21). `tools/features.py` sorts each PC once:
+- **A PC that had Lanes before** (its lanes.conf or state files are older than five minutes, since the other
+  start-up hooks run at the same moment) keeps all six on and is asked nothing.
+- **A new install** has all six off until `/lanes:setup` asks (section 0.6.2 there: two questions, the VR pair only
+  for VR modders). Skipping setup leaves them off.
+- `name = on|off` in lanes.conf always wins; `features.py on|off <name>` writes it. Hooks and commands ask
+  `features.py is-on <name>`.
+- Left out on purpose, because they protect the person or the work: the naming rule, new repos private, the guards,
+  the close-out box, the update check. The Inspector, thanks, the shortcut and the unlock route were already offers.

@@ -10,6 +10,8 @@ ahujasid/mcp-for-blender          # the Blender connector
 oofz/Ghidrust                     # the decompiler connector
 praydog/UEVR                      # Unreal Engine VR, watched by the weekly check
 praydog/REFramework               # RE Engine modding, watched by the weekly check
+praydog/re-engine-mcp             # look inside a running RE Engine game (0.82.0)
+elliotttate/uevr-mcp              # look inside a running Unreal Engine game (0.82.0)
 nefarius/ViGEmBus                 # the virtual gamepad driver
 mstorsjo/llvm-mingw               # the compiler setup offers
 NSACloud/RE-Mesh-Editor

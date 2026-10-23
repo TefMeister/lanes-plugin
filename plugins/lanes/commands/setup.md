@@ -61,6 +61,29 @@ and **"Choose a name"** (they type it through "Other").
 - ⚠️ **Never suggest the computer's real name.**
 - Nobody set one? The first claim or reminder takes the next free PC number by itself.
 
+## 0.6.2 Which built-in extras? (0.82.0, new installs only)
+
+Run `python "${CLAUDE_PLUGIN_ROOT}/tools/features.py" pending`. **Exit 1 means nothing to ask** (a PC that had Lanes
+before 0.82.0 keeps every extra on, and nobody there is asked): say nothing and move on. Otherwise every extra it
+lists is OFF until answered here. Ask in **two multi-select questions** (AskUserQuestion), worded for someone who is
+not a programmer, each option saying what it does:
+
+1. *"Which of these should Lanes do for you?"*: **The green look** (`theme`: puts the plugin's old-green-monitor look
+   on this terminal; `/lanes:theme restore` undoes it) · **Check before agreeing** (`talk_rule`: Claude never says "you
+   are right" before checking what you said) · **Weekly tool reminder** (`gu_nudge`: one line when the weekly tool
+   check is due) · **Keep full conversation logs** (`keep_transcripts`: copies each conversation out of Claude Code's
+   30-day clean-up, kept on this PC only).
+2. **Only for someone making VR mods** (ask once whether they do, if it is not plain already; otherwise switch both
+   off): *"For VR mods, which of these?"*: **BeG0nE recorders** (`begone_ride`: a quiet helper that starts with every
+   session and turns each headset test of a mod wired to it into a short report on jitter and hand faults) ·
+   **Gameplay only in VR** (`vr_effects_off`: sessions switch off every blur and screen effect a game paints over the
+   picture, such as motion blur, blood on the screen and the low-health tint).
+
+Then `features.py on <name>` for each ticked one and `features.py off <name>` for the rest, so none is pending again.
+When `theme` was ticked, run `python "${CLAUDE_PLUGIN_ROOT}/tools/theme.py" apply` and say in one line that Claude
+Code's own colours follow after a restart. Say in one line that `features.py on|off <name>` changes any of them later.
+Skipping setup leaves them all off.
+
 ## 0.6.5 A whole GitHub setup in one go? (0.78.0, only if no board is set yet, offered once)
 
 Only if `lanes.conf` has no `board =` yet and `python "${CLAUDE_PLUGIN_ROOT}/tools/offers.py" should estate` says
@@ -234,7 +257,9 @@ GitHub has a release the scan stops marking it and it is offered like any other 
 
 **Fit the offer to the person** (0.79.0). Ask about a row only when it fits what they do: the VR rows
 other than SteamVR and the simulator only for someone with a headset or making VR mods; Hand Poser and
-RE Mesh Editor only for RE Engine games; Steamless only for someone who reads game programs; GIMP,
+RE Mesh Editor only for RE Engine games; RE Engine MCP only for someone modding an RE Engine game, UEVR-MCP only for
+someone modding an Unreal Engine game (each lets Claude look inside the running game; the game half goes in later, from
+that game's own session, never from setup; RE Engine MCP needs the .NET 10 SDK first, which needs admin); Steamless only for someone who reads game programs; GIMP,
 gimp-mcp and Real-ESRGAN only for someone who works on pictures or textures; the recording rows only for
 someone who records or uses BeG0nE. When unsure, ask the group's question once with a line saying what
 the group is for, and let "Skip this group" do the rest.
@@ -311,7 +336,7 @@ Credits to say when offering: the simulator is elliotttate's, the 32-bit build w
 ## 4. MCP servers need a restart
 
 `claude mcp add` takes effect at the **next** session. When any MCP server was added (x64dbg,
-Ghidrust, Blender), end with one line saying so. Do not try to call the new tools in this session.
+Ghidrust, Blender, RE Engine MCP, UEVR-MCP), end with one line saying so. Do not try to call the new tools in this session.
 Checking a server is a different thing from calling it: `claude mcp list` reports whether each one
 **starts**, and the Blender probe above reports whether the link **answers**. Use those to confirm
 the setup worked; only the tools themselves have to wait.
