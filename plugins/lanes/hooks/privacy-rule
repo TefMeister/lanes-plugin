@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# SessionStart hook: the privacy guard (0.86.0, 2026-10-25). The maintainer: "please see to it that these are never
+# added and if possible, make an iron rule in Lanes and in general to not add any of the actual home pc username or
+# file paths anywhere. only name Tefa is fine". Puts the git hooks in place on this PC if they are not (every commit
+# is then checked by tools/privacy-guard.py) and states the rule. Optional (features.py privacy_guard). Silent on
+# every failure path.
+set -uo pipefail
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+PY=""
+for cand in python3 python py; do
+  command -v "$cand" >/dev/null 2>&1 || continue
+  "$cand" -c "" >/dev/null 2>&1 || continue
+  PY="$cand"; break
+done
+[ -n "$PY" ] || exit 0
+"$PY" "${PLUGIN_ROOT}/tools/features.py" is-on privacy_guard >/dev/null 2>&1 || exit 0
+
+NOTE=""
+if ! "$PY" "${PLUGIN_ROOT}/tools/privacy-guard.py" status >/dev/null 2>&1; then
+  if "$PY" "${PLUGIN_ROOT}/tools/privacy-guard.py" install >/dev/null 2>&1; then
+    NOTE=' The guard was just switched on for this PC: tell the person in one plain line that every commit is now checked.'
+  fi
+else
+  # keep the hooks' own copy of the checker current after a plugin update
+  "$PY" "${PLUGIN_ROOT}/tools/privacy-guard.py" install >/dev/null 2>&1
+fi
+
+printf '%s' "PRIVACY RULE (lanes plugin, iron rule): nothing that goes to GitHub - files, notes, boards, scripts, commit messages, issues, release notes, repo descriptions, private repos included - may carry this PC's login name, a home-folder path (C:\Users\<user>, /c/Users/<user>, /home/<user>), or the person's e-mail address; public repos also never carry machine names. Write ~ for the home folder in notes, and in code look the folder up when it runs (os.path.expanduser('~'), \$HOME, %USERPROFILE%). The display name the person chose is the only name. A git hook on this PC refuses any commit that breaks this (privacy-guard.py); never skip it with --no-verify: fix the line and commit again.${NOTE}" \
+  | "$PY" "${SCRIPT_DIR}/emit_context.py"
+exit 0

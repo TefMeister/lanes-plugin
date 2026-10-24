@@ -854,6 +854,27 @@ else
   fail "handover-fixture.sh failed"
 fi
 
+# privacy guard (0.86.0): a login or a home path is refused, ~ and the display name pass
+PG="$HERE/../../tools/privacy-guard.py"
+PGD=$(mktemp -d)
+printf 'display_name = Tefa\n' > "$PGD/lanes.conf"
+if printf 'see C:/Users/fakeuserq/notes\n' | USERNAME=fakeuserq LANES_CONFIG="$PGD/lanes.conf" LANES_STATE_DIR="$PGD" "$PY" "$PG" text >/dev/null 2>&1; then  # scrub-scan:allow (deliberate fixture)
+  fail "privacy-guard let a home-folder path through"
+else
+  ok "privacy-guard refuses a home-folder path"
+fi
+if printf 'the login fakeuserq\n' | USERNAME=fakeuserq LANES_CONFIG="$PGD/lanes.conf" LANES_STATE_DIR="$PGD" "$PY" "$PG" text >/dev/null 2>&1; then
+  fail "privacy-guard let the login through"
+else
+  ok "privacy-guard refuses the login"
+fi
+if printf 'notes in ~/x and C:/Users/Tefa/y and C:/Users/<you>/z\n' | USERNAME=fakeuserq LANES_CONFIG="$PGD/lanes.conf" LANES_STATE_DIR="$PGD" "$PY" "$PG" text >/dev/null 2>&1; then  # scrub-scan:allow (deliberate fixture)
+  ok "privacy-guard lets ~, the display name and placeholders through"
+else
+  fail "privacy-guard refused a clean line"
+fi
+rm -rf "$PGD"
+
 echo
 if [ "$FAILED" -eq 0 ]; then
   echo "smoke-test: all assertions passed"

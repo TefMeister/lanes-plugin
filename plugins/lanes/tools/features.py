@@ -75,6 +75,11 @@ FEATURES = {
                            "live-game connectors) before doing it by hand, records what it learns, and adds a small "
                            "tool or improvement whenever it does the same thing by hand twice",
                    "link": PROTO_LINK + "33-use-every-tool-you-have-record-what-helps-grow-the-toolset-0850-2026-10-24"},
+    "privacy_guard": {"label": "Privacy guard", "set": "everyday",
+                      "what": "a git hook on this PC refuses any commit (and any gh issue, release or description) "
+                              "that carries the login name, a home-folder path or the e-mail address; public repos "
+                              "also never get machine names",
+                      "link": PROTO_LINK + "34-the-privacy-guard-no-login-no-home-paths-no-e-mail-on-github-0860-2026-10-25"},
     "keep_transcripts": {"label": "Keep full conversation logs", "set": "everyday",
                          "what": "copies each conversation out of Claude Code's 30-day clean-up, kept on this PC only",
                          "link": PROTO_LINK + "21-keep-conversations-short-an-earlier-summary-that-loses-nothing-0630-2026-10-13"},

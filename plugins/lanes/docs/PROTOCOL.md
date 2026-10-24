@@ -1487,3 +1487,35 @@ quicker, record things where needed and actually grow our arsenal of tools littl
   that app's `KNOWN.md` keeps it for later. Small and often: never a big rewrite in place of the job the person asked for.
 - Delivered as one line at session start (`hooks/tools-rule`). Optional (`features.py`: `tools_rule`, in the everyday
   helpers); a PC that already had Lanes has it on.
+
+## 34. The privacy guard: no login, no home paths, no e-mail on GitHub (0.86.0, 2026-10-25)
+
+The maintainer, after finding the home PC's login and a home-folder path in published notes: *"please see to it that
+these are never added and if possible, make an iron rule in Lanes and in general to not add any of the actual home pc
+username or file paths anywhere. only name Tefa is fine"*.
+
+**An iron rule, and a hook rather than a reminder.** The naming rule (given at every session start by
+`hooks/name-rule`) had said so for weeks and the release scan (`tools/scrub-scan.py`) checked the plugin itself, yet
+27 repos had collected the login, one note and one script at a time, each written by a session that could see the
+rule. A rule the model applies is behavioural; a git hook is not.
+
+- **Never on GitHub, in any repo, private ones included:** this PC's login name (unless it is the display name the
+  person chose), a home-folder path naming anyone else (`C:\Users\<user>`, `C:/Users/<user>`, `/c/Users/<user>`,
+  `/home/<user>`, `/Users/<user>`), and the e-mail address in git's settings. **In public repos also** every word in
+  the PC's private never-publish list (machine names). Private repos may keep machine names, because some tools file
+  their records by computer name.
+- **What to write instead:** `~` for the home folder in notes; in code, the folder looked up when the code runs
+  (`os.path.expanduser("~")`, `$HOME`, `%USERPROFILE%`), so the script keeps working on any PC. People are named only
+  by the display name.
+- **How it is enforced:** `tools/privacy-guard.py install` points git's machine-wide hook folder at
+  `~/.claude/lanes/githooks/`; every commit's added lines, new file names and message are checked, and a commit that
+  breaks the rule is refused with the line and the fix. Hooks that were set before (a push guard) still run after it.
+  `hooks/privacy-rule` installs it at session start when it is missing and states the rule; `hooks/privacy-hook.py`
+  checks `gh` commands that publish text without a commit (issues, pull requests, releases, gists, repo descriptions).
+  A line holding `privacy-guard:allow` is skipped (deliberate test fixtures only).
+- **Never skip it** (`--no-verify`): fix the line and commit again. A repository with its own hook folder
+  (`core.hooksPath` in its own settings) hides the machine-wide one; call `~/.claude/lanes/githooks/pre-commit` and
+  `commit-msg` from its hooks.
+- **What it cannot do:** it guards what is committed from now on. Old commits keep what they had; cleaning git
+  history is a separate, deliberate job that rewrites every copy, so it is the person's decision.
+- Optional (`features.py`: `privacy_guard`, in the everyday helpers); a PC that already had Lanes has it on.
