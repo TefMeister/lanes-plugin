@@ -211,6 +211,20 @@ def transcripts_root(conf):
     return os.path.expanduser(conf.get("transcripts") or os.path.join("~", ".claude", "lanes-transcripts"))
 
 
+def shown_path(path, conf):
+    """A path as it may be written into a checkpoint that goes to GitHub (0.86.0): the home folder as ~ and this PC's
+    login, which Claude Code also puts into the project folder's name, as <login> (privacy guard, PROTOCOL 34)."""
+    if not path:
+        return path
+    home = os.path.expanduser("~")
+    if os.path.normcase(path).startswith(os.path.normcase(home)):
+        path = "~" + path[len(home):]
+    login = os.environ.get("USERNAME") or os.environ.get("USER") or ""
+    if len(login) >= 3 and login.lower() != (conf.get("display_name") or "").lower():
+        path = re.sub(re.escape(login), "<login>", path, flags=re.I)
+    return path
+
+
 def keep_transcript(inp, conf):
     """Copy the full log out of Claude Code's 30-day clean-up. Returns the copy's path or ''."""
     src = inp.get("transcript_path") or ""
@@ -328,7 +342,7 @@ def cmd_pre():
             "- Claims this PC holds: %s" % (", ".join(held) or "none"),
             "- Not on GitHub yet: %s" % ("; ".join(unsaved) or "nothing"),
             "- Next step on the board: %s" % (step or "no OPEN row found"),
-            "- Full conversation log kept at: %s" % (copy or "not copied"), "",
+            "- Full conversation log kept at: %s" % (shown_path(copy, conf) or "not copied"), "",
             "## The last things asked for, word for word", ""]
     body += ["> " + a.replace("\n", "\n> ") + "\n" for a in asks] or ["(none found)"]
     body += ["", "## The last reply", "", reply or "(none found)"]

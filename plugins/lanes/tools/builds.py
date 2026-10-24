@@ -88,6 +88,16 @@ CHECK_PULL_SECONDS = 15                # `check` at session start gives the pull
 
 
 # ---- config -------------------------------------------------------------------------------------
+def home_as_tilde(path):
+    """A folder under the home folder written as ~ (0.86.0): PROJECT.conf goes to GitHub, and the privacy guard
+    (PROTOCOL 34) refuses a home-folder path, which carries the login. Read back with os.path.expanduser."""
+    home = os.path.expanduser("~")
+    full = os.path.abspath(path) if path else path
+    if full and os.path.normcase(full + os.sep).startswith(os.path.normcase(home + os.sep)):
+        return "~" + full[len(home):].replace("\\", "/")
+    return path
+
+
 def conf_candidates():
     if os.environ.get("LANES_CONFIG"):
         return [os.environ["LANES_CONFIG"]]
@@ -130,7 +140,7 @@ def read_project(root, project):
                 conf[key].append(val)
             elif key in conf:
                 conf[key] = val
-    conf["app"] = conf_get(f"builds_app.{project}") or conf["app"]
+    conf["app"] = os.path.expanduser(conf_get(f"builds_app.{project}") or conf["app"])   # 0.86.0: ~ is the home folder
     return conf
 
 
@@ -717,7 +727,7 @@ def cmd_init(a):
         sys.exit(f"builds.py: {path} exists (add --force to rewrite it)")
     lines = [f"# builds.py settings for {a.project}. One value per line; repeat a key to list several.",
              "# `app` is this project's app folder; a PC whose folder differs sets builds_app.<project> in lanes.conf.",
-             f"series = {a.series}", f"app = {a.app}"]
+             f"series = {a.series}", f"app = {home_as_tilde(a.app)}"]
     lines += [f"ours = {x}" for x in a.ours] + [f"skip = {x}" for x in a.skip or []]
     lines += ["# Built from the app's own data: kept on the PC, never pushed."]
     lines += [f"local_only = {x}" for x in a.local_only or []]
