@@ -1468,3 +1468,22 @@ before installing."*
   and `features.py off <name>` takes any one away. A new install chooses each at setup.
 - Still not optional, because they protect the person or the work: the naming rule, new repos private, the guards,
   the close-out box, the update check.
+
+## 33. Use every tool you have, record what helps, grow the toolset (0.85.0, 2026-10-24)
+
+The maintainer: *"please make it a lanes rule to use all the tools and skills at your disposal, to drive the menus
+quicker, record things where needed and actually grow our arsenal of tools little by little by little."*
+
+- **The tool first, by hand second.** Before a job is done by hand, the session checks what this PC already has for
+  it: recorded menu routes and Move-o-matiC (§22, `/lanes:menu`) to get through menus and into play, VR Bench and the
+  OpenXR Simulator for headset moves (§24), the BeG0nE reports for jitter and hands (§20), the live-game connectors
+  (§29) and the debuggers for questions about a running game, and every installed skill whose description fits.
+- **Record where it is needed.** A menu driven by hand becomes a route in the same session; what was learned about an
+  app goes into its `KNOWN.md`; a run whose log the app will write over at the next launch gets that log copied to a
+  keep folder on the PC before the next launch (never to GitHub: logs can hold paths and names).
+- **Grow the toolset little by little.** A step done by hand twice, an input the tools could not send, a check that
+  would have caught a mistake, a log read by eye that a script could sift: each becomes a small tool or a small
+  improvement to one, in the canonical copy, then shipped. When there is no time, one dated line under *Tool ideas* in
+  that app's `KNOWN.md` keeps it for later. Small and often: never a big rewrite in place of the job the person asked for.
+- Delivered as one line at session start (`hooks/tools-rule`). Optional (`features.py`: `tools_rule`, in the everyday
+  helpers); a PC that already had Lanes has it on.

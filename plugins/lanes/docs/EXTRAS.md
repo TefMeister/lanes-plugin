@@ -10,6 +10,7 @@ Small things for every session. Each one works on its own.
 
 - **The green look** (`theme`): puts the plugin's old-green-monitor look on this terminal; /lanes:theme restore undoes it. [Read more](https://github.com/TefMeister/lanes-plugin/blob/main/plugins/lanes/commands/theme.md)
 - **Check before agreeing** (`talk_rule`): Claude never says "you are right" before checking what you said. [Read more](https://github.com/TefMeister/lanes-plugin/blob/main/plugins/lanes/hooks/talk-rule)
+- **Use the tools, grow the tools** (`tools_rule`): Claude drives menus and tests with the tools this PC has (routes, VR Bench, BeG0nE, the live-game connectors) before doing it by hand, records what it learns, and adds a small tool or improvement whenever it does the same thing by hand twice. [Read more](https://github.com/TefMeister/lanes-plugin/blob/main/plugins/lanes/docs/PROTOCOL.md#33-use-every-tool-you-have-record-what-helps-grow-the-toolset-0850-2026-10-24)
 - **Keep full conversation logs** (`keep_transcripts`): copies each conversation out of Claude Code's 30-day clean-up, kept on this PC only. [Read more](https://github.com/TefMeister/lanes-plugin/blob/main/plugins/lanes/docs/PROTOCOL.md#21-keep-conversations-short-an-earlier-summary-that-loses-nothing-0630-2026-10-13)
 
 ## Keeping your tools up to date (best together)
