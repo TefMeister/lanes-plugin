@@ -70,6 +70,11 @@ FEATURES = {
     "talk_rule": {"label": "Check before agreeing", "set": "everyday",
                   "what": "Claude never says \"you are right\" before checking what you said",
                   "link": GH + "hooks/talk-rule"},
+    "tools_rule": {"label": "Use the tools, grow the tools", "set": "everyday",
+                   "what": "Claude drives menus and tests with the tools this PC has (routes, VR Bench, BeG0nE, the "
+                           "live-game connectors) before doing it by hand, records what it learns, and adds a small "
+                           "tool or improvement whenever it does the same thing by hand twice",
+                   "link": PROTO_LINK + "33-use-every-tool-you-have-record-what-helps-grow-the-toolset-0850-2026-10-24"},
     "keep_transcripts": {"label": "Keep full conversation logs", "set": "everyday",
                          "what": "copies each conversation out of Claude Code's 30-day clean-up, kept on this PC only",
                          "link": PROTO_LINK + "21-keep-conversations-short-an-earlier-summary-that-loses-nothing-0630-2026-10-13"},

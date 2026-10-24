@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# SessionStart hook: use every tool you have, record what helps, grow the toolset (0.85.0, 2026-10-24). The maintainer:
+# "please make it a lanes rule to use all the tools and skills at your disposal, to drive the menus quicker, record
+# things where needed and actually grow our arsenal of tools little by little by little." Optional (features.py
+# tools_rule). Silent on every failure path.
+set -uo pipefail
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+PY=""
+for cand in python3 python py; do
+  command -v "$cand" >/dev/null 2>&1 || continue
+  "$cand" -c "" >/dev/null 2>&1 || continue
+  PY="$cand"; break
+done
+[ -n "$PY" ] || exit 0
+"$PY" "${PLUGIN_ROOT}/tools/features.py" is-on tools_rule >/dev/null 2>&1 || exit 0
+
+printf '%s' 'TOOLS RULE (lanes plugin): use every tool and skill this PC has before doing a job by hand, record what helps, and grow the toolset a little every session. (1) Reach for the tool first: recorded menu routes (/lanes:menu, Menu-o-matiC) and Move-o-matiC to get through menus and into play, VR Bench and the OpenXR Simulator for headset moves, the BeG0nE reports for jitter and hands, the live-game connectors (RE Engine MCP, UEVR-MCP) and the debuggers for questions about a running game, and every installed skill whose description fits. (2) Record where it is needed: a menu driven by hand becomes a route the same session, anything learned about an app goes into its KNOWN.md, and a run whose log will be overwritten at the next launch gets that log kept. (3) Grow the toolset little by little: a step done by hand twice, a missing input, a check that would have caught a mistake, a log read by eye that a script could sift, becomes a small tool or a small improvement to one (or a dated line under Tool ideas in KNOWN.md when there is no time), in the canonical copy, then shipped. Small and often; never a big rewrite instead of the job. Why: each run should leave the next one faster.' \
+  | "$PY" "${SCRIPT_DIR}/emit_context.py"
+exit 0
