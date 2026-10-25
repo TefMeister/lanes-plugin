@@ -1513,6 +1513,11 @@ rule. A rule the model applies is behavioural; a git hook is not.
   `hooks/privacy-rule` installs it at session start when it is missing and states the rule; `hooks/privacy-hook.py`
   checks `gh` commands that publish text without a commit (issues, pull requests, releases, gists, repo descriptions).
   A line holding `privacy-guard:allow` is skipped (deliberate test fixtures only).
+- **Pushes are checked too (0.86.1):** before commits reach GitHub, none may carry a personal e-mail address as
+  author or committer (only GitHub's no-reply addresses pass) or the login or a home-folder path in its message. This
+  catches commits made around the commit check, and it stops an old copy from pushing old commits back after a
+  repo's history was cleaned: every old commit carries the old e-mail. The refusal says how to move the copy over
+  (`git fetch`, then `git reset --keep origin/<branch>`).
 - **Never skip it** (`--no-verify`): fix the line and commit again. A repository with its own hook folder
   (`core.hooksPath` in its own settings) hides the machine-wide one; call `~/.claude/lanes/githooks/pre-commit` and
   `commit-msg` from its hooks.

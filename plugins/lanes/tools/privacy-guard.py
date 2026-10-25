@@ -14,6 +14,8 @@ is behavioural; a git hook is not.
     python privacy-guard.py status        installed or not, and what is checked
     python privacy-guard.py staged        (pre-commit) check what is about to be committed; exit 1 = refused
     python privacy-guard.py message FILE  (commit-msg) check the commit message; exit 1 = refused
+    python privacy-guard.py push NAME URL  (pre-push, 0.86.1) no personal e-mail on the pushed commits, none of the
+                                          words in their messages; also stops old history coming back after a clean-up
     python privacy-guard.py text [--public] < file   check any text (tests, and the gh-command hook)
 
 WHAT IS REFUSED
@@ -201,6 +203,54 @@ def cmd_text(public):
     return report(findings, "text")
 
 
+ZERO = "0" * 40
+NOREPLY = ("users.noreply.github.com", "noreply@github.com", "noreply@anthropic.com")
+
+
+def cmd_push(remote_url):
+    """(pre-push, 0.86.1) Commits about to reach GitHub: no personal e-mail as author or committer, no login or
+    never-publish word in a message. Old commits from before a history clean-up all carry the old e-mail, so this is
+    also what stops an old copy from pushing the old history back."""
+    if "github.com" not in (remote_url or ""):
+        return 0
+    public = visibility() != "private"
+    ws, display = words(public), conf_value("display_name").lower()
+    findings, seen = [], set()
+    for line in sys.stdin.read().splitlines():
+        parts = line.split()
+        if len(parts) != 4 or parts[1] == ZERO:
+            continue
+        local, remote = parts[1], parts[3]
+        known = remote != ZERO and subprocess.run(["git", "cat-file", "-e", remote + "^{commit}"],
+                                                  capture_output=True).returncode == 0
+        rng = ["%s..%s" % (remote, local)] if known else [local, "--not", "--remotes"]
+        log = git("log", "--format=%H%x00%ae%x00%ce%x00%B%x1e", *rng)
+        for rec in log.split("\x1e"):
+            f = rec.strip("\n").split("\x00")
+            if len(f) < 4 or f[0] in seen:
+                continue
+            seen.add(f[0])
+            why = ["the e-mail address %s as author or committer" % e for e in sorted({f[1], f[2]})
+                   if e and not e.lower().endswith(NOREPLY)]
+            for ml in f[3].splitlines():
+                why += check_line(ml, ws, display)
+            if why:
+                findings.append(("commit " + f[0][:9], sorted(set(why))))
+    if findings:
+        sys.stderr.write("\nPRIVACY GUARD (lanes): this push would put something personal on GitHub.\n")
+        for where, why in findings[:MAX_SHOWN]:
+            sys.stderr.write("  %s: %s\n" % (where, ", ".join(why)))
+        if len(findings) > MAX_SHOWN:
+            sys.stderr.write("  ... and %d more commits\n" % (len(findings) - MAX_SHOWN))
+        sys.stderr.write("If this repository's history was cleaned, this copy still holds the old commits: move it onto\n"
+                         "the clean history with  git fetch  then  git reset --keep origin/<branch>  (your own edits stay as\n"
+                         "they are), and commit again. If it is your own new commit: set git's e-mail to your GitHub\n"
+                         "no-reply address (git config --global user.email <id>+<name>@users.noreply.github.com),\n"
+                         "then  git commit --amend --reset-author --no-edit. Never skip this check (no --no-verify).\n\n")
+        return 1
+    return 0
+
+
 HOOK = """#!/bin/sh
 # Lanes privacy guard (tools/privacy-guard.py install): checks a commit, then hands over to the hook that was here
 # before (a machine-wide one remembered in .previous, else the repository's own).
@@ -208,6 +258,12 @@ name=$(basename "$0")
 case "$name" in
   pre-commit) @@PY@@ "@@TOOL@@" staged || exit 1 ;;
   commit-msg) @@PY@@ "@@TOOL@@" message "$1" || exit 1 ;;
+  pre-push)
+    # the pushed refs arrive on stdin once: keep a copy for the hook that runs after this one
+    tmp=$(mktemp 2>/dev/null || echo "${TMPDIR:-/tmp}/lanes-pre-push.$$")
+    cat > "$tmp"
+    @@PY@@ "@@TOOL@@" push "$2" < "$tmp" || { rm -f "$tmp"; exit 1; }
+    exec 3< "$tmp"; rm -f "$tmp"; exec 0<&3 ;;
 esac
 prev=$(cat "$(dirname "$0")/.previous" 2>/dev/null)
 if [ -n "$prev" ] && [ -x "$prev/$name" ]; then exec "$prev/$name" "$@"; fi
@@ -281,6 +337,8 @@ def main(argv):
         return cmd_staged()
     if c == "message" and len(argv) > 1:
         return cmd_message(argv[1])
+    if c == "push":
+        return cmd_push(argv[2] if len(argv) > 2 else (argv[1] if len(argv) > 1 else ""))
     if c == "text":
         return cmd_text("--public" in argv)
     if c == "install":
