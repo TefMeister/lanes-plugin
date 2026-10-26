@@ -78,6 +78,9 @@ unanswered extras grouped in their **sets**, each extra OFF until answered here.
    already; if not, switch that set off without asking it.
 
 Then `features.py on <name>` for each ticked one and `features.py off <name>` for the rest, so none is pending again.
+When `remote_control` was asked, run `python "${CLAUDE_PLUGIN_ROOT}/tools/remote-control.py" apply` and
+`offers.py made remote-control <yes|no>` (it is then not asked again in §0.12.6); if it was left unticked, say in one
+line that typing `/remote-control` (or `/rc`) in a session turns it on for that session.
 When `theme` was ticked, run `python "${CLAUDE_PLUGIN_ROOT}/tools/theme.py" apply` and say in one line that Claude
 Code's own colours follow after a restart. Say in one line that `features.py on|off <name>` changes any of them
 later, and that the whole list with links is in the plugin's `docs/EXTRAS.md`. Skipping setup leaves them all off.
@@ -187,6 +190,17 @@ command-line switch, a bonus file). Ask **one question** (AskUserQuestion): *"Sh
 unlock every weapon and item in each game, as one of the first things, before modding it?"* Options **"Yes"** and
 **"No thanks"**. Then `python "${CLAUDE_PLUGIN_ROOT}/tools/unlock.py" on` or `off`, and `offers.py made unlock-all
 yes` or `no`. What sessions do with it: `docs/PROTOCOL.md` section 28.
+
+## 0.12.6 Remote Control in every session? (0.87.0, offered once, also on PCs that had Lanes)
+
+Only if `python "${CLAUDE_PLUGIN_ROOT}/tools/offers.py" should remote-control` says `offer`. Say in plain words:
+Claude Code's Remote Control lets a session be watched and typed into from the Claude phone app or claude.ai/code,
+and lets a session on another PC of the same account hand it a job; it needs Claude Code signed in with a claude.ai
+account. Ask **one question** (AskUserQuestion): *"Should every Claude Code session on this PC start with Remote
+Control on?"* Options **"Yes, every session"** and **"No, I'll turn it on myself"**. Then
+`python "${CLAUDE_PLUGIN_ROOT}/tools/remote-control.py" on` or `off`, and `offers.py made remote-control yes` or
+`no`. **Either way, tell them the slash command in one line:** typing `/remote-control` (short: `/rc`) in a session
+turns it on, or off, for that session. It starts with the next session. `docs/PROTOCOL.md` section 35.
 
 ## 0.13 BeG0nE: with automatic recordings (recommended), or on its own? (0.80.0, VR modders, offered once)
 

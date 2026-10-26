@@ -110,6 +110,10 @@ description: (Update) Checks GitHub for a newer version of the lanes plugin, say
 13. **Unlock everything before modding, once** (0.81.0), after step 12: as `/lanes:setup` §0.12.5 says (one
     question, then `unlock.py on` or `off` and `offers.py made unlock-all <answer>`).
 
+14. **Remote Control in every session, once** (0.87.0), after step 13: as `/lanes:setup` §0.12.6 says (one
+    question, then `remote-control.py on` or `off` and `offers.py made remote-control <answer>`, and always the
+    one line naming `/remote-control`).
+
 **Every offer on this page is made once** (0.75.0): an add-on offer is never repeated once `offers.py made` holds
 it, and "Not now" to an update quiets that version for good. Updates of things already installed (steps 6-8,
 `newer` true) are not offers of something new and are asked when a newer version appears.
