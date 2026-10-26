@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# SessionStart (async) and SessionEnd hook (0.88.0): Gold Digger shelving. Copies every game's new logs and BeG0nE
+# reports onto the shelves in the Gold Digger folder (tools/gd.py shelve --all), so a log is kept before the next
+# launch writes over it. Copies only, never deletes, never reads for meaning. Silent, and silent on every failure.
+# With "nudge" as its argument it prints the weekly full-scan line instead. LANES_GD=0 turns both off.
+set -uo pipefail
+[ "${LANES_GD:-1}" = "0" ] && exit 0
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+PY=""
+for cand in python3 python py; do
+  command -v "$cand" >/dev/null 2>&1 || continue
+  "$cand" -c "" >/dev/null 2>&1 || continue
+  PY="$cand"; break
+done
+[ -n "$PY" ] || exit 0
+if [ "${1:-}" = "nudge" ]; then
+  "$PY" "${PLUGIN_ROOT}/tools/features.py" is-on fullscan >/dev/null 2>&1 || exit 0
+  "$PY" "${PLUGIN_ROOT}/tools/gd.py" nudge 2>/dev/null | "$PY" "$SCRIPT_DIR/emit_context.py"
+  exit 0
+fi
+"$PY" "${PLUGIN_ROOT}/tools/features.py" is-on gold_digger >/dev/null 2>&1 || exit 0
+"$PY" "${PLUGIN_ROOT}/tools/gd.py" shelve --all --quiet >/dev/null 2>&1
+exit 0

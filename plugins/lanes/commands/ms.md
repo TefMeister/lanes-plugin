@@ -82,6 +82,8 @@ TELL ME: <the one or two things you need back: a number, yes/no, a screenshot, h
   work that follows without narrating it, then print the next `NEXT` block.
 - **When a build must be swapped:** step 1 is "close the app", the swap happens in your turn, and the
   next block starts with "start it again". Never assume it was closed.
+- **Each time the person has closed the app**, shelve the run's logs before the next start writes over them
+  (0.88.0): `python "${CLAUDE_PLUGIN_ROOT}/tools/gd.py" shelve <project>`. `docs/PROTOCOL.md` §36.
 - **Every swap is a new numbered build** (0.26.0), the same as `/lm`: after the change and before the
   next block, `builds.py snap <project> "<title>" --note "<what and why>"`; when they report what they
   saw, `builds.py result <project> <N> "<their words>"`. Tell them the number in the next block, so

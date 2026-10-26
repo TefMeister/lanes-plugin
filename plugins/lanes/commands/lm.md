@@ -349,6 +349,10 @@ or registry key before changing it.
   has no reachable menu, or the menu route has failed twice — and when you do, **say so in the
   write-up**, so a corrupted save later has an explanation. Wait for the process to exit on its own
   before swapping a build.
+- **Shelve the run's logs right after the app has closed** (0.88.0), before any relaunch writes over them:
+  `python "${CLAUDE_PLUGIN_ROOT}/tools/gd.py" shelve <project>`. It copies them onto the Gold Digger shelves and
+  changes nothing else. A log it did not pick up gets added to its list once: `gd.py sources <project> add <glob>`.
+  `docs/PROTOCOL.md` §36.
 
 ## 5b. ⚡ Drive menus FAST (0.49.0, asked for by a user watching a live session)
 

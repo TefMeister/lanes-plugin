@@ -22,6 +22,13 @@ The reminder brings the weekly tool check round, and the test builds make sure a
 - **Weekly tool reminder** (`gu_nudge`): one line at session start when the weekly tool check (/lanes:gu) is a week old. [Read more](https://github.com/TefMeister/lanes-plugin/blob/main/plugins/lanes/docs/PROTOCOL.md#23-the-weekly-tool-check-lanesgu-0670-2026-10-14). Goes well with: Test builds before updates.
 - **Test builds before updates** (`update_safety`): in the weekly tool check, an update that could break what you build (a compiler, Visual Studio, Python, Blender) is test-built first and put back if your work stops building. [Read more](https://github.com/TefMeister/lanes-plugin/blob/main/plugins/lanes/docs/PROTOCOL.md#31-test-build-before-keeping-an-update-0830-2026-10-23). Goes well with: Weekly tool reminder.
 
+## The weekly check-up (best together)
+
+Gold Digger keeps every run's logs on shelves, and the full scan reads them once a week together with the research, tool and tidiness checks.
+
+- **Gold Digger shelves** (`gold_digger`): after every run, the game's logs and the BeG0nE reports are copied onto shelves (camera, guns, jitter, menus and so on) in your transfer folder, never deleted, so /lanes:gd can read them shelf by shelf and hand the new facts to the notes. [Read more](https://github.com/TefMeister/lanes-plugin/blob/main/plugins/lanes/commands/gd.md). Goes well with: Weekly full scan.
+- **Weekly full scan** (`fullscan`): one line at session start when the weekly full scan (/lanes:fullscan: Gold Digger, research, the tool check, the tidiness pass, then save) is a week old. [Read more](https://github.com/TefMeister/lanes-plugin/blob/main/plugins/lanes/commands/fullscan.md). Goes well with: Gold Digger shelves.
+
 ## For VR mods (best together)
 
 One keeps the headset picture down to the gameplay, the other reports when that picture or the hands are not smooth, so its reports are about the mod and not about blur.
