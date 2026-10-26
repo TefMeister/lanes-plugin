@@ -79,8 +79,16 @@ SHELVES = [
 ]
 SHELF_NAMES = [s for s, _ in SHELVES] + ["other"]
 BEGONE_TOOLS = {"camera-jitter": "jitter", "ghost-hand": "hands", "occlusion-drift": "guns"}
-WARN = re.compile(r"\b(error|errors|fail|failed|failure|fatal|exception|crash|assert|warning|warn|refused|"
-                  r"denied|timeout|timed out|not found|missing|invalid|abort)\b", re.I)
+WARN_WORDS = (r"error|errors|fail|failed|failure|fatal|exception|crash|assert|warning|warn|refused|"
+              r"denied|timeout|timed out|not found|missing|invalid|abort")
+WARN = re.compile(rf"\b({WARN_WORDS})\b", re.I)
+# A counter that reads zero ("refused=0", "failed 0", "0 errors") is a clean report, not a warning.
+ZERO_COUNT = re.compile(rf"\b(?:{WARN_WORDS})\s*[=:]?\s*0(?![.\d])|(?<![.\d])\b0\s+(?:{WARN_WORDS})\b", re.I)
+
+
+def looks_like_warning(text):
+    return bool(WARN.search(ZERO_COUNT.sub("", text)))
+
 NUMBERS = re.compile(r"0x[0-9a-fA-F]+|\d+(?:\.\d+)?")
 
 
@@ -423,7 +431,7 @@ def fold(path, against=None):
     print("# W = looks like a warning or error;  xN = seen N times (lines first-last)")
     for s in shown:
         g = groups[s]
-        mark = "W" if WARN.search(g["text"]) else " "
+        mark = "W" if looks_like_warning(g["text"]) else " "
         rep = f"x{g['count']} ({g['first']}-{g['last']})" if g["count"] > 1 else f"   ({g['first']})"
         print(f"{mark} {rep:<20} {g['text']}")
     return 0
@@ -535,6 +543,11 @@ def cmd_sources(game, rest):
 
 
 def main(argv):
+    for stream in (sys.stdout, sys.stderr):
+        try:  # a log can hold any character; a Windows console or pipe defaults to cp1252 and would crash on it
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
     if not argv or argv[0] in ("-h", "--help"):
         print(__doc__)
         return 0
