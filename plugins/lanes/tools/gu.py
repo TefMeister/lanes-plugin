@@ -28,6 +28,7 @@ LANES_GU_NO_NET=1.
 import datetime
 import json
 import os
+import re
 import subprocess
 import sys
 import urllib.request
@@ -37,6 +38,7 @@ import gu_texts
 HERE = os.path.dirname(os.path.abspath(__file__))
 STATE_DIR = os.environ.get("LANES_STATE_DIR") or os.path.join(os.path.expanduser("~"), ".claude", "lanes")
 STATE_FILE = os.path.join(STATE_DIR, "gu.json")
+GIST_CHARS = 220             # how much of a release's notes the install question shows
 NUDGE_DAYS = 7               # the habit: once a week
 NET_TIMEOUT_S = 15
 GIT_TIMEOUT_S = 30
@@ -216,6 +218,21 @@ def latest_release(repo):
         return json.load(r)
 
 
+def release_gist(body, limit=GIST_CHARS):
+    """The first plain sentence or two of a release's notes, for the install question (0.88.0)."""
+    lines = []
+    for line in body.splitlines():
+        if line.lstrip().startswith("#"):          # a heading, not news
+            continue
+        line = re.sub(r"[#*`>_]|\[([^\]]*)\]\([^)]*\)", lambda m: m.group(1) or "", line).strip(" -")
+        if line and not line.lower().startswith(("full changelog", "what's changed", "**full")):
+            lines.append(line)
+        if sum(len(x) for x in lines) >= limit:
+            break
+    text = "; ".join(x.rstrip(".;") for x in lines)
+    return text if len(text) <= limit else text[:limit - 3].rsplit(" ", 1)[0] + "..."
+
+
 def outside_tools(state):
     seen = state.get("seen", {})
     rows = []
@@ -228,7 +245,9 @@ def outside_tools(state):
             rel, tag, err = {}, "", str(e)
         rows.append({"name": name, "repo": repo, "newest": tag or None, "title": rel.get("name") or "",
                      "date": (rel.get("published_at") or "")[:10], "noted": seen.get(name),
-                     "new": bool(tag) and seen.get(name) != tag, "error": err})
+                     "new": bool(tag) and seen.get(name) != tag, "error": err,
+                     "url": rel.get("html_url") or (f"https://github.com/{repo}/releases/tag/{tag}" if tag else ""),
+                     "notes": release_gist(rel.get("body") or "")})
     return rows
 
 
@@ -308,6 +327,10 @@ def scan(as_json):
         elif o["new"]:
             print(f"   {o['name']}: {o['newest']} ({o['date']}) {o['title']} - not noted yet"
                   + (f", last noted {o['noted']}" if o["noted"] else ""))
+            if o.get("notes"):
+                print(f"      what is in it: {o['notes']}")
+            if o.get("url"):
+                print(f"      from: {o['url']}")
         else:
             print(f"   {o['name']}: {o['newest'] or 'no releases'}, already noted")
     print("4. Lessons for the tools since the last run")
