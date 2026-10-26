@@ -24,6 +24,23 @@ unasked; mention it in one line and carry on.
   even possibly break something, so user can decide ... have them all optional at the end of the run as questions
   user can tick or leave unticked"). A test run that changes nothing (pip check, an import test in a scratch copy)
   may come before the question, so the warning is measured rather than guessed.
+  **The shape of that question (0.88.0; asked for by the maintainer: "a tickable list of tools and skills and anything
+  that can be updated or have everything updated in one go as the first option ... a basic description of what is in
+  the update and a link to the actual place the update will be downloaded from"):**
+  1. **It covers everything with a newer version:** this plugin, our own apps, every outside tool and connector
+     (`watch =`, such as the live-game MCP servers and their makers' releases), the Claude Code plugins and skills
+     installed on this PC (`~/.claude/plugins/installed_plugins.json` against each marketplace's newest version), PC
+     programs (winget) and Python packages.
+  2. **Just above the question, a plain numbered list**, one entry per update: its name, the version now and the new
+     one, one line of **what is in it** (from its release notes or changelog, in plain words; `gu.py scan` prints the
+     outside tools' line), **where it downloads from** (the full link: the release page, the marketplace repo, the
+     winget or PyPI page), and what it could break. The links sit there because a question's options cannot carry a
+     clickable link.
+  3. **The first option is always "Everything"** ("Update all N, the safe way": build-critical ones still get their
+     test build, one at a time). Then one option per update, label the name and new version, description the same
+     "what is in it" line shortened, plus "could break: ...". Up to four options per question and four questions;
+     when there are more updates than fit, the low-risk ones share one option ("The 9 small updates, listed above").
+  4. Ticking "Everything" installs all of them; otherwise only what is ticked. Nothing ticked installs nothing.
   **Sort them first** (0.83.0): `python "${CLAUDE_PLUGIN_ROOT}/tools/gu_guard.py" risk winget:<Id> ...
   pip:<name>:<have>:<new> ...` marks each BUILD-CRITICAL (a compiler, Visual Studio's build tools, CMake, Python
   itself, the debugger, Blender, a Python package's major jump, anything in `critical =`) or low risk. A critical

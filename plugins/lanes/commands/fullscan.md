@@ -59,8 +59,12 @@ Read-only, as always. It runs after everything above so it checks what this run 
 ## 7. Save, then the questions
 
 1. Save everything: the person's `/sp` if this PC has it, otherwise commit and push each lane root's own work.
-2. Ask the tool check's install question (one multi-select, "could break" on every option), install only what is
-   ticked, with the test builds `/gu` uses. If nothing needs installing, say so and ask nothing.
+2. Ask the tool check's install question, in its full shape (`/gu`'s rules, "The shape of that question"): first a
+   plain numbered list of every update, each with what is in it, where it downloads from and what it could break; then
+   the tick boxes, **"Everything" first**, then one per update. It covers every tool with a newer version: this plugin,
+   our own apps, outside tools and connectors from other makers, installed Claude Code plugins and skills, PC programs
+   and Python packages. Install what is ticked, with the test builds `/gu` uses. If nothing needs installing, say so
+   and ask nothing.
 3. Stamp the run: `python "${CLAUDE_PLUGIN_ROOT}/tools/gd.py" fullscan-done` and `python
    "${CLAUDE_PLUGIN_ROOT}/tools/gu.py" done`.
 
