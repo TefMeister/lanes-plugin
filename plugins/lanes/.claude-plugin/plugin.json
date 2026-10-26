@@ -1,7 +1,7 @@
 {
   "name": "lanes",
   "description": "A growing collection of tools, skills and programs for Claude Code, primarily meant for flat-to-VR video game modding. Named session lanes, a shared work board, live-game tools and VR testing helpers.",
-  "version": "0.88.1",
+  "version": "0.88.2",
   "author": {
     "name": "TefMeister"
   },

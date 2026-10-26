@@ -25,13 +25,14 @@ build_check = always fails | - | bash -c "exit 3"
 critical = 7zip | a test entry: named critical by hand
 EOF
 
-out=$("$PY" "$TOOL" risk winget:MartinStorsjo.LLVM-MinGW.UCRT winget:RARLab.WinRAR winget:7zip.7zip pip:mcp:1.29.0:2.3.0 pip:pillow:12.1:12.2 winget:Microsoft.VisualStudio.2022.BuildTools 2>&1)
+out=$("$PY" "$TOOL" risk winget:MartinStorsjo.LLVM-MinGW.UCRT winget:RARLab.WinRAR winget:7zip.7zip pip:mcp:1.29.0:2.3.0 pip:pillow:12.1:12.2 winget:Microsoft.VisualStudio.2022.BuildTools winget:Microsoft.VisualStudioCode 2>&1)
 check "the compiler is build-critical" 'echo "$out" | grep -q "^BUILD-CRITICAL	winget:MartinStorsjo.LLVM-MinGW.UCRT"'
 check "an archiver is low risk" 'echo "$out" | grep -q "^low	winget:RARLab.WinRAR	no known risk"'
 check "lanes.conf critical = adds one" 'echo "$out" | grep -q "^BUILD-CRITICAL	winget:7zip.7zip	a test entry"'
 check "a pip major jump is build-critical" 'echo "$out" | grep -q "^BUILD-CRITICAL	pip:mcp:1.29.0:2.3.0	a major version"'
 check "a pip minor bump is low risk" 'echo "$out" | grep -q "^low	pip:pillow"'
 check "Visual Studio build tools are build-critical" 'echo "$out" | grep -q "^BUILD-CRITICAL	winget:Microsoft.VisualStudio"'
+check "VS Code (an editor) is low risk" 'echo "$out" | grep -q "^low	winget:Microsoft.VisualStudioCode	no known risk"'
 
 out=$("$PY" "$TOOL" checks 2>&1)
 check "checks lists both" 'echo "$out" | grep -q "proj: bash build.sh" && echo "$out" | grep -q "always fails"'

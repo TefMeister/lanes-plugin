@@ -54,7 +54,7 @@ TAIL_LINES = 8               # of a failing check's output, kept to show what br
 # What can break a build, by part of the winget Id (case-insensitive). Everything else is "no known risk".
 CRITICAL_WINGET = [
     ("llvm-mingw", "the compiler our add-ons are built with: a new version moves its folder and changes every build"),
-    ("visualstudio", "Visual Studio's build tools: the C++ compiler for Visual Studio-built add-ons and apps"),
+    ("visualstudio.", "Visual Studio's build tools: the C++ compiler for Visual Studio-built add-ons and apps"),
     ("buildtools", "Visual Studio's build tools: the C++ compiler for Visual Studio-built add-ons and apps"),
     ("cmake", "CMake, which sets up C++ builds"),
     ("ninja", "Ninja, the build runner"),

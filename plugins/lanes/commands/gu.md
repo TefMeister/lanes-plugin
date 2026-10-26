@@ -40,6 +40,11 @@ unasked; mention it in one line and carry on.
      test build, one at a time). Then one option per update, label the name and new version, description the same
      "what is in it" line shortened, plus "could break: ...". Up to four options per question and four questions;
      when there are more updates than fit, the low-risk ones share one option ("The 9 small updates, listed above").
+     **When the updates need more than one question, ask "Everything" ON ITS OWN first** (0.88.2): one single-choice
+     question, "Everything (all N, the safe way)" or "Let me pick", and ask the per-update questions only after
+     "Let me pick". Asked for by the maintainer, after ticking "Everything" in the first of two questions: *"if the
+     first option everything is selected, it should not say a warning at the end that not all questions were
+     answered."*
   4. Ticking "Everything" installs all of them; otherwise only what is ticked. Nothing ticked installs nothing.
   **Sort them first** (0.83.0): `python "${CLAUDE_PLUGIN_ROOT}/tools/gu_guard.py" risk winget:<Id> ...
   pip:<name>:<have>:<new> ...` marks each BUILD-CRITICAL (a compiler, Visual Studio's build tools, CMake, Python
