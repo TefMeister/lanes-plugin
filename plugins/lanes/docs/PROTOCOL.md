@@ -1544,3 +1544,27 @@ manually"*.
   Both name the slash command, whatever the answer.
 - Optional (`features.py`: `remote_control`, in the everyday helpers); unlike the other extras it stays off on a PC
   that had Lanes until it has been asked.
+
+## 36. Gold Digger and the weekly full scan (0.88.0, 2026-10-26)
+
+The maintainer, 2026-10-24: *"can you maybe save this info and logs and all of that on the pc and then we create a slash
+command so that you go through all this info and filter out things we actually need?"*; 2026-10-26: *"categorizin and
+"shelving" all the collected data after each run, without deleting any of it or even analizing any of it ... we need to
+save all the collected data in the MEGA transfer folder so both pc's can access it freely"*, and one command for the
+whole check-up, each part still available on its own.
+
+- **Shelving, after every run, no model:** `tools/gd.py shelve` copies a game's logs (from the places listed per PC
+  with `gd.py sources <game> add <glob> [<shelf>]`) and its new BeG0nE reports (report and chart, never the raw
+  numbers) onto shelves in `<transfer>/Gold Digger/<game>/<shelf>/`. The shelf comes from the item's name; shelves
+  whose words fill its contents are listed as "also". Same contents are never copied twice, a file changed in the last
+  two minutes is left for next time, and nothing is ever deleted. It runs in the session-start and session-end hooks,
+  and `/lm` and `/ms` run it right after the app closes. Every index file is written by one PC only
+  (`INDEX-<PC>.tsv`, `SIFTED-<PC>.tsv`, `SOURCES-<PC>.txt`), so a synced folder never has two PCs editing one file.
+- **`/lanes:gd` reads one shelf at a time** with `gd.py fold` (repeats folded into one line with a count, warnings
+  marked, and with `--against` only what the earlier run did not have), and hands each new fact to one place through
+  the doors that are safe beside every lane: the project's `engine-research/inbox/`, the game's `KNOWN.md`, a tool's
+  inbox. Then it marks the items read.
+- **`/lanes:fullscan`** runs, one after another: save check, shelving, `/gd`, `/gr`, `/sr`, `/gu` (looking only),
+  `/gs`, saving, and last the tool check's install question. Each part keeps its own rules and clone root. Weekly; the
+  session-start line replaces the tool check's own weekly line while the full scan is on.
+- Optional (`features.py`: `gold_digger` and `fullscan`, the weekly check-up set, offered together).

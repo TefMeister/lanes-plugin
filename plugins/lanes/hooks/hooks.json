@@ -173,6 +173,18 @@
         "hooks": [
           {
             "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" gd-shelve nudge",
+            "shell": "bash",
+            "timeout": 15,
+            "statusMessage": "Is the weekly full scan due?",
+            "async": false
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" theme-apply",
             "shell": "bash",
             "timeout": 30,
@@ -213,6 +225,18 @@
             "shell": "bash",
             "timeout": 20,
             "statusMessage": "Lanes: putting the checkpoint back in view"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" gd-shelve",
+            "shell": "bash",
+            "timeout": 300,
+            "statusMessage": "Gold Digger: shelving logs from earlier runs",
+            "async": true
           }
         ]
       }
@@ -328,6 +352,17 @@
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook compact-hook.py end",
             "shell": "bash",
             "timeout": 60
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" gd-shelve",
+            "shell": "bash",
+            "timeout": 120,
+            "statusMessage": "Gold Digger: shelving this session's logs"
           }
         ]
       }

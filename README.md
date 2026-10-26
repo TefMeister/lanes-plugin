@@ -18,6 +18,8 @@ you have at the start of every session: *what can I actually do right now?*
 | `/sr` | Sweep Research | Research across all projects, kept in one shared library. |
 | `/gs` | Good-standing Sweep | Hygiene check: are notes tagged, and are hand-offs being picked up? |
 | `/gu` | GitHub Update | The weekly tool check: brings your tools up to date both ways, flags new releases of outside tools, feeds lessons into the tools, and keeps your repo descriptions and front pages up to date. |
+| `/gd` | Gold Digger | Reads the logs and reports every run leaves behind, shelf by shelf (camera, guns, jitter, menus...), and hands the few new facts to the notes. Every run's logs are kept on those shelves by themselves. |
+| `/fullscan` | Full Scan | The weekly check-up in one go: Gold Digger, research, the tool check and the tidiness pass, then everything saved, with install questions left to the end. |
 | `/gates` | Gate Board | Shows the work board. |
 | `/gate-watch` | Gate Watch | Tells you when another session finishes something. |
 | `/ideas` | Ideas | Files the ideas you jotted down, onto the right project. |
@@ -293,7 +295,7 @@ any project. Expect changes: `/lanes:update` tells you what is new and never ins
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.87.0`, public, in daily use |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.88.0`, public, in daily use |
 
 ## Modding games?
 
