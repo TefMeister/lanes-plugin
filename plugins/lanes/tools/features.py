@@ -30,6 +30,8 @@ HOW A NEW INSTALL IS TOLD FROM AN UPDATE
   - "new": nothing of Lanes was on this PC. Every extra is off until /lanes:setup asks; the answer is written to
     lanes.conf. Skipping setup leaves them off; `on <name>` switches one on any time.
   An explicit `<name> = on|off` in lanes.conf always wins, on either kind of PC.
+  An extra marked "ask_on_update" (one that changes how every session starts, such as remote_control) is off on
+  both kinds of PC until asked: setup asks a new install, and /lanes:update asks once on a PC that had Lanes.
 Tests set LANES_STATE_DIR and LANES_CONFIG.
 """
 import json
@@ -80,6 +82,11 @@ FEATURES = {
                               "that carries the login name, a home-folder path or the e-mail address; public repos "
                               "also never get machine names",
                       "link": PROTO_LINK + "34-the-privacy-guard-no-login-no-home-paths-no-e-mail-on-github-0860-2026-10-25"},
+    "remote_control": {"label": "Remote Control in every session", "set": "everyday", "ask_on_update": True,
+                       "what": "every Claude Code session on this PC starts with Remote Control on, so it can be "
+                               "watched and typed into from the Claude phone app, claude.ai/code or a session on your "
+                               "other PC; without it, /remote-control (or /rc) turns it on in one session",
+                       "link": PROTO_LINK + "35-remote-control-in-every-session-0870-2026-10-26"},
     "keep_transcripts": {"label": "Keep full conversation logs", "set": "everyday",
                          "what": "copies each conversation out of Claude Code's 30-day clean-up, kept on this PC only",
                          "link": PROTO_LINK + "21-keep-conversations-short-an-earlier-summary-that-loses-nothing-0630-2026-10-13"},
@@ -184,6 +191,8 @@ def why(name):
         return True, "switched on"
     if v in OFF_WORDS:
         return False, "switched off"
+    if FEATURES[name].get("ask_on_update"):
+        return False, "not chosen yet (asked once)"
     if kind() == "update":
         return True, "on, as before"
     return False, "not chosen yet (setup asks)"

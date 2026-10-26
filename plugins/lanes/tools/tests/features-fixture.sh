@@ -44,5 +44,26 @@ check $? 3 "lint refuses a link to a heading that is not there"
 "$PY" -c "import sys; sys.path.insert(0, r'$HEREW/..'); import features as f; f.FEATURES['x']={'label':'X','what':'x','set':'tools','link':''}; sys.exit(3 if f.lint() else 0)"
 check $? 3 "lint refuses an extra with no link"
 
+# remote control (0.87.0): off on an update until asked, and remote-control.py edits only its own two settings
+export LANES_STATE_DIR="$T/old" LANES_CONFIG="$T/rc.conf" LANES_CLAUDE_SETTINGS="$T/settings.json"
+RC="$HERE/../remote-control.py"
+"$PY" "$FE" is-on remote_control; check $? 1 "an update does not switch Remote Control on by itself"
+printf '{\n  "model": "x",\n  "env": {"KEEP": "1"}\n}\n' > "$T/settings.json"
+"$PY" "$RC" on >/dev/null
+"$PY" "$FE" is-on remote_control; check $? 0 "remote-control.py on switches the extra on"
+"$PY" -c "import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d['remoteControlAtStartup'] is True and d['model']=='x' and d['env']['KEEP']=='1' else 3)" "$T/settings.json"
+check $? 0 "on sets the startup setting and keeps the other settings"
+[ -f "$T/settings.json.lanes-before-remote-control" ]; check $? 0 "the settings file is backed up before the first change"
+"$PY" "$RC" off >/dev/null
+"$PY" -c "import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if 'remoteControlAtStartup' not in d and 'CLAUDE_REMOTE_CONTROL_SESSION_NAME_PREFIX' not in d['env'] and d['env']['KEEP']=='1' else 3)" "$T/settings.json"
+check $? 0 "off takes out only its own two values"
+out=$("$PY" "$RC" off); case "$out" in *"/remote-control"*) check 0 0 "";; *) check 1 0 "off names the slash command";; esac
+echo "remote_control = on" > "$T/rc.conf"
+"$PY" "$RC" apply >/dev/null
+out=$("$PY" "$RC" status); case "$out" in on*) check 0 0 "";; *) check 1 0 "apply makes the settings follow the extra";; esac
+echo "{ not json" > "$T/settings.json"
+"$PY" "$RC" on >/dev/null; check $? 1 "a broken settings file is left alone"
+unset LANES_CLAUDE_SETTINGS
+
 echo "features-fixture: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

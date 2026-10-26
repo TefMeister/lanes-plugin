@@ -293,7 +293,7 @@ any project. Expect changes: `/lanes:update` tells you what is new and never ins
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.86.1`, public, in daily use |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.87.0`, public, in daily use |
 
 ## Modding games?
 

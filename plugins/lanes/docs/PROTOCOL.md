@@ -1524,3 +1524,23 @@ rule. A rule the model applies is behavioural; a git hook is not.
 - **What it cannot do:** it guards what is committed from now on. Old commits keep what they had; cleaning git
   history is a separate, deliberate job that rewrites every copy, so it is the person's decision.
 - Optional (`features.py`: `privacy_guard`, in the everyday helpers); a PC that already had Lanes has it on.
+
+## 35. Remote Control in every session (0.87.0, 2026-10-26)
+
+The maintainer: *"remote control toggled on at every session start by default, and have that as an option in Lanes as
+well - ask user if remote control should be on by default and tell them the slash command if they want it enabled
+manually"*.
+
+- **What it is:** Claude Code's own Remote Control. A session with it on can be watched and typed into from the
+  Claude phone app or claude.ai/code, and a session on another PC of the same account can send it a job. It needs
+  Claude Code signed in with a claude.ai account.
+- **On for every session:** `tools/remote-control.py on` writes `remoteControlAtStartup` into the user's Claude Code
+  settings (a repo's own settings cannot switch it on) and names the sessions after this PC's Lanes name
+  (`machine-name.py`), never the computer's real name, which Claude Code would use otherwise. It starts with the next
+  session. `off` takes both values out again; the settings file is backed up once before the first change.
+- **By hand, one session:** `/remote-control` (short `/rc`) turns it on or off in the session it is typed in.
+- **Asked once on every PC**, new install or not, because it changes how every session starts: setup asks it with
+  the everyday helpers (§0.6.2) or on its own (§0.12.6), and `/lanes:update` asks it once on a PC that had Lanes.
+  Both name the slash command, whatever the answer.
+- Optional (`features.py`: `remote_control`, in the everyday helpers); unlike the other extras it stays off on a PC
+  that had Lanes until it has been asked.

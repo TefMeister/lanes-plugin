@@ -31,6 +31,8 @@ KNOWN = {
                "repos, a copy for each kind of session, and a repo per project with its folders (tools/estate.py)"),
     "unlock-all": ("0.81.0", "look for a developer mode, cheat or file that unlocks every weapon and item before modding "
                    "a game, so nobody has to play through it first (tools/unlock.py)"),
+    "remote-control": ("0.87.0", "start every Claude Code session with Remote Control on, so it can be reached from the "
+                       "phone app, claude.ai/code or the other PC (tools/remote-control.py)"),
     "superpowers": ("0.77.0", "the superpowers skills plugin (obra): ways of working Claude follows, such as planning before "
                     "building, debugging step by step and checking work before calling it done"),
 }
