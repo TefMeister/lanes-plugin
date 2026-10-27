@@ -62,7 +62,14 @@ def rec_root():
 
 
 def ffmpeg():
-    return os.environ.get("LANES_FFMPEG") or shutil.which("ffmpeg")
+    """LANES_FFMPEG, else PATH, else winget's own package folder: the rider may have started before winget put
+    ffmpeg on PATH (seen on the home PC 2026-10-26: "ffmpeg is not installed" with ffmpeg installed)"""
+    found = os.environ.get("LANES_FFMPEG") or shutil.which("ffmpeg")
+    if found:
+        return found
+    pkgs = os.path.join(os.environ.get("LOCALAPPDATA", ""), "Microsoft", "WinGet", "Packages")
+    hits = sorted(glob.glob(os.path.join(pkgs, "Gyan.FFmpeg*", "*", "bin", "ffmpeg.exe")))
+    return hits[-1] if hits else None
 
 
 def log_wall_ms(log):
