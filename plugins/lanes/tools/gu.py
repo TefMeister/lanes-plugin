@@ -286,11 +286,27 @@ def lessons(since):
 
 # ---- 5. texts on GitHub ----------------------------------------------------------------------------------------
 
+def installed_apps():
+    """every app of ours that any PC has noted as installed (<board>/installed/<PC>.json, installed.py)"""
+    import installed
+    b = installed.board()
+    folder = os.path.join(b, installed.FOLDER) if b else ""
+    names = set()
+    for name in (os.listdir(folder) if os.path.isdir(folder) else []):
+        try:
+            with open(os.path.join(folder, name), encoding="utf-8") as f:
+                names.update(json.load(f))
+        except (OSError, ValueError):
+            pass
+    return sorted(names)
+
+
 def texts_report():
     roots, owner = conf_values("texts"), (conf_values("texts_owner") or [""])[-1]
     if not roots and not owner:
         return None
-    return gu_texts.scan(roots, owner, today())
+    return gu_texts.scan(roots, owner, today(), catalogs=conf_values("catalog"), ours=conf_values("ours"),
+                         apps=installed_apps())
 
 
 # ---- commands -------------------------------------------------------------------------------------------------
