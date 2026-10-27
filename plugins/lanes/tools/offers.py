@@ -33,6 +33,8 @@ KNOWN = {
                    "a game, so nobody has to play through it first (tools/unlock.py)"),
     "remote-control": ("0.87.0", "start every Claude Code session with Remote Control on, so it can be reached from the "
                        "phone app, claude.ai/code or the other PC (tools/remote-control.py)"),
+    "video-tidy": ("0.90.0", "take each BeG0nE test video off the PC once nothing needs it; the cut frames and reports "
+                   "stay (begone/video_tidy.py)"),
     "superpowers": ("0.77.0", "the superpowers skills plugin (obra): ways of working Claude follows, such as planning before "
                     "building, debugging step by step and checking work before calling it done"),
 }
