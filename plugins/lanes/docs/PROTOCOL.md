@@ -1341,6 +1341,7 @@ recording and BeG0nE tools working together ... this is one of these things that
   picture every few seconds can be the recorder repeating a frame; a HELD picture followed by a JUMP is the game. The
   two clocks agree to about one frame. Only the game's own windows are recorded, never the screen; the frames stay
   off GitHub.
+- **0.90.0: the videos do not stay for ever** (§38). Once nothing needs a video it is taken off the PC; the frames stay.
 
 ## 27. A new GitHub account, set up the Lanes way (0.78.0, 2026-10-18)
 
@@ -1592,3 +1593,20 @@ this slash command to the /fullscan function"*.
   Village grip had a 2026-10-24 fix the Lanes copy never got (now in both); BeG0nE's frozen ride-along moved to its
   archive; VR Bench's per-stage time limit and footage warning found named but never wired in.
 - Part of `/lanes:fullscan` (after the tool check). Optional (`features.py`: `code_health`, in the weekly check-up set).
+
+## 38. BeG0nE videos clean up after themselves (0.90.0, 2026-10-27)
+
+The maintainer, 2026-10-17: *"automatic recordings are now only for pairing with the BeG0nE tools and to be deleted
+once they are no longer used"*. Ten days later nothing had ever deleted one, and asked *"see if the used ones we don't
+need are actually also automatically removed from the pc?"*, they said yes to building it.
+
+- **When a video goes** (`begone/video_tidy.py`), all three: it is finished (its `.json` says when it stopped); no
+  jitter report of that game from that time is still waiting for its frames; and either the game was recorded again
+  on a later day (the test was redone) or the video is older than two weeks (nobody came back to that job). So a game
+  keeps the videos of its last test day until it is tested again, or two weeks pass.
+- **What stays:** the cut frames (`sheet.jpg`, `frames.txt`, the pictures) and every report. Only the `.mp4` and its
+  `.json` go, and each removal is written to `%LOCALAPPDATA%\BeG0nE\videos-removed.tsv`.
+- **Who runs it:** the rider, once an hour while nothing records. `begone.py videos` shows what would go and what
+  stays, and why; `begone.py videos tidy` does it now.
+- Optional (`features.py`: `begone_video_tidy`, in the VR set). It deletes files, so a PC that had Lanes before is
+  asked once, and it is off until it says yes.

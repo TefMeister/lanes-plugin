@@ -10,6 +10,8 @@
     python begone.py frames <tool> <run|latest> [attach | where | <from s> <to s> [--full]] [--game <project>]
                                            the recording of that session, cut at the jittery seconds (0.76.0):
                                            attach (again), where the frames are, or any stretch by log seconds
+    python begone.py videos [tidy]         the recordings on this PC: which ones nothing needs any more, and why
+                                           (0.90.0); tidy takes those off now (the rider does it once an hour)
     python begone.py for "<what the job is>"                which tools to read for this job
     python begone.py tools                 every tool, what it watches, how a mod wires it in
 
@@ -190,6 +192,9 @@ def main(a):
         return "\n".join(new_line(t, r) for t, r in fresh) or "nothing new"
     if cmd == "tools":
         return "\n".join(f"{t['name']} ({t['folder']}): {t['what']}.\n  wire: {t.get('wire', '-')}" for t in bc.tools())
+    if cmd == "videos":
+        import video_tidy
+        return video_tidy.main(["tidy" if "tidy" in a else "list"])
     if cmd == "for" and len(a) >= 2:
         job = " ".join(a[1:]).lower()
         hits = [t["name"] for t in bc.tools() if any(w in job for w in t.get("jobs", []))]

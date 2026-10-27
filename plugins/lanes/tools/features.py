@@ -119,6 +119,11 @@ FEATURES = {
                     "what": "a quiet helper that starts with every session and turns each headset test of a mod wired "
                             "to it into a short report on jitter and hand faults",
                     "link": "https://github.com/TefMeister/BeG0nE"},
+    "begone_video_tidy": {"label": "BeG0nE videos clean up after themselves", "set": "vr", "ask_on_update": True,
+                          "what": "the videos recorded beside a BeG0nE test are taken off the PC once nothing needs "
+                                  "them: when the game is tested again on a later day, or after two weeks; the cut "
+                                  "frames and the reports stay",
+                          "link": PROTO_LINK + "38-beg0ne-videos-clean-up-after-themselves-0900-2026-10-27"},
     "vr_effects_off": {"label": "Gameplay only in VR", "set": "vr",
                        "what": "sessions switch off every blur and screen effect a game paints over the picture, such "
                                "as motion blur, blood on the screen and the low-health tint",

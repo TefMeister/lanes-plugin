@@ -21,6 +21,8 @@ recording whenever we actually launch games in either openxr simulator or in vr"
 recording, not only the jitter log, and one recording covers the whole session: it stops when no tool's log is
 growing any more. A log whose header names no process (the Lua recorders write pid=lua) is matched to the windowed
 program that has an OpenXR / OpenVR dll loaded.
+0.90.0: once an hour while nothing records, the videos nothing needs any more are taken off (video_tidy.py; its
+frames and reports stay). Only with `begone_video_tidy` on.
 
 HOW IT KNOWS A VR SESSION IS ON, three ways (the 'never one method' rule): a recording growing in a tool's log
 folder (the only one that produces data); SteamVR running; a windowed process with an OpenXR/OpenVR dll loaded.
@@ -55,6 +57,8 @@ REC_TOOL = os.path.join(os.path.dirname(HERE), "tools", "obs-rec.py")
 REC_LABEL = "begone"            # recordings the rider makes are named begone_<date>_<time>.mp4
 REC_TIMEOUT_S = 90              # obs-rec may have to start OBS first
 REC_STATE = os.path.join(os.path.expandvars("%LOCALAPPDATA%"), "obs-rec-state.json")
+TIDY_EVERY_S = 3600             # how often the videos nothing needs are taken off (video_tidy.py, 0.90.0)
+FEATURES = os.path.join(os.path.dirname(HERE), "tools", "features.py")
 
 
 def say(msg):
@@ -211,6 +215,20 @@ def stop_recording():
         say(f"could not stop the recording: {e}")
 
 
+def tidy_videos():
+    """take off the recordings nothing needs any more, when `begone_video_tidy` is on (0.90.0)"""
+    try:
+        on = subprocess.run([sys.executable, FEATURES, "is-on", "begone_video_tidy"], capture_output=True,
+                            timeout=REC_TIMEOUT_S, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        if on.returncode != 0:
+            return
+        import video_tidy
+        for g, name, size, why in video_tidy.tidy():
+            say(f"video taken off: {g} {name} ({size // 1048576} MB, {why}); its frames stay")
+    except Exception as e:  # tidying must never stop the rider
+        say(f"could not tidy the videos: {e}")
+
+
 def write_state(**kw):
     os.makedirs(bc.LOCAL, exist_ok=True)
     kw["at"] = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -225,6 +243,7 @@ def run():
         f.write(str(os.getpid()))
     say("rider up: " + ", ".join(t["name"] for t in bc.tools() if t.get("log_dir")))
     last_proc_look, steam, loaded, announced = 0, False, [], set()
+    last_tidy = time.time() - TIDY_EVERY_S + 300       # the first tidy five minutes after the rider starts
     rec_on = False                  # the rider started the recording that is running now (one per session)
     while True:
         now = time.time()
@@ -247,6 +266,8 @@ def run():
                 live.append(f"{game} ({t['short']})")
         if rec_on and not live:
             stop_recording(); rec_on = False    # the session is over: stopped first, so the filing can cut it
+        if not rec_on and not live and not ended and now - last_tidy >= TIDY_EVERY_S:
+            tidy_videos(); last_tidy = now
         for t, p, game in ended:
             try:
                 say(f"FILED {t['name']}: {file_one(t, p, game)}")
