@@ -419,7 +419,28 @@ def read_lines(path):
         return f.read().decode("utf-8", "replace").splitlines()
 
 
+def item_file(ref):
+    """a file path as given; a shelf item's id, or a shelved folder, becomes the file to read (a BeG0nE folder's
+    report.md). `fold <id>` used to fail on the id that `unsifted` prints (2026-10-27)."""
+    if not os.path.exists(ref):
+        for game in sorted(os.listdir(root())) if os.path.isdir(root()) else []:
+            for r in index(game):
+                if r["id"] == ref:
+                    ref = os.path.join(game_dir(game), r["item"])
+                    break
+            else:
+                continue
+            break
+    if os.path.isdir(ref):
+        for name in ("report.md", "README.md"):
+            if os.path.isfile(os.path.join(ref, name)):
+                return os.path.join(ref, name)
+    return ref
+
+
 def fold(path, against=None):
+    path = item_file(path)
+    against = item_file(against) if against else against
     lines = read_lines(path)
     groups, order = fold_lines(lines)
     old = set()
