@@ -1322,7 +1322,7 @@ recording and BeG0nE tools working together ... this is one of these things that
   **The headset picture:** REFramework games show both eyes side by side in their own window, which is what is
   recorded. Jabbah's OpenXR OBS Mirror layer was considered and left out: it supports Direct3D 11 only, and the RE
   games are Direct3D 12 (checked 2026-10-19).
-- **Switched on by `begone_record = yes`** (offered once, §25). The rider (begone/rider.py) starts `tools/obs-rec.py`
+- **Switched on by `begone_record = yes`** (offered once, §25; an optional extra in `features.py` since 0.90.0, paired with the video clean-up, §38). The rider (begone/rider.py) starts `tools/obs-rec.py`
   on the game's window the moment a jitter log starts growing, unless something is recording already; obs-rec adds
   the OpenXR Simulator's preview by itself. When the log ends the rider stops the recording first, then files.
 - **One clock.** The log's header carries `wall_ms` (jitterlog.h since 0.76.0; an older mod's log uses the moment its
@@ -1608,5 +1608,6 @@ need are actually also automatically removed from the pc?"*, they said yes to bu
   `.json` go, and each removal is written to `%LOCALAPPDATA%\BeG0nE\videos-removed.tsv`.
 - **Who runs it:** the rider, once an hour while nothing records. `begone.py videos` shows what would go and what
   stays, and why; `begone.py videos tidy` does it now.
-- Optional (`features.py`: `begone_video_tidy`, in the VR set). It deletes files, so a PC that had Lanes before is
-  asked once, and it is off until it says yes.
+- Optional, as one set with the recording itself (`features.py`: `begone_record` and `begone_video_tidy`, the set
+  "Recording the BeG0nE tests", offered as a pair). Both are off until the PC says yes: one films, the other deletes.
+  Setup asks the clean-up right after the recording question (setup 0.13).

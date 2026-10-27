@@ -222,6 +222,10 @@ recordings (recommended), or BeG0nE on its own?"* ("With recordings (Recommended
   3. *"Another folder I choose"*: ask for it, create it if missing, write `recordings = <folder>`.
   Then write `begone_record = yes`, and offer whatever of OBS (with the Source Record add-on and its WebSocket
   server on), FFmpeg and Python's `obsws-python`, Pillow and numpy is missing.
+  **The clean-up goes with it (0.90.0, the two are one set in `features.py`):** ask once more, *"Take each video off
+  the PC again once nothing needs it? The cut frames and the reports stay."* ("Yes, clean up (Recommended)" / "Keep
+  every video"), then `features.py on begone_video_tidy` or `off` and `offers.py made video-tidy <answer>`.
+  `docs/PROTOCOL.md` section 38.
 
 Either way run `offers.py made begone-record <answer>`. What it does: `docs/PROTOCOL.md` section 26.
 

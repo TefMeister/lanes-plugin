@@ -114,6 +114,11 @@ description: (Update) Checks GitHub for a newer version of the lanes plugin, say
     question, then `remote-control.py on` or `off` and `offers.py made remote-control <answer>`, and always the
     one line naming `/remote-control`).
 
+15. **BeG0nE videos clean up after themselves, once** (0.90.0), after step 14: only if `offers.py should video-tidy`
+    says `offer` AND the recording is on (`features.py is-on begone_record`); with the recording off, record
+    `offers.py made video-tidy no-recording` without a word. Otherwise ask the clean-up question of `/lanes:setup`
+    §0.13, then `features.py on begone_video_tidy` or `off` and `offers.py made video-tidy <answer>`.
+
 **Every offer on this page is made once** (0.75.0): an add-on offer is never repeated once `offers.py made` holds
 it, and "Not now" to an update quiets that version for good. Updates of things already installed (steps 6-8,
 `newer` true) are not offers of something new and are asked when a newer version appears.

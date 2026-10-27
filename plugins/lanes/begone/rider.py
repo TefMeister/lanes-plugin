@@ -161,7 +161,8 @@ def file_one(t, path, game=None):
 
 # ----- recording in tandem -----
 def record_wanted():
-    return bc.read_conf().get("begone_record", "").lower() == "yes" and os.path.isfile(REC_TOOL)
+    # "on" too since 0.90.0: features.py writes on/off, setup writes yes/no
+    return bc.read_conf().get("begone_record", "").lower() in ("yes", "on", "true", "1") and os.path.isfile(REC_TOOL)
 
 
 def recording_now():
