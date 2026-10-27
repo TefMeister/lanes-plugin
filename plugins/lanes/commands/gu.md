@@ -1,5 +1,5 @@
 ---
-description: (GitHub update) The weekly tool check. Finds what we rely on that has a newer version - our own apps and tools, two copies of the same tool that drifted apart, outside tools with a new release, lessons the tools should learn, and repo descriptions and front pages that fell behind the work - and brings each up to date, asking first before installing anything.
+description: (GitHub update) The weekly tool check. Finds what we rely on that has a newer version - our own apps and tools, two copies of the same tool that drifted apart, outside tools with a new release, lessons the tools should learn, - and brings each up to date, asking first before installing anything. GitHub's own pages and downloads are /lanes:od.
 ---
 
 `/gu` — **keep everything we rely on fresh.** `/gs` only checks; `/gu` checks the things that may need updating
@@ -13,7 +13,7 @@ unasked; mention it in one line and carry on.
 ## 0. Rules
 
 - **Never launch, drive or close an app**, and never touch a project's own files (boards, notes, builds). This lane
-  looks after tools, and since 0.69.0 also the texts the public reads (step 6): repo descriptions and front pages.
+  looks after tools on this PC; the texts and downloads the public reads are `/lanes:od` (0.94.0).
 - **Ask before installing or updating anything on this PC** that is not a git pull of our own clone: the lanes
   plugin, Hand Freeze, an outside tool, a PC program, a Python package. **Look first, ask at the END of the run**:
   one question listing them all (AskUserQuestion, multi-select; split into several questions of up to four options
@@ -63,8 +63,8 @@ unasked; mention it in one line and carry on.
 python "${CLAUDE_PLUGIN_ROOT}/tools/gu.py" scan
 ```
 
-Six sections. If one is empty because nothing is set up for it in `lanes.conf` (`twin =`, `watch =`, `ours =`,
-`routes =`, `texts =` with `texts_owner =`, `skills =`), say so in one line and offer to set it up.
+Five sections (the fifth only points at `/lanes:od`). If one is empty because nothing is set up for it in
+`lanes.conf` (`twin =`, `watch =`, `ours =`, `routes =`), say so in one line and offer to set it up.
 
 ## 2. Act, section by section
 
@@ -113,41 +113,8 @@ Six sections. If one is empty because nothing is set up for it in `lanes.conf` (
       build script, a Visual Studio project, `@msvc`, `@blender`, `@pip`), choosing scripts that only build and
       test, never ones that copy into a game folder. Until then a critical update is offered with the plain
       warning only.
-6. **Texts on GitHub** (0.69.0; asked for by the maintainer after a finished mod's description still named v1.0.2
-   and its front page sent people to an older download while v1.1.5 was out: *"go over the whole github and bring
-   all the texts and descriptions up to date"*). Section 5 of the scan lists what the checks caught across every
-   public repo of the account: a description or front page naming an older version than the newest release
-   (pre-releases count when there is no full release), "nothing released" or "private" beside a public release, and
-   a status part unchanged for weeks while work landed. **Then the part no check can do:** read every public repo's
-   one-line description once against where the project stands, and the front-page rows that summarise them (a
-   profile page or index, if the account has one). Where they disagree:
-   - **Learn the true state first**, from the project's own board, notes and newest release, never from memory. A
-     status line is a claim: write only what those say, in plain words, dated where it helps.
-   - **Fix the text where it lives:** `gh repo edit <owner>/<repo> --description "..."` for a description; for a
-     front page, edit the file in a clone, pull first, stage only that file, commit, push. A row in a grouped table
-     moves to the group its icon now belongs to.
-   - **Never change what a project IS** (visibility, a release, a decision); a text that disagrees with a decision
-     is reported, not "fixed" by guessing. When the person knows something no file says (a mod site's version,
-     say), take their word and write it in.
-   - **Catalog pages** (0.91.0, `catalog = <repo>/<file>` in lanes.conf, such as a toolkit's list of every tool): the
-     scan names each tool of ours the page never mentions (a file in that repo's `tools/`, a public `ours =` repo, an
-     app any PC has installed) and each tool it mentions whose repo moved on since the page last changed. Add the
-     missing ones and bring the moved ones up to date, from each tool's own README and tested notes, in the page's
-     own style; a private repo is never named on a public page. A new app of ours also gets its `ours =` line here.
-     The maintainer (2026-10-27), after the toolkit page missed five of our apps: *"this should have been covered by
-     the /fullscan and /gu, can you make a fix for it so next time something like this is not forgotten"*.
-   - Rerun the scan after: section 5 should come back empty.
-7. **Lanes and the skills page keep up** (0.93.0; scan section 6). Two gaps the scan names:
-   - **A public tool of ours that Lanes does not offer** (an `ours =` repo that is neither shipped, installed nor in
-     `tools/ours.py`): add it to `ours.py`'s list (label, repo, kind, a plain description), run the features doc,
-     and release; a repo that is not a tool for others goes in `lanes_skip =`. Private repos are never named.
-   - **The skills page** (`skills = <repo>/<file>`, such as the toolkit's SKILLS.md): each MCP server or Claude Code
-     plugin in use on this PC that the page never names, and a page left unchanged for a long time. Add a connector
-     only once it has done a real job (install, verify, what it is for, its maker and link, in the page's style);
-     one not yet proven goes in the page's "offered but not proven" line; a private one goes in `skills_skip =`.
-     Then read the page once against what is in use and fix what has moved on.
-   The maintainer (2026-10-27), when the skills page and Lanes' optional extras had fallen behind: *"all this is what
-   /fullscan and /gu are meant to do"*. Rerun the scan after: section 6 should say "nothing missing".
+6. **GitHub itself** (texts, downloads, the skills page, what Lanes offers) is `/lanes:od` since 0.94.0. It runs
+   before this check, so a download it publishes is already there for step 1 to offer.
 
 ## 3. Finish
 
@@ -156,5 +123,5 @@ python "${CLAUDE_PLUGIN_ROOT}/tools/gu.py" done
 ```
 
 Then the usual write-up: close-out box (`handover.py close`), the gate/model box, and a short report: what was
-updated (texts included: which repos, in a few words each), what was left and why, and what needs the person. A front-page or activity line only when something was
+updated, what was left and why, and what needs the person. A front-page or activity line only when something was
 released or changed for people (a tool update, a plugin release).

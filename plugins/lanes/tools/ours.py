@@ -53,6 +53,12 @@ TOOLS = {
                    "what": "a compact window of sliders that poses the player's fingers and wrists live in RE Engine "
                            "games (needs REFramework): one box per finger, undo, autosave, named poses, one pose per "
                            "gun. Inspired by alphaZomega's EMV Engine; not yet confirmed in a real headset session"},
+    "grip_zones": {"label": "Grip Zones", "repo": "TefMeister/grip-zones-vr", "kind": "app",
+                   "folder": "GripZones", "exe": "GripZones.exe",
+                   "what": "a small window of sliders that moves and resizes every place the hand can grip a gun in "
+                           "VR (magazine, well, slide, pump or bolt, front grip), live on the gun, made to hang in "
+                           "the headset through Window View. Works with Visceral RE8 for now (Resident Evil Village "
+                           "VR); called Grab Zones until 2026-10-27"},
     "cubekit": {"label": "CubeKit (Blender add-on)", "repo": "TefMeister/blender-cubekit", "kind": "blender",
                 "what": "builds pixel-style models out of little cubes from a settings file: one cube size, pick any "
                         "single cube, carved wear, stop-motion animation and export for GZDoom; made for the "

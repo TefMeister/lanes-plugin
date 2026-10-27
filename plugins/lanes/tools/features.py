@@ -124,6 +124,11 @@ FEATURES = {
                             "and a backup folder first, and tidies only what cannot change how they work; the weekly "
                             "full scan runs it after the tool check",
                     "link": GH + "commands/ch.md"},
+    "out_of_date": {"label": "Out of Date", "set": "checkup",
+                    "what": "/lanes:od checks that everything you published on GitHub is as new as the work behind "
+                            "it (downloads older than their program, tools with no download, pages and descriptions "
+                            "behind) and brings it level; the weekly full scan runs it before the tool check",
+                    "link": GH + "commands/od.md"},
     "begone_ride": {"label": "BeG0nE recorders", "set": "vr",
                     "what": "a quiet helper that starts with every session and turns each headset test of a mod wired "
                             "to it into a short report on jitter and hand faults",
