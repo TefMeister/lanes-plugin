@@ -68,6 +68,9 @@ SETS = {
     "recording": {"title": "Recording the BeG0nE tests", "together": True,
                   "note": "One films the game during every BeG0nE headset test so each fault can be seen picture by "
                           "picture, the other takes those videos off the PC again once nothing needs them."},
+    "outside": {"title": "Other people's tools", "together": False,
+                "note": "Downloads from other makers that help flat-to-VR work, each from its maker's GitHub "
+                        "(tools/outside.py gets it). Each one is useful on its own."},
 }
 
 # The extras. `link` is where to read more before switching it on: our GitHub, or the maker's.
@@ -139,6 +142,13 @@ FEATURES = {
                                   "frames and the reports stay",
                           "link": PROTO_LINK + "38-beg0ne-videos-clean-up-after-themselves-0900-2026-10-27"},
 }
+# Other people's tools (0.92.0): one extra each, described and linked from tools/outside.py's own list, so the two
+# never disagree. Off until asked on every PC: each one downloads something.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import outside  # noqa: E402
+for _name, _t in outside.TOOLS.items():
+    FEATURES[outside.feature_name(_name)] = {"label": f"{_t['label']} (by {_t['maker']})", "set": "outside",
+                                             "ask_on_update": True, "what": _t["what"], "link": outside.GH + _t["repo"]}
 ON_WORDS, OFF_WORDS = ("on", "yes", "true", "1"), ("off", "no", "false", "0")
 
 

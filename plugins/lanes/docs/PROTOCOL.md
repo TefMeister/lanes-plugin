@@ -1329,7 +1329,9 @@ recording and BeG0nE tools working together ... this is one of these things that
   mod wired to the recorders (§20: every VR mod) is recorded whenever it runs in the headset or the OpenXR Simulator.
   **The headset picture:** REFramework games show both eyes side by side in their own window, which is what is
   recorded. Jabbah's OpenXR OBS Mirror layer was considered and left out: it supports Direct3D 11 only, and the RE
-  games are Direct3D 12 (checked 2026-10-19).
+  games are Direct3D 12 (checked 2026-10-19). **0.92.0:** elliotttate's OpenXR OBS Mirror does Direct3D 11 and 12
+  and SteamVR; when it is installed (`outside.py get obs_mirror`, §39), obs-rec records the headset view as the
+  second file whenever no simulator preview is up (`OpenXR headset view (OBS Mirror)`, cut like the preview).
 - **Switched on by `begone_record = yes`** (offered once, §25; an optional extra in `features.py` since 0.90.0, paired with the video clean-up, §38). The rider (begone/rider.py) starts `tools/obs-rec.py`
   on the game's window the moment a jitter log starts growing, unless something is recording already; obs-rec adds
   the OpenXR Simulator's preview by itself. When the log ends the rider stops the recording first, then files.
@@ -1619,3 +1621,23 @@ need are actually also automatically removed from the pc?"*, they said yes to bu
 - Optional, as one set with the recording itself (`features.py`: `begone_record` and `begone_video_tidy`, the set
   "Recording the BeG0nE tests", offered as a pair). Both are off until the PC says yes: one films, the other deletes.
   Setup asks the clean-up right after the recording question (setup 0.13).
+
+## 39. Other people's tools, as optional downloads (0.92.0, 2026-10-27)
+
+The maintainer, after a look through elliotttate's GitHub: *"just bake anything you think we can use into Lanes plugin
+as optional downloads with the links and descriptions and use all of them, as i see it there is no 'too many tools'"*.
+
+- **`tools/outside.py`** holds the list: each tool's maker, GitHub link, plain description and how it is got (the
+  maker's installer, a release zip, a clone, or a connector with its own Python environment registered with Claude
+  Code). Release files are checked against the release's own SHA256SUMS.txt when it has one. `list` shows them,
+  `get <name>` gets one, `newer` names the ones with a newer release (the update command asks about each).
+- **Each one is an extra** in `features.py` (set "Other people's tools", `outside_<name>`), described and linked from
+  that same list, off until the PC says yes: setup §0.13.5 and update step 16 ask once, with tick boxes.
+- **The first ten (all by elliotttate):** OpenXR OBS Mirror (the headset view for the BeG0nE recording, §26),
+  xrFPS (the frame-rate graph in the headset), OpenXR CAS (sharpening; downloaded, never switched on by Lanes),
+  the PIX and Nsight Graphics connectors (take one frame of a game apart), the vrframework guides, MelonMCP (Unity
+  games), UEVR cutscene comfort, UEVR RenderDoc Capture, and the UEVR 6DOF window (a link: a whole UEVR fork).
+- **Left out, and why:** a screen observer that needs a large local AI model (State-o-matiC does that job here); an
+  Unreal asset reader for projects with source (we mod shipped games); Steam Frame and Steam Link VR settings (not
+  the headsets in use); the Mac apps and console recompilations (nothing to do with this work).
+- A new tool is one entry in `TOOLS` in outside.py; its extra, setup question and update check follow from that.
