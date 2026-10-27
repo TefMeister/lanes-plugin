@@ -80,7 +80,6 @@ DEFAULT_SERIES = "0.1.0"
 TITLE_MAX = 70                         # characters of the title kept in a folder name
 CHANGES_LIST_MAX = 200                 # files listed per section in CHANGES.md
 PUSH_TRIES = 3
-META = ("MANIFEST.sha256", "CHANGES.md", ".gitignore")
 RELEASE_STUB = ".release.txt"
 HELD_FILE = "HELD.txt"                 # "went back to bN on purpose" notes, newest last
 NOT_TESTED = "(not tested yet)"

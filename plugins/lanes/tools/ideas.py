@@ -351,7 +351,7 @@ def cmd_sync(a, ctx):
                 write(d / FRESH / f"{stem}.md",
                       f"# {idea['title']}\n\nOrder: {page_no * 1000 + n}\n"
                       f"From: the ideas repo, {where}, copied {TODAY}\n"
-                      + (f"Shared: yes\n" if shared else "") + f"\n{idea['body']}\n")
+                      + ("Shared: yes\n" if shared else "") + f"\n{idea['body']}\n")
                 changed.setdefault(repo, []).append(idea["title"])
     for repo, titles in changed.items():
         print(f"{repo}: {len(titles)} new idea(s) -> ideas/fresh/")

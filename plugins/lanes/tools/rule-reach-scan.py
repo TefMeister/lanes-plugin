@@ -36,7 +36,6 @@ EXIT
   0 = no faults, 1 = faults found, 2 = bad usage
 """
 import argparse
-import io
 import json
 import os
 import re
@@ -89,7 +88,7 @@ UNIVERSAL = re.compile(
 
 def sections(path):
     """Yield (line_no, heading, body) for every top-level '## ' section."""
-    text = io.open(path, encoding="utf-8").read()
+    text = open(path, encoding="utf-8").read()
     lines = text.split("\n")
     head, buf, start = None, [], 0
     for n, line in enumerate(lines, 1):
@@ -119,7 +118,7 @@ def main():
 
     keywords = set(DEFAULT_KEYWORDS)
     if args.keywords and os.path.exists(args.keywords):
-        keywords |= set(io.open(args.keywords, encoding="utf-8").read().split())
+        keywords |= set(open(args.keywords, encoding="utf-8").read().split())
 
     missing = [p for p in args.always + args.rules if not os.path.exists(p)]
     if missing:
@@ -127,7 +126,7 @@ def main():
             sys.stderr.write("rule-reach-scan: no such file: %s\n" % p)
         return 2
 
-    always_text = "\n".join(io.open(p, encoding="utf-8").read() for p in args.always).lower()
+    always_text = "\n".join(open(p, encoding="utf-8").read() for p in args.always).lower()
 
     faults = {"unreachable": [], "unfindable": [], "split": []}
     seen = {}

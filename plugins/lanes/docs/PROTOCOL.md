@@ -1568,3 +1568,27 @@ whole check-up, each part still available on its own.
   `/gs`, saving, and last the tool check's install question. Each part keeps its own rules and clone root. Weekly; the
   session-start line replaces the tool check's own weekly line while the full scan is on.
 - Optional (`features.py`: `gold_digger` and `fullscan`, the weekly check-up set, offered together).
+
+## 37. Code health: re-read our own tools without breaking them (0.89.0, 2026-10-27)
+
+The maintainer, 2026-10-27: *"it's been months of adding stuff and maybe a complete re-read of the code is in order, but
+at the same time i hope this is not going to break things that actually work right now, so please save a working copy
+of everything just in case something goes wrong"*, then *"please make a slash command /ch for Code health and also add
+this slash command to the /fullscan function"*.
+
+- **Working copy first, always:** `tools/ch.py backup` tags every repo `pre-ch-<date>`, pushes the tag, and saves a
+  bundle of each repo's whole history in the backup folder (`ch_backup =`, else `<transfer>/Code health backups`).
+  No change is made until it says every repo is saved.
+- **The look:** `ch.py scan` (possible errors and unused imports with ruff; code with no caller left anywhere with
+  vulture, a name counted as used when it appears anywhere else in the repo, tests and docs included; settings named
+  but never read; twin copies that drifted, with the display name and "the maintainer" read as the same word; old
+  cached plugin versions and stray files among the commands), plus `inspector.py review <repo>` for each repo.
+  Repos: `ch_repo =` lines, else every `ours =`.
+- **What may change:** only what cannot alter behaviour (unused imports, code with no caller, stale names in text, a
+  twin brought up to its newer side, a frozen copy moved to `archive/` once its own condition is met). Everything else
+  is a board row. A setting named but never read is a lead (a planned limit never wired in), never deleted. The tests
+  run after the changes; a failure puts the change back.
+- **First pass (2026-10-27, by hand):** unused imports and helpers in the plugin, the toolkit and VR Bench; BeG0nE's
+  Village grip had a 2026-10-24 fix the Lanes copy never got (now in both); BeG0nE's frozen ride-along moved to its
+  archive; VR Bench's per-stage time limit and footage warning found named but never wired in.
+- Part of `/lanes:fullscan` (after the tool check). Optional (`features.py`: `code_health`, in the weekly check-up set).

@@ -821,6 +821,16 @@ else
   fail "gd-fixture.sh failed"
 fi
 
+echo "ch.py - code health: the working copy, no-caller code, drifted twins (0.89.0)"
+if out=$(bash "$HERE/ch-fixture.sh" 2>&1); then
+  ok "$(printf '%s
+' "$out" | tail -n 1)"
+else
+  printf '%s
+' "$out" | grep FAIL
+  fail "ch-fixture.sh failed"
+fi
+
 echo "features.py - every extra has a link and a set, and docs/EXTRAS.md is current (0.84.0)"
 if out=$("$PY" "$TOOLS/features.py" lint 2>&1); then ok "$out"; else printf '%s\n' "$out"; fail "features.py lint"; fi
 if out=$("$PY" "$TOOLS/features.py" doc --check 2>&1); then ok "$out"; else fail "$out"; fi
