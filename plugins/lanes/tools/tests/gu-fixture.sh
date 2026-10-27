@@ -135,6 +135,15 @@ check "coverage: a plugin the skills page never names" 'printf "%s" "$out" | gre
 check "coverage: named and skipped connectors stay quiet" '! printf "%s" "$out" | grep -q "x64dbg\|superpowers\|hush"'
 check "coverage: a stale skills page" 'printf "%s" "$out" | grep -q "unchanged for 87 days"'
 check "coverage: skills page not set up says so" 'LANES_CONFIG="$T/none.conf" "$PY" "$OD" scan | grep -q "skills page: not set up"'
+# the skills page as GitHub shows it (0.94.1): GitHub's copy names fancy-mcp and is new, this clone was never pulled
+git -C "$T/six/kit" checkout -q -b newer
+printf '# Skills\n\nx64dbg MCP, fancy-mcp and the Superpowers plugin.\n' > "$T/six/kit/SKILLS.md"
+GIT_COMMITTER_DATE="2026-10-27T00:00:00" git -C "$T/six/kit" -c user.name=t -c user.email=t@t commit -qam newer --date "2026-10-27T00:00:00"
+git -C "$T/six/kit" update-ref refs/remotes/origin/main newer; git -C "$T/six/kit" checkout -q main; git -C "$T/six/kit" branch -qD newer
+out="$(LANES_CONFIG="$T/six.conf" LANES_GU_FAKE_REPOS="$T/six/repos.json" LANES_CLAUDE_JSON="$T/six/claude.json" \
+       LANES_CLAUDE_PLUGINS="$T/six/plugins.json" LANES_GU_TODAY=2026-10-27 "$PY" "$OD" scan | sed -n '/^4\./,$p')"
+check "coverage: the skills page is read as GitHub shows it, not as an unpulled clone" \
+  '! printf "%s" "$out" | grep -q "fancy-mcp\|unchanged for" && grep -q "x64dbg MCP and" "$T/six/kit/SKILLS.md"'
 check "gu: the GitHub sections now point at /od" '"$PY" "$TOOL" scan | grep -q "5. GitHub pages, downloads and the skills page: /lanes:od"'
 
 # /od sections 1 and 2 (0.94.0): an app whose program changed after its download (a notes-only change does not count),
@@ -146,17 +155,20 @@ mkdir -p "$T/od"
 mk behind build.bat app/a.cs README.md; git -C "$T/od/behind" tag v1
 cm behind README.md "notes" "only notes"; cm behind app/a.cs "code" "the program moved"
 mk notesonly build.bat app/a.cs; git -C "$T/od/notesonly" tag v2; cm notesonly docs/x.md "doc" "a doc"
+mk distonly build.bat app/a.cs dist/a.exe; git -C "$T/od/distonly" tag v3; git -C "$T/od/distonly" rm -q dist/a.exe
+git -C "$T/od/distonly" -c user.name=t -c user.email=t@t commit -q -m "built copy out of the repo"
 mk nodl install.ps1 app/a.cs
 mk lib README.md data/a.txt
 mk libok README.md; printf 'get [it](https://github.com/me/libok/archive/refs/heads/main.zip)\n' > "$T/od/libok/README.md"
 git -C "$T/od/libok" -c user.name=t -c user.email=t@t commit -qam link
 mk skipped install.ps1
-printf '[%s]' "$(for n in behind notesonly nodl lib libok skipped; do r=""; [ $n = behind ] && r=',"latestRelease":{"tagName":"v1"}'
-  [ $n = notesonly ] && r=',"latestRelease":{"tagName":"v2"}'; printf '{"name":"%s","visibility":"PUBLIC","isArchived":false%s},' $n "$r"; done | sed 's/,$//')" > "$T/od/repos.json"
-{ printf 'texts_owner = me\nod_skip = skipped\n'; for n in behind notesonly nodl lib libok skipped; do printf 'ours = %s/od/%s\n' "$T" $n; done; } > "$T/od.conf"
+printf '[%s]' "$(for n in behind notesonly distonly nodl lib libok skipped; do r=""; [ $n = behind ] && r=',"latestRelease":{"tagName":"v1"}'
+  [ $n = notesonly ] && r=',"latestRelease":{"tagName":"v2"}'; [ $n = distonly ] && r=',"latestRelease":{"tagName":"v3"}'; printf '{"name":"%s","visibility":"PUBLIC","isArchived":false%s},' $n "$r"; done | sed 's/,$//')" > "$T/od/repos.json"
+{ printf 'texts_owner = me\nod_skip = skipped\n'; for n in behind notesonly distonly nodl lib libok skipped; do printf 'ours = %s/od/%s\n' "$T" $n; done; } > "$T/od.conf"
 out="$(LANES_CONFIG="$T/od.conf" LANES_GU_FAKE_REPOS="$T/od/repos.json" "$PY" "$OD" scan | sed -n '1,/^3\./p')"
 check "od: a program changed after its download" 'printf "%s" "$out" | grep -q "behind: 1 change(s) to the program since its newest download v1, newest: \"the program moved\""'
 check "od: a notes-only change keeps the download current" '[ "$(git -C "$T/od/notesonly" rev-list --count v2..HEAD)" = 1 ] && ! printf "%s" "$out" | grep -q "notesonly:"'
+check "od: taking built copies out of the repo is not a new program" '! printf "%s" "$out" | grep -q "distonly:"'
 check "od: an app with no download" 'printf "%s" "$out" | grep -q "nodl: an app or add-on with no download yet"'
 check "od: a library without the one-zip link" 'printf "%s" "$out" | grep -q "lib: a library with no one-zip download link"'
 check "od: a library with the link, and od_skip, stay quiet" '! printf "%s" "$out" | grep -q "libok:\|skipped:"'

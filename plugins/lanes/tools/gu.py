@@ -363,17 +363,26 @@ def skills_page():
     spec = (conf_values("skills") or [""])[-1]
     if not spec:
         return None
-    path = next((os.path.join(r, spec) for r in conf_values("texts") if os.path.isfile(os.path.join(r, spec))), "")
-    if not path:
+    root = next((r for r in conf_values("texts") if os.path.isfile(os.path.join(r, spec))), "")
+    if not root:
         return {"page": spec, "flags": ["not found in any texts = folder"]}
-    with open(path, encoding="utf-8", errors="replace") as f:
-        text = squash(f.read())
+    # read the page as GitHub shows it: an unpulled clone once reported a page 67 days old that had been brought up
+    # to date that morning (2026-10-27)
+    repo, _, rel = spec.replace("\\", "/").partition("/")
+    clone = os.path.join(root, repo)
+    if not os.environ.get("LANES_GU_NO_NET"):
+        git(clone, "fetch", "-q", "origin")
+    ref, shown = gu_texts.front_page(clone, rel)
+    if shown is None:
+        with open(os.path.join(root, spec), encoding="utf-8", errors="replace") as f:
+            ref, shown = "HEAD", f.read()
+    text = squash(shown)
     skip = {squash(s) for s in conf_values("skills_skip")}
     flags = [f"{kind} '{name}' is in use on this PC and the page never names it: add it once it has proven itself on "
              f"a real task (a private one stays off a public page: skills_skip = {name})"
              for kind, name in connectors_here() if squash(name) not in text and squash(name) not in skip]
     try:
-        _, last = git(os.path.dirname(path), "log", "-1", "--format=%cs", "--", os.path.basename(path))
+        _, last = git(clone, "log", "-1", "--format=%cs", ref, "--", rel)
         days = (today() - datetime.date.fromisoformat(last)).days if last else 0
     except (OSError, subprocess.TimeoutExpired, ValueError):
         days = 0

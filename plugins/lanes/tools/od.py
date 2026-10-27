@@ -31,7 +31,9 @@ import gu_texts
 
 GIT_TIMEOUT_S = 60
 # what is not part of a download: a change here alone does not make the download out of date
-NOT_SHIPPED = ("*.md", "docs", "ideas", "inspector", "test", "tests", "examples", "archive", "LICENSE", ".gitignore")
+# (dist and build hold built copies: taking them out of the repo is not a new program, Grip Zones 2026-10-27)
+NOT_SHIPPED = ("*.md", "docs", "ideas", "inspector", "test", "tests", "examples", "archive", "LICENSE", ".gitignore",
+               "dist", "build")
 APP_MARKS = ("install.ps1", "build.bat")
 ZIP_LINK = "archive/refs/heads/main.zip"
 
