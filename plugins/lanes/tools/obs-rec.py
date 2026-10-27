@@ -82,6 +82,9 @@ CLOSE_CHECKS, CLOSE_CHECK_GAP_S = 10, 0.5   # up to 5 s for OBS to close politel
 SIM_TITLE = "OpenXR Simulator"     # the simulator's preview window title starts with this (read from its dll)
 SIM_LABEL = "OpenXR Simulator preview"
 SIM_WAIT_S, SIM_POLL_S = 900, 2.0   # the watcher looks for the preview every 2 s, for up to 15 min
+# elliotttate's OpenXR OBS Mirror (0.92.0): its OBS source shows what the headset is shown, D3D11 and D3D12 alike
+MIRROR_KIND = "openxrmirror_capture"
+MIRROR_LABEL = "OpenXR headset view (OBS Mirror)"   # starts with "OpenXR": frames.py treats it as the headset view
 DETACHED_PROCESS, CREATE_NEW_PROCESS_GROUP = 0x00000008, 0x00000200
 NO_WINDOW = 0x08000000   # tasklist/taskkill from the windowless guard flashed a console every poll (2026-10-17)
 SRC_VIDEO, SRC_AUDIO = "game window", "game sound"
@@ -238,19 +241,31 @@ def point_sources(cl, spec):
     cl.set_scene_item_transform(SCENE, item, {"boundsType": BOUNDS_SCALE_INNER, "boundsWidth": VIDEO_W,
                                               "boundsHeight": VIDEO_H, "positionX": 0, "positionY": 0})
 
-def point_second(cl, spec, folder, label):
-    """The second window: in the game scene but off the picture, + a Source Record filter that writes its own file."""
+def mirror_ready(cl):
+    """True when OBS has the OpenXR OBS Mirror source loaded (its plugin is installed)"""
+    try:
+        return MIRROR_KIND in cl.get_input_kind_list(False).input_kinds
+    except Exception:
+        return False
+
+def point_second(cl, spec, folder, label, kind="window_capture"):
+    """The second source: in the game scene but off the picture, + a Source Record filter that writes its own file.
+    kind MIRROR_KIND records the headset view instead of a window (spec is then unused). True when it records."""
     names = [i["inputName"] for i in cl.get_input_list().inputs]
-    if spec is None:
+    if spec is None and kind == "window_capture":
         if SRC_SECOND in names:
             cl.set_source_filter_settings(SRC_SECOND, SECOND_FILTER, {"record_mode": SR_OFF}, True)
             cl.set_scene_item_enabled(SCENE, cl.get_scene_item_id(SCENE, SRC_SECOND).scene_item_id, False)
-        return
-    vid = {"window": spec, "method": WGC_METHOD, "cursor": False, "client_area": True}
+        return False
+    vid = {"window": spec, "method": WGC_METHOD, "cursor": False, "client_area": True} if kind == "window_capture" else {}
+    if SRC_SECOND in names and cl.get_input_settings(SRC_SECOND).input_kind != kind:
+        cl.remove_input(SRC_SECOND)     # the second source changes kind (a window <-> the headset view)
+        time.sleep(0.5)
+        names.remove(SRC_SECOND)
     if SRC_SECOND in names:
         cl.set_input_settings(SRC_SECOND, vid, True)
     else:
-        cl.create_input(SCENE, SRC_SECOND, "window_capture", vid, True)
+        cl.create_input(SCENE, SRC_SECOND, kind, vid, True)
     item = cl.get_scene_item_id(SCENE, SRC_SECOND).scene_item_id
     cl.set_scene_item_transform(SCENE, item, {"positionX": OFF_CANVAS_X, "positionY": 0})
     cl.set_scene_item_enabled(SCENE, item, True)
@@ -263,13 +278,15 @@ def point_second(cl, spec, folder, label):
         time.sleep(0.5)
     else:
         print(f"second recording skipped: {SRC_SECOND} showed no picture in {SR_SIZE_WAIT_S} s")
-        return
+        cl.set_scene_item_enabled(SCENE, item, False)
+        return False
     rec = {"record_mode": SR_RECORD_WHILE_RECORDING, "path": folder, "rec_format": "mp4", "encoder": SR_ENCODER,
            "filename_formatting": f"{label}_second_%CCYY-%MM-%DD_%hh-%mm-%ss"}
     if SECOND_FILTER in [f["filterName"] for f in cl.get_source_filter_list(SRC_SECOND).filters]:
         cl.set_source_filter_settings(SRC_SECOND, SECOND_FILTER, rec, True)
     else:
         cl.create_source_filter(SRC_SECOND, SECOND_FILTER, "source_record_filter", rec)
+    return True
 
 def split_target(t):
     exe, _, want = t.partition(":")
@@ -286,9 +303,13 @@ def cmd_start(exe, label, project, cls=None, also=None):
     cl.set_profile_parameter("Output", "FilenameFormatting", f"{label}_%CCYY-%MM-%DD_%hh-%mm-%ss")
     point_sources(cl, window_spec(exe, cls))
     sim = None if also else window_spec(exe, sim=True, must=False)   # the simulator preview, if it is up already
-    point_second(cl, window_spec(*split_target(also), sim=None) if also else sim, folder, label)
+    # no simulator preview: the headset view through the OBS Mirror, when that is installed and shows a picture
+    mirror = not also and not sim and mirror_ready(cl) and point_second(cl, None, folder, label, kind=MIRROR_KIND)
+    if not mirror:
+        point_second(cl, window_spec(*split_target(also), sim=None) if also else sim, folder, label)
     start_ms = start_recording(cl)
     if sim: also = SIM_LABEL
+    if mirror: also = MIRROR_LABEL
     state["recording"] = {"exe": exe, "label": label, "folder": folder, "also": also, "since": time.strftime("%H:%M:%S"),
                           "project": project, "start_ms": start_ms}
     save_state(state)

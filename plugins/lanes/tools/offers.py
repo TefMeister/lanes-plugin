@@ -35,6 +35,8 @@ KNOWN = {
                        "phone app, claude.ai/code or the other PC (tools/remote-control.py)"),
     "video-tidy": ("0.90.0", "take each BeG0nE test video off the PC once nothing needs it; the cut frames and reports "
                    "stay (begone/video_tidy.py)"),
+    "outside-tools": ("0.92.0", "other people's tools for flat-to-VR work, each from its maker's GitHub: a headset-view "
+                      "recorder, an in-headset frame-rate graph, frame-inspection connectors and more (tools/outside.py)"),
     "superpowers": ("0.77.0", "the superpowers skills plugin (obra): ways of working Claude follows, such as planning before "
                     "building, debugging step by step and checking work before calling it done"),
 }

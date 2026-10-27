@@ -147,6 +147,24 @@ and for carrying files between your own PCs that must never go on GitHub.
 | **DaVinci Resolve** (free version), by [Blackmagic Design](https://www.blackmagicdesign.com/) | The video editor **you** cut the recordings in: trimming, titles, music. The free version is enough. Claude does not drive it (scripting it from outside needs the paid Studio version). Resolve runs without FFmpeg, but install both together | https://www.blackmagicdesign.com/products/davinciresolve | **you**: the download asks for a short sign-up form first | `C:\Program Files\Blackmagic Design\DaVinci Resolve\Resolve.exe` |
 | **MEGA desktop app**, by [MEGA](https://mega.io/) | Keeps one folder the same on all your PCs, so the files a project needs on both but that must never go on GitHub (the app's own files, extracted assets, recordings, big builds) travel by themselves. Free tier available; any other sync app works too. **For your own PCs only; sharing game files with anyone else is illegal** | https://mega.io/desktop | **you**: install it and sign in (your account and password are yours alone), then set up the sync as `/lanes:setup` §0.9 says | `transfer =` set in `lanes.conf` |
 
+### Other people's tools, got by `tools/outside.py` (0.92.0)
+
+Each is an optional extra (`outside_<name>` in `features.py`), asked once at setup or update.
+`python outside.py get <name>` gets one; `outside.py newer` says which have a newer release.
+
+| Tool | What it is for | Link | How Lanes gets it |
+| --- | --- | --- | --- |
+| **OpenXR OBS Mirror**, by [elliotttate](https://github.com/elliotttate) | Lets OBS record what the headset is shown, in Direct3D 11 and 12 OpenXR games and SteamVR; the BeG0nE recording then films the headset view beside the game window (the Resident Evil games included) | https://github.com/elliotttate/OpenXR-Layer-OBSMirror | its own installer (checked against the release's SHA256SUMS); needs OBS Studio |
+| **xrFPS**, by [elliotttate](https://github.com/elliotttate) | Turn a controller upside down in any OpenXR game to see the frame rate and frame times as a graph, inside the headset | https://github.com/elliotttate/xrFPS | its own installer (checked against the release's SHA256SUMS) |
+| **OpenXR CAS**, by [elliotttate](https://github.com/elliotttate) | Sharpens the headset picture (AMD's FidelityFX CAS) and adjusts colour in any OpenXR game; changes what every test sees, so it is downloaded, not switched on | https://github.com/elliotttate/OpenXR-CAS | the release zip, unpacked |
+| **PIX MCP**, by [elliotttate](https://github.com/elliotttate) | Takes apart one captured frame of a Direct3D 12 game, draw by draw, through Microsoft PIX: which pass drew what, with which textures and numbers (the RE Engine games are Direct3D 12) | https://github.com/elliotttate/pix-mcp | a clone, its own Python environment, then added to Claude Code as a connector; needs Microsoft.PIX |
+| **Nsight Graphics MCP**, by [elliotttate](https://github.com/elliotttate) | The same for NVIDIA's frame tool: capture a frame of a D3D11, D3D12 or Vulkan game and read every draw, resource and timing from it | https://github.com/elliotttate/nsight-graphics-mcp | a clone, its own Python environment, then added to Claude Code as a connector; needs NVIDIA Nsight Graphics, from https://developer.nvidia.com/nsight-graphics (an NVIDIA graphics card only) |
+| **vrframework guides**, by [elliotttate](https://github.com/elliotttate) | A 17-part guide to making a flat game VR from the outside, built on REFramework and two of mutars' ports: frame timing, one eye per frame (AFR) and its smearing, per-eye projection, HUD, input. Read, not built: its code is a scaffold | https://github.com/elliotttate/vrframework | a clone |
+| **MelonMCP**, by [elliotttate](https://github.com/elliotttate) | A live connection into Unity games through MelonLoader: inspect and change the running game, the Unity cousin of the RE Engine and UEVR connectors | https://github.com/elliotttate/MelonMCP | a clone |
+| **UEVR cutscene comfort**, by [elliotttate](https://github.com/elliotttate) | A UEVR plugin that puts the camera back after a cutscene by itself, and can show cutscenes on a still screen in the room, for Unreal games such as Silent Hill 2 | https://github.com/elliotttate/uevr-cutscene-comfort | a clone |
+| **UEVR RenderDoc Capture**, by [elliotttate](https://github.com/elliotttate) | UEVR with RenderDoc built in: grab one real Direct3D 12 frame, flat or stereo, from an Unreal game and open it in RenderDoc | https://github.com/elliotttate/UEVR-RenderDoc-Capture | the release zip, unpacked |
+| **UEVR 6DOF window**, by [elliotttate](https://github.com/elliotttate) | A UEVR fork with a comfort mode that shows the game in a stereo window you can lean around, for games that are uncomfortable in full VR | https://github.com/elliotttate/UEVR-6DOF-Window | the link only |
+
 ---
 
 ## 9. What Lanes itself gives you (built in, nothing to install)

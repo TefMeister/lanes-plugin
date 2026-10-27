@@ -229,6 +229,17 @@ recordings (recommended), or BeG0nE on its own?"* ("With recordings (Recommended
 
 Either way run `offers.py made begone-record <answer>`. What it does: `docs/PROTOCOL.md` section 26.
 
+## 0.13.5 Other people's tools (0.92.0, VR modders, offered once)
+
+Only if `python "${CLAUDE_PLUGIN_ROOT}/tools/offers.py" should outside-tools` says `offer`. Run
+`python "${CLAUDE_PLUGIN_ROOT}/tools/outside.py" list --json` and offer them with **one multi-select question**
+(AskUserQuestion, `multiSelect: true`, at most four options a question, so split into two or three questions),
+each option the tool's label, its description and its link (from the list). Say first, in one line, that each one
+comes from its maker's GitHub and that nothing is switched on in games by downloading, except where its description
+says otherwise. For every ticked one: `features.py on outside_<name>`, then `outside.py get <name>` and show its
+lines (an installer may open: say to click through it). Unticked: `features.py off outside_<name>`. Then
+`offers.py made outside-tools <yes|no>`. `docs/PROTOCOL.md` section 39.
+
 ## 0.14 The superpowers skills (0.77.0, everyone, offered once)
 
 Only if `python "${CLAUDE_PLUGIN_ROOT}/tools/offers.py" should superpowers` says `offer`, and only if
