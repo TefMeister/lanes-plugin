@@ -801,6 +801,14 @@ else
   fail "video_tidy_test.py failed"
 fi
 
+echo "gu_texts.py - a catalog page that should name every tool of ours says what it misses (0.91.0)"
+if out=$("$PY" "$HERE/catalog_test.py" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "catalog_test.py failed"
+fi
+
 echo "vrbench install - VR Bench downloaded with the simulator, or on its own (0.74.0)"
 if out=$(bash "$HERE/vrbench-fixture.sh" 2>&1); then
   ok "$(printf '%s\n' "$out" | tail -n 1)"

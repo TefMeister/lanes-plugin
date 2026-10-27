@@ -149,6 +149,8 @@ role = DEV
 #   watch  = <name> | <owner/repo>           someone else's tool on GitHub: say when a new release is out
 #   ours   = <clone>                         one of our own tool repos: behind or ahead of GitHub?
 #   routes = <folder>                        where each app's routes and KNOWN.md live (its Tool ideas are read)
+#   catalog = <repo>/<file>                  a page that must name every tool of ours (0.91.0): the check lists
+#                                            what it never mentions and what moved on since it last changed
 #   gu_ask = no                              update without asking first (default: one question for everything)
 #   build_check = <name> | <folder or -> | <command, or @msvc / @blender / @pip>
 #                                            something we build: a build-critical update is kept only if it still

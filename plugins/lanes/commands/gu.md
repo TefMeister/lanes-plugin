@@ -129,6 +129,13 @@ Five sections. If one is empty because nothing is set up for it in `lanes.conf` 
    - **Never change what a project IS** (visibility, a release, a decision); a text that disagrees with a decision
      is reported, not "fixed" by guessing. When the person knows something no file says (a mod site's version,
      say), take their word and write it in.
+   - **Catalog pages** (0.91.0, `catalog = <repo>/<file>` in lanes.conf, such as a toolkit's list of every tool): the
+     scan names each tool of ours the page never mentions (a file in that repo's `tools/`, a public `ours =` repo, an
+     app any PC has installed) and each tool it mentions whose repo moved on since the page last changed. Add the
+     missing ones and bring the moved ones up to date, from each tool's own README and tested notes, in the page's
+     own style; a private repo is never named on a public page. A new app of ours also gets its `ours =` line here.
+     The maintainer (2026-10-27), after the toolkit page missed five of our apps: *"this should have been covered by
+     the /fullscan and /gu, can you make a fix for it so next time something like this is not forgotten"*.
    - Rerun the scan after: section 5 should come back empty.
 
 ## 3. Finish

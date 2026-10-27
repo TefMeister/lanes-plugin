@@ -16,6 +16,11 @@ What it flags, for every public, non-archived repo of the account (`texts_owner 
     commits landed in the repo since.
 Front pages are read from local clones (`texts = <folder of clones>`, repeatable), matched by their GitHub address;
 a repo with no clone there gets the description checks only. Never edits anything.
+CATALOG PAGES (0.91.0, `catalog = <repo>/<file>`, repeatable): a page that should name every tool we made (the
+toolkit's TOOLKIT.md). Flagged: a tool in that repo's tools/ folder, a public `ours =` repo, or an app any PC has
+installed (installed.py's notes), that the page never names; and a tool it names whose repo had CATALOG_STALE_COMMITS
+or more commits since the page last changed. The maintainer, 2026-10-27, after TOOLKIT.md missed five apps: "this should
+have been covered by the /fullscan and /gu, can you make a fix for it so next time something like this is not forgotten".
 Tests: LANES_GU_FAKE_REPOS (a JSON list shaped like `gh repo list --json name,description,visibility,isArchived,
 latestRelease`), LANES_GU_NO_NET=1 (no fetch, no gh), LANES_GU_TODAY.
 """
@@ -31,6 +36,8 @@ REPO_LIMIT = 1000
 STATUS_STALE_DAYS = 21       # a status line untouched this long ...
 STATUS_STALE_COMMITS = 15    # ... while this much work landed is worth a look
 FRONT_PAGES = ("README.md", "mod/README.md")
+CATALOG_STALE_COMMITS = 10   # a tool's repo moving this much after the catalog page last changed is worth a look
+CATALOG_SKIP = {"README.md", "test", "tests", "__pycache__", "lib", "templates"}
 VERSION_RE = re.compile(r"(?<![\w.])v?(\d+)\.(\d+)\.(\d+)(?![\w])|(?<![\w.])v(\d+)\.(\d+)(?![\w.])")
 CURRENT_RE = re.compile(r"current|latest|newest|download|get it|released", re.I)
 # A phrase in quotes is a page TALKING ABOUT the check (the plugin README does), not a status claim.
@@ -169,8 +176,62 @@ def check_repo(repo, clone, now, owner=""):
     return flags
 
 
-def scan(roots, owner, now):
-    """{'owner', 'checked', 'without_clone', 'repos': [{'name', 'flags'}], 'error'}"""
+def squash(name):
+    """'Hand Freeze', 'hand-freeze-vr' and 'HandFreeze' all read as 'handfreeze'"""
+    s = re.sub(r"[^a-z0-9]", "", name.lower())
+    return s[:-2] if s.endswith("vr") and len(s) > 4 else s
+
+
+def catalog_items(clone, ours, apps, public):
+    """{squashed name: [name, repo or None]} a catalog page should mention: every tool in its own repo's tools/ folder,
+    every public repo of ours (`ours =`), and every app of ours any PC has installed (installed.py's notes). An app
+    and its repo ('Hand Poser', hand-poser-vr) are one item, named as the app."""
+    items = {}
+    rc, listing = git(clone, "ls-tree", "--name-only", "HEAD", "tools/")
+    for p in (listing.splitlines() if rc == 0 else []):
+        name = os.path.basename(p)
+        if name not in CATALOG_SKIP and not name.startswith((".", "_")):
+            items[squash(os.path.splitext(name)[0])] = [name, None]
+    own = os.path.basename(clone.rstrip("/\\")).lower()
+    for path in ours:
+        name = os.path.basename(path.rstrip("/\\"))
+        if name.lower() in public and name.lower() != own:
+            items.setdefault(squash(name), [name, None])[1] = name
+    for app in apps:
+        items.setdefault(squash(app), [app, None])[0] = app
+    return items
+
+
+def check_catalog(spec, clones, ours, apps, public):
+    """flags for one `catalog = <repo>/<file>`: what it never mentions, and what it mentions while that tool's repo
+    kept moving after the page last changed (2026-10-27: TOOLKIT.md had no word of Hand Poser, Window View, Grab Zones,
+    VR Bench or Menu-o-matiC, and still called Hand Freeze 64-bit only and untried in a real game)"""
+    repo, _, rel = spec.replace("\\", "/").partition("/")
+    clone = clones.get(repo.lower())
+    if not clone or not rel:
+        return [f"{spec}: no local clone of {repo} to read it from"]
+    ref, text = front_page(clone, rel)
+    if text is None:
+        return [f"{spec}: {rel} not found in {repo}"]
+    said = squash(text)
+    flags = []
+    rc, ct = git(clone, "log", "-1", "--format=%ct", ref, "--", rel)
+    for key, (item, item_repo) in sorted(catalog_items(clone, ours, apps, public).items()):
+        if key not in said:
+            flags.append(f"{rel} never mentions {item}")
+            continue
+        other = clones.get((item_repo or "").lower())
+        if other and rc == 0 and ct:
+            other_ref = front_page(other, "README.md")[0] or "HEAD"     # GitHub's copy when fetched (check_repo)
+            n_rc, n = git(other, "rev-list", "--count", f"--since={ct}", other_ref)
+            if n_rc == 0 and n.isdigit() and int(n) >= CATALOG_STALE_COMMITS:
+                flags.append(f"{rel} mentions {item}, but {item_repo} had {n} commits since the page last changed")
+    return flags
+
+
+def scan(roots, owner, now, catalogs=(), ours=(), apps=()):
+    """{'owner', 'checked', 'without_clone', 'repos': [{'name', 'flags'}], 'error'}. `catalogs` are pages that should
+    name every tool of ours (`catalog = <repo>/<file>`, 0.91.0); their findings come under that repo's name."""
     owner = owner or gh_login()
     if not owner:
         return {"owner": "", "checked": 0, "without_clone": 0, "repos": [], "error": "no account (texts_owner)"}
@@ -179,14 +240,21 @@ def scan(roots, owner, now):
     except Exception as e:
         return {"owner": owner, "checked": 0, "without_clone": 0, "repos": [], "error": str(e)}
     clones = clones_by_name(roots, owner)
-    out, checked, missing = [], 0, 0
+    out, checked, missing = {}, 0, 0
+    public = set()
     for repo in sorted(repos, key=lambda r: r["name"].lower()):
         if repo.get("visibility", "").upper() != "PUBLIC" or repo.get("isArchived"):
             continue
+        public.add(repo["name"].lower())
         checked += 1
         clone = clones.get(repo["name"].lower())
         missing += clone is None
         flags = check_repo(repo, clone, now, owner)
         if flags:
-            out.append({"name": repo["name"], "flags": flags})
-    return {"owner": owner, "checked": checked, "without_clone": missing, "repos": out, "error": None}
+            out[repo["name"]] = flags
+    for spec in catalogs:
+        flags = check_catalog(spec, clones, ours, apps, public)
+        if flags:
+            out.setdefault(spec.replace("\\", "/").split("/")[0], []).extend(flags)
+    return {"owner": owner, "checked": checked, "without_clone": missing,
+            "repos": [{"name": n, "flags": f} for n, f in out.items()], "error": None}

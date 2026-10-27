@@ -1259,6 +1259,14 @@ knowledge goes into the tools.
   for 21 days while 15 or more commits landed. The session then reads every description once against the
   project's own notes and rewrites what disagrees, in plain words, from those notes only. It never changes what a
   project is (visibility, a release, a decision). Its first run brought texts in 20 repos up to date.
+- **0.91.0: catalog pages.** A page meant to name every tool of ours (`catalog = <repo>/<file>`, such as a
+  toolkit's TOOLKIT.md) is checked too: every file in that repo's `tools/`, every public `ours =` repo and every
+  app any PC has installed (installed.py's notes) must be named on it, and a tool it names whose repo had 10 or
+  more commits since the page last changed is flagged for a look. Added after TOOLKIT.md had gone two weeks
+  without Hand Poser, Grab Zones, Window View, VR Bench, BeG0nE, Menu-o-matiC and a dozen small tools, and still
+  called Hand Freeze 64-bit only; the maintainer: *"this should have been covered by the /fullscan and /gu, can you
+  make a fix for it so next time something like this is not forgotten"*. The full scan runs `/lanes:gu`, so it
+  carries this too.
 
 The test builds before an update are section 31.
 
