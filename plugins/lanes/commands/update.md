@@ -124,6 +124,11 @@ description: (Update) Checks GitHub for a newer version of the lanes plugin, say
     `offers.py made outside-tools <answer>`). After that, every run: `outside.py newer` and, for each tool it names,
     one plain line and a question ("Update it" / "Not now"); yes runs `outside.py get <name>` again.
 
+17. **Our own apps and libraries, once** (0.93.0), after step 16: as `/lanes:setup` §0.13.6 says (the tick-box
+    questions, leaving out what is already got, then `features.py on|off ours_<name>`, `ours.py get <name>` for each
+    ticked one, and `offers.py made our-tools <answer>`). After that, every run: `ours.py newer`, asked the same way
+    as step 16.
+
 **Every offer on this page is made once** (0.75.0): an add-on offer is never repeated once `offers.py made` holds
 it, and "Not now" to an update quiets that version for good. Updates of things already installed (steps 6-8,
 `newer` true) are not offers of something new and are asked when a newer version appears.

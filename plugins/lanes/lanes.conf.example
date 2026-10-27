@@ -151,6 +151,10 @@ role = DEV
 #   routes = <folder>                        where each app's routes and KNOWN.md live (its Tool ideas are read)
 #   catalog = <repo>/<file>                  a page that must name every tool of ours (0.91.0): the check lists
 #                                            what it never mentions and what moved on since it last changed
+#   skills = <repo>/<file>                   the skills page (0.93.0): MCP servers and plugins in use on this PC
+#                                            that it never names, and a page left unchanged for weeks
+#   skills_skip = <name>                     a connector or plugin that stays off that page (a private one)
+#   lanes_skip = <repo>                      one of our repos that is not a tool Lanes should offer
 #   gu_ask = no                              update without asking first (default: one question for everything)
 #   build_check = <name> | <folder or -> | <command, or @msvc / @blender / @pip>
 #                                            something we build: a build-critical update is kept only if it still

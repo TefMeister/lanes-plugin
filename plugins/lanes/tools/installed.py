@@ -17,7 +17,8 @@ from origin/main, after a quick fetch, because a note written elsewhere arrives 
 Like owed.sh, this NEVER commits: it writes one file and the close-out box reports it as unsaved until the session
 saves the board. Exit 0 always for brief/scan (a start-up check must never be why a session opens with an error).
 
-APPS it can find by itself (scan): Hand Freeze, VR Bench. A new app of ours adds one line to APPS.
+APPS it can find by itself (scan): Hand Freeze, VR Bench, Window View, Hand Poser. A new app of ours adds one line to
+APPS.
 Tests set LANES_BOARD, LANES_CONFIG, LANES_HANDFREEZE_DIR and LANES_VRBENCH_LAYER_DIR.
 """
 import datetime
@@ -55,8 +56,23 @@ def vrbench_found():
         return "release unknown"
 
 
+def app_found(folder, exe):
+    """an app of ours that ours.py (0.93.0) or its own install.ps1 put in %LOCALAPPDATA%\\Programs\\<folder>"""
+    def find():
+        d = os.path.join(os.environ.get("LANES_OURS_APPS") or os.path.join(LOCALAPPDATA, "Programs"), folder)
+        if not os.path.isfile(os.path.join(d, exe)):
+            return None
+        try:
+            with open(os.path.join(d, "lanes-release.txt"), encoding="utf-8") as f:
+                return f.read().strip() or "release unknown"
+        except OSError:
+            return "release unknown"
+    return find
+
+
 # app name -> how to find it on this PC (returns the release, or None when absent)
-APPS = {"Hand Freeze": handfreeze_found, "VR Bench": vrbench_found}
+APPS = {"Hand Freeze": handfreeze_found, "VR Bench": vrbench_found,
+        "Window View": app_found("WindowView", "WindowView.exe"), "Hand Poser": app_found("HandPoser", "HandPoser.exe")}
 
 
 def conf_files():
