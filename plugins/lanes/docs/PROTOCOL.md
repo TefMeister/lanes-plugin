@@ -1263,7 +1263,7 @@ knowledge goes into the tools.
   toolkit's TOOLKIT.md) is checked too: every file in that repo's `tools/`, every public `ours =` repo and every
   app any PC has installed (installed.py's notes) must be named on it, and a tool it names whose repo had 10 or
   more commits since the page last changed is flagged for a look. Added after TOOLKIT.md had gone two weeks
-  without Hand Poser, Grab Zones, Window View, VR Bench, BeG0nE, Menu-o-matiC and a dozen small tools, and still
+  without Hand Poser, Grab Zones (now Grip Zones), Window View, VR Bench, BeG0nE, Menu-o-matiC and a dozen small tools, and still
   called Hand Freeze 64-bit only; the maintainer: *"this should have been covered by the /fullscan and /gu, can you
   make a fix for it so next time something like this is not forgotten"*. The full scan runs `/lanes:gu`, so it
   carries this too.
@@ -1658,10 +1658,28 @@ add the optional features to Lanes"*.
 - **Each one is an extra** (set "Our own apps and libraries", `ours_<name>`), off until the PC says yes: setup
   §0.13.6 and update step 17 ask once, with tick boxes, leaving out what is already there. `ours.py newer` names an
   app with a newer release; installed.py now finds Window View and Hand Poser on a PC by itself.
-- **Not listed:** Hand Freeze and VR Bench (they have their own installers and questions), Grab Zones (part of one
-  game's mod), and anything still private (the MCP Game Bridge, 0ut-0f-f0cus): they are added when they are public.
+- **Not listed:** Hand Freeze and VR Bench (they have their own installers and questions), and anything still private (the MCP Game Bridge, 0ut-0f-f0cus): they are added when they are public.
 - A new app or library of ours is one entry in `TOOLS` in ours.py.
 - **Kept up by /gu (scan section 6).** The weekly check names a public `ours =` tool that Lanes does not offer
   (`lanes_skip =` for a repo that is no tool), and, with `skills = <repo>/<file>`, every MCP server or plugin in use
   on the PC that the skills page never names (`skills_skip =` for a private one) and a skills page left unchanged
   for 45 days. The maintainer (2026-10-27): *"all this is what /fullscan and /gu are meant to do"*.
+
+## 41. Out of Date: GitHub as new as the work (0.94.0, 2026-10-27)
+
+The maintainer, 2026-10-27, after one afternoon found a download two versions behind, three apps with no download
+and a skills page 67 days old: *"a slash command now actually, that scans if something is out of date across our
+github ... it must run before /gu ... and then add this function to the /fullscan as well so our github will always
+be shiny and has the latest stuff"*. `/lanes:od` (`tools/od.py`, `commands/od.md`) looks at four things:
+
+1. **Downloads behind the work:** a public `ours =` tool whose program changed after its newest release. Notes,
+   docs, tests and ideas do not count. Read at GitHub's newest state (each clone is fetched), never an unpulled copy.
+2. **Tools with no download:** an app or add-on (install.ps1, build.bat or a dist zip) with no release; a library
+   without a one-zip link (`archive/refs/heads/main.zip`) on its front page. `od_skip =` leaves a repo alone.
+3. **Texts on GitHub** and catalog pages (0.69.0 and 0.91.0, in section 23; moved from `/gu`).
+4. **Lanes and the skills page** (section 40's checks, moved from `/gu`).
+
+Publishing a download of our own tool needs no question, once its own tests pass; it carries `SHA256SUMS.txt` and
+plain notes on how far it was tested. Never a game mod, never a repo made public. `/fullscan` runs it just before
+`/gu` (step 4b), so what it publishes is there for the tool check to offer. On or off: `out_of_date`.
+

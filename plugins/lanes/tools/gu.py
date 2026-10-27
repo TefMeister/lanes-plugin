@@ -12,11 +12,13 @@ and CHANGES NOTHING by itself; the session does the updating, on the person's ye
   3. OUTSIDE TOOLS: `watch = <name> | <owner/repo>`, a tool from someone else on GitHub. Says when a release came
      out that we have not noted yet, with its title.
   4. LESSONS: lines added under "## Tool ideas" in each app's KNOWN.md (`routes = <folder>`) since the last run.
-  5. TEXTS ON GITHUB (0.69.0): repo descriptions and front pages that have fallen behind the work: an older version
-     named, "nothing released" beside a release, a status part untouched while work landed (gu_texts.py).
-  6. LANES AND THE SKILLS PAGE KEEP UP (0.93.0): a public `ours =` tool that Lanes does not offer (tools/ours.py),
-     and, with `skills = <repo>/<file>`, MCP servers and plugins in use on this PC that the page never names, or a
-     page left unchanged for SKILLS_STALE_DAYS. `lanes_skip =` and `skills_skip =` silence one name.
+  Since 0.94.0 everything about GitHub itself (texts behind the work, downloads behind the program, the skills page,
+  what Lanes offers) is /lanes:od (od.py), which runs before /gu. The checks below the "texts" and "coverage" lines
+  stay here because od.py calls them:
+  - TEXTS ON GITHUB (0.69.0): repo descriptions and front pages that have fallen behind the work (gu_texts.py).
+  - LANES AND THE SKILLS PAGE KEEP UP (0.93.0): a public `ours =` tool that Lanes does not offer (tools/ours.py),
+    and, with `skills = <repo>/<file>`, MCP servers and plugins in use on this PC that the page never names, or a
+    page left unchanged for SKILLS_STALE_DAYS. `lanes_skip =` and `skills_skip =` silence one name.
 
     python gu.py scan [--json]          the report
     python gu.py seen <name> <tag>      note that a watched tool's release has been looked at / installed
@@ -393,8 +395,7 @@ def scan(as_json):
     apps, clones = our_apps()
     report = {"last_run": state.get("last_run"), "apps": apps, "clones": clones,
               "twins": [compare_twin(*pair(v)) for v in conf_values("twin")],
-              "outside": outside_tools(state), "lessons": lessons(state.get("last_run")),
-              "texts": texts_report(), "coverage": coverage_report()}
+              "outside": outside_tools(state), "lessons": lessons(state.get("last_run"))}
     if as_json:
         print(json.dumps(report, indent=1))
         return 0
@@ -439,34 +440,7 @@ def scan(as_json):
         print(f"   {l['app']}: {l['line']}")
     if not report["lessons"]:
         print("   none")
-    print("5. Texts on GitHub")
-    t = report["texts"]
-    if t is None:
-        print("   not set up (texts = <folder of clones>)")
-    elif t["error"]:
-        print(f"   could not check: {t['error']}")
-    else:
-        print(f"   {t['checked']} public repos of {t['owner']} checked"
-              + (f", {t['without_clone']} without a local clone (description only)" if t["without_clone"] else ""))
-        for r in t["repos"]:
-            for f in r["flags"]:
-                print(f"   {r['name']}: {f}")
-        if not t["repos"]:
-            print("   nothing found by the checks; still read each description once against the project's notes")
-    print("6. Lanes and the skills page keep up")
-    c = report["coverage"]
-    if c["error"]:
-        print(f"   could not check: {c['error']}")
-    for n in c["not_offered"]:
-        print(f"   {n}: a public tool of ours that Lanes does not offer yet: add it to tools/ours.py "
-              f"(or lanes_skip = {n})")
-    if c["skills"] is None:
-        print("   skills page: not set up (skills = <repo>/<file>)")
-    else:
-        for f in c["skills"]["flags"]:
-            print(f"   {c['skills']['page']}: {f}")
-    if not c["not_offered"] and not c["error"] and (c["skills"] is None or not c["skills"]["flags"]):
-        print("   nothing missing")
+    print("5. GitHub pages, downloads and the skills page: /lanes:od (od.py scan), run before this check")
     return 0
 
 

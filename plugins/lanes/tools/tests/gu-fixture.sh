@@ -5,6 +5,7 @@
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 TOOL="$HERE/../gu.py"
+OD="$HERE/../od.py"
 PY=""
 for cand in python3 python py; do command -v "$cand" >/dev/null 2>&1 && "$cand" -c "" >/dev/null 2>&1 && { PY="$cand"; break; }; done
 [ -n "$PY" ] || { echo "gu-fixture: no working Python"; exit 1; }
@@ -75,7 +76,7 @@ rm -f "$LANES_STATE_DIR/gu.json"
 check "nudge: never run but set up = one line" '"$PY" "$TOOL" nudge | grep -q "never run"'
 check "nudge: never run and nothing set up = silent" '[ -z "$(LANES_CONFIG="$T/none.conf" "$PY" "$TOOL" nudge)" ]'
 
-# 5. texts on GitHub (0.69.0): a stale description, a front page pointing at an old version and saying nothing is
+# 5. texts on GitHub (0.69.0; /od section 3 since 0.94.0): a stale description, a front page pointing at an old version and saying nothing is
 # released, a status part left behind by later work; and a repo whose texts are current, which must stay quiet
 mkdir -p "$T/texts"
 gc() { GIT_COMMITTER_DATE="$2" git -C "$T/texts/$1" -c user.name=t -c user.email=t@t commit -q "${@:3}" --date "$2"; }
@@ -98,7 +99,7 @@ cat > "$T/repos.json" <<EOF
  {"name": "noclone", "description": "Private until work starts", "visibility": "PUBLIC", "isArchived": false, "latestRelease": null}]
 EOF
 printf 'texts = %s/texts\ntexts_owner = me\n' "$T" > "$T/texts.conf"
-out="$(LANES_CONFIG="$T/texts.conf" LANES_GU_FAKE_REPOS="$T/repos.json" LANES_GU_TODAY=2026-10-15 "$PY" "$TOOL" scan)"
+out="$(LANES_CONFIG="$T/texts.conf" LANES_GU_FAKE_REPOS="$T/repos.json" LANES_GU_TODAY=2026-10-15 "$PY" "$OD" scan)"
 check "texts: public repos counted, one without a clone" 'printf "%s" "$out" | grep -q "4 public repos of me checked, 2 without a local clone"'
 check "texts: old version in the description" 'printf "%s" "$out" | grep -q "scope: description names an older version than the newest release v1.1.5"'
 check "texts: front page download line points at the old version" 'printf "%s" "$out" | grep -q "scope: README.md line 5 points at an older version than v1.1.5"'
@@ -108,9 +109,9 @@ check "texts: an engine version is not a mod version" '! printf "%s" "$out" | gr
 check "texts: public repo calling itself private" 'printf "%s" "$out" | grep -q "noclone: description says it is private"'
 check "texts: current texts and private repos stay quiet" '! printf "%s" "$out" | grep -q "fresh:\|hidden:"'
 check "texts: a pre-release counts when there is no full release" 'printf "%s" "$out" | grep -q "pre: description names an older version than the newest release v0.1.8-alpha"'
-check "texts: not set up says so" 'printf "%s" "$(LANES_CONFIG="$T/none.conf" "$PY" "$TOOL" scan)" | grep -q "not set up (texts"'
+check "texts: not set up says so" 'printf "%s" "$(LANES_CONFIG="$T/none.conf" "$PY" "$OD" scan)" | grep -q "not set up (texts"'
 
-# 6. Lanes and the skills page keep up (0.93.0): a public tool of ours Lanes does not offer (and a private one, an
+# 6. Lanes and the skills page keep up (0.93.0; /od section 4 since 0.94.0): a public tool of ours Lanes does not offer (and a private one, an
 # offered one and a skipped one that stay quiet); a connector and a plugin the skills page never names, a page gone stale
 mkdir -p "$T/six/kit" "$T/six/clones/newtool" "$T/six/clones/secret" "$T/six/clones/window-view-vr" "$T/six/clones/oldtool"
 git init -q -b main "$T/six/kit"
@@ -126,14 +127,39 @@ printf '{"plugins": {"superpowers@x": [], "shiny@y": []}}' > "$T/six/plugins.jso
 { printf 'texts = %s/six\ntexts_owner = me\nskills = kit/SKILLS.md\nskills_skip = hush\nlanes_skip = oldtool\n' "$T"
   for n in newtool secret window-view-vr oldtool; do printf 'ours = %s/six/clones/%s\n' "$T" "$n"; done; } > "$T/six.conf"
 out="$(LANES_CONFIG="$T/six.conf" LANES_GU_FAKE_REPOS="$T/six/repos.json" LANES_CLAUDE_JSON="$T/six/claude.json" \
-       LANES_CLAUDE_PLUGINS="$T/six/plugins.json" LANES_GU_TODAY=2026-10-27 "$PY" "$TOOL" scan | sed -n '/^6\./,$p')"
+       LANES_CLAUDE_PLUGINS="$T/six/plugins.json" LANES_GU_TODAY=2026-10-27 "$PY" "$OD" scan | sed -n '/^4\./,$p')"
 check "coverage: a public tool Lanes does not offer" 'printf "%s" "$out" | grep -q "newtool: a public tool of ours that Lanes does not offer"'
 check "coverage: private, offered and skipped tools stay quiet" '! printf "%s" "$out" | grep -q "secret:\|window-view-vr:\|oldtool:"'
 check "coverage: a connector the skills page never names" 'printf "%s" "$out" | grep -q "MCP server .fancy-mcp. is in use"'
 check "coverage: a plugin the skills page never names" 'printf "%s" "$out" | grep -q "plugin .shiny. is in use"'
 check "coverage: named and skipped connectors stay quiet" '! printf "%s" "$out" | grep -q "x64dbg\|superpowers\|hush"'
 check "coverage: a stale skills page" 'printf "%s" "$out" | grep -q "unchanged for 87 days"'
-check "coverage: skills page not set up says so" 'LANES_CONFIG="$T/none.conf" "$PY" "$TOOL" scan | grep -q "skills page: not set up"'
+check "coverage: skills page not set up says so" 'LANES_CONFIG="$T/none.conf" "$PY" "$OD" scan | grep -q "skills page: not set up"'
+check "gu: the GitHub sections now point at /od" '"$PY" "$TOOL" scan | grep -q "5. GitHub pages, downloads and the skills page: /lanes:od"'
+
+# /od sections 1 and 2 (0.94.0): an app whose program changed after its download (a notes-only change does not count),
+# an app with no download, a library with and without the one-zip link, one in od_skip
+mk() { git init -q -b main "$T/od/$1"; for f in "${@:2}"; do mkdir -p "$(dirname "$T/od/$1/$f")"; echo x > "$T/od/$1/$f"; done
+       git -C "$T/od/$1" add -A; git -C "$T/od/$1" -c user.name=t -c user.email=t@t commit -q -m first; }
+cm() { mkdir -p "$(dirname "$T/od/$1/$2")"; echo "$3" >> "$T/od/$1/$2"; git -C "$T/od/$1" add -A; git -C "$T/od/$1" -c user.name=t -c user.email=t@t commit -q -m "$4"; }
+mkdir -p "$T/od"
+mk behind build.bat app/a.cs README.md; git -C "$T/od/behind" tag v1
+cm behind README.md "notes" "only notes"; cm behind app/a.cs "code" "the program moved"
+mk notesonly build.bat app/a.cs; git -C "$T/od/notesonly" tag v2; cm notesonly docs/x.md "doc" "a doc"
+mk nodl install.ps1 app/a.cs
+mk lib README.md data/a.txt
+mk libok README.md; printf 'get [it](https://github.com/me/libok/archive/refs/heads/main.zip)\n' > "$T/od/libok/README.md"
+git -C "$T/od/libok" -c user.name=t -c user.email=t@t commit -qam link
+mk skipped install.ps1
+printf '[%s]' "$(for n in behind notesonly nodl lib libok skipped; do r=""; [ $n = behind ] && r=',"latestRelease":{"tagName":"v1"}'
+  [ $n = notesonly ] && r=',"latestRelease":{"tagName":"v2"}'; printf '{"name":"%s","visibility":"PUBLIC","isArchived":false%s},' $n "$r"; done | sed 's/,$//')" > "$T/od/repos.json"
+{ printf 'texts_owner = me\nod_skip = skipped\n'; for n in behind notesonly nodl lib libok skipped; do printf 'ours = %s/od/%s\n' "$T" $n; done; } > "$T/od.conf"
+out="$(LANES_CONFIG="$T/od.conf" LANES_GU_FAKE_REPOS="$T/od/repos.json" "$PY" "$OD" scan | sed -n '1,/^3\./p')"
+check "od: a program changed after its download" 'printf "%s" "$out" | grep -q "behind: 1 change(s) to the program since its newest download v1, newest: \"the program moved\""'
+check "od: a notes-only change keeps the download current" '[ "$(git -C "$T/od/notesonly" rev-list --count v2..HEAD)" = 1 ] && ! printf "%s" "$out" | grep -q "notesonly:"'
+check "od: an app with no download" 'printf "%s" "$out" | grep -q "nodl: an app or add-on with no download yet"'
+check "od: a library without the one-zip link" 'printf "%s" "$out" | grep -q "lib: a library with no one-zip download link"'
+check "od: a library with the link, and od_skip, stay quiet" '! printf "%s" "$out" | grep -q "libok:\|skipped:"'
 
 echo "gu-fixture: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

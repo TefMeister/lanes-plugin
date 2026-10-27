@@ -1,5 +1,5 @@
 ---
-description: (Full scan) The weekly check-up in one go - shelve and sift the collected data (Gold Digger), research every project and the shared library, check the tools, re-read and tidy our own code (code health), a tidiness pass, then save everything - in that order, with every install question gathered at the very end. Each part still runs on its own. Never launches anything.
+description: (Full scan) The weekly check-up in one go - shelve and sift the collected data (Gold Digger), research every project and the shared library, bring everything on GitHub up to date (Out of Date), check the tools, re-read and tidy our own code (code health), a tidiness pass, then save everything - in that order, with every install question gathered at the very end. Each part still runs on its own. Never launches anything.
 ---
 
 `/fullscan` — **everything checked and brought up to date, in one go.** Asked for by the maintainer, 2026-10-26:
@@ -20,8 +20,8 @@ and Gold Digger parts to that project.
 - **Each part keeps its own rules and its own clone root**, exactly as when it runs alone. This command only sets the
   order. Parts run one after another, never side by side, so two parts never share a tree at the same moment.
 - **Run each part by following its own command**, through the Skill tool: the person's own short command when this
-  PC has one (`/gd`, `/gr`, `/sr`, `/gu`, `/ch`, `/gs`, `/sp`), otherwise the plugin's (`lanes:gd`, `lanes:gr`,
-  `lanes:sr`, `lanes:gu`, `lanes:ch`, `lanes:gs`). A part that is not set up on this PC is skipped with one line saying so.
+  PC has one (`/gd`, `/gr`, `/sr`, `/od`, `/gu`, `/ch`, `/gs`, `/sp`), otherwise the plugin's (`lanes:gd`, `lanes:gr`,
+  `lanes:sr`, `lanes:od`, `lanes:gu`, `lanes:ch`, `lanes:gs`). A part that is not set up on this PC is skipped with one line saying so.
 - **Questions wait until the end.** No part stops to ask mid-run; the weekly tool check's tick-box install question
   is asked last (step 7), so the person can leave the PC for the whole run.
 - **A part that fails is reported and the run carries on** with the next part. It never retries in a loop.
@@ -46,6 +46,16 @@ research parts read the notes.
 ## 4. Research for each project (`/gr`), then the shared library (`/sr`)
 
 Whole estate (or the named project), with each command's own tiers, so quiet projects get a short check-in.
+
+## 4b. Out of Date (`/od`)
+
+Added 2026-10-27 (the maintainer: *"it must run before /gu ... and then add this function to the /fullscan as well so
+our github will always be shiny and has the latest stuff"*). Everything we published on GitHub is brought level with
+the work behind it: downloads older than their program are rebuilt, tested and published, tools with no download get
+one, descriptions, front pages, the catalog and skills pages are brought up to date, and a tool Lanes does not offer
+yet is added. It needs no question (publishing our own tested tools is allowed), so it runs fully here; it goes
+before the tool check so a download it publishes is already there for `/gu` to offer. Skipped with one line when
+`features.py is-on out_of_date` says off.
 
 ## 5. The tool check (`/gu`): LOOK ONLY
 
