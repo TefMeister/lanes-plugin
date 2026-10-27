@@ -58,6 +58,7 @@ REC_LABEL = "begone"            # recordings the rider makes are named begone_<d
 REC_TIMEOUT_S = 90              # obs-rec may have to start OBS first
 REC_STATE = os.path.join(os.path.expandvars("%LOCALAPPDATA%"), "obs-rec-state.json")
 TIDY_EVERY_S = 3600             # how often the videos nothing needs are taken off (video_tidy.py, 0.90.0)
+TIDY_FIRST_S = 300              # the first tidy this long after the rider starts
 FEATURES = os.path.join(os.path.dirname(HERE), "tools", "features.py")
 
 
@@ -244,7 +245,7 @@ def run():
         f.write(str(os.getpid()))
     say("rider up: " + ", ".join(t["name"] for t in bc.tools() if t.get("log_dir")))
     last_proc_look, steam, loaded, announced = 0, False, [], set()
-    last_tidy = time.time() - TIDY_EVERY_S + 300       # the first tidy five minutes after the rider starts
+    last_tidy = time.time() - TIDY_EVERY_S + TIDY_FIRST_S
     rec_on = False                  # the rider started the recording that is running now (one per session)
     while True:
         now = time.time()
