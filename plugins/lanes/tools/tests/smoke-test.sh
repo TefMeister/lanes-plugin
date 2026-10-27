@@ -817,6 +817,14 @@ else
   fail "outside_test.py failed"
 fi
 
+echo "ours.py - our own apps and libraries as optional downloads, checked before they are installed (0.93.0)"
+if out=$("$PY" "$HERE/ours_test.py" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "ours_test.py failed"
+fi
+
 echo "vrbench install - VR Bench downloaded with the simulator, or on its own (0.74.0)"
 if out=$(bash "$HERE/vrbench-fixture.sh" 2>&1); then
   ok "$(printf '%s\n' "$out" | tail -n 1)"

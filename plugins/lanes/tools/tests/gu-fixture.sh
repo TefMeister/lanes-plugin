@@ -110,5 +110,30 @@ check "texts: current texts and private repos stay quiet" '! printf "%s" "$out" 
 check "texts: a pre-release counts when there is no full release" 'printf "%s" "$out" | grep -q "pre: description names an older version than the newest release v0.1.8-alpha"'
 check "texts: not set up says so" 'printf "%s" "$(LANES_CONFIG="$T/none.conf" "$PY" "$TOOL" scan)" | grep -q "not set up (texts"'
 
+# 6. Lanes and the skills page keep up (0.93.0): a public tool of ours Lanes does not offer (and a private one, an
+# offered one and a skipped one that stay quiet); a connector and a plugin the skills page never names, a page gone stale
+mkdir -p "$T/six/kit" "$T/six/clones/newtool" "$T/six/clones/secret" "$T/six/clones/window-view-vr" "$T/six/clones/oldtool"
+git init -q -b main "$T/six/kit"
+printf '# Skills\n\nx64dbg MCP and the Superpowers plugin.\n' > "$T/six/kit/SKILLS.md"
+git -C "$T/six/kit" add SKILLS.md
+GIT_COMMITTER_DATE="2026-08-01T00:00:00" git -C "$T/six/kit" -c user.name=t -c user.email=t@t commit -q -m s --date "2026-08-01T00:00:00"
+cat > "$T/six/repos.json" <<EOF
+[{"name": "newtool", "visibility": "PUBLIC", "isArchived": false}, {"name": "secret", "visibility": "PRIVATE", "isArchived": false},
+ {"name": "window-view-vr", "visibility": "PUBLIC", "isArchived": false}, {"name": "oldtool", "visibility": "PUBLIC", "isArchived": false}]
+EOF
+printf '{"mcpServers": {"x64dbg": {}, "fancy-mcp": {}, "hush": {}}}' > "$T/six/claude.json"
+printf '{"plugins": {"superpowers@x": [], "shiny@y": []}}' > "$T/six/plugins.json"
+{ printf 'texts = %s/six\ntexts_owner = me\nskills = kit/SKILLS.md\nskills_skip = hush\nlanes_skip = oldtool\n' "$T"
+  for n in newtool secret window-view-vr oldtool; do printf 'ours = %s/six/clones/%s\n' "$T" "$n"; done; } > "$T/six.conf"
+out="$(LANES_CONFIG="$T/six.conf" LANES_GU_FAKE_REPOS="$T/six/repos.json" LANES_CLAUDE_JSON="$T/six/claude.json" \
+       LANES_CLAUDE_PLUGINS="$T/six/plugins.json" LANES_GU_TODAY=2026-10-27 "$PY" "$TOOL" scan | sed -n '/^6\./,$p')"
+check "coverage: a public tool Lanes does not offer" 'printf "%s" "$out" | grep -q "newtool: a public tool of ours that Lanes does not offer"'
+check "coverage: private, offered and skipped tools stay quiet" '! printf "%s" "$out" | grep -q "secret:\|window-view-vr:\|oldtool:"'
+check "coverage: a connector the skills page never names" 'printf "%s" "$out" | grep -q "MCP server .fancy-mcp. is in use"'
+check "coverage: a plugin the skills page never names" 'printf "%s" "$out" | grep -q "plugin .shiny. is in use"'
+check "coverage: named and skipped connectors stay quiet" '! printf "%s" "$out" | grep -q "x64dbg\|superpowers\|hush"'
+check "coverage: a stale skills page" 'printf "%s" "$out" | grep -q "unchanged for 87 days"'
+check "coverage: skills page not set up says so" 'LANES_CONFIG="$T/none.conf" "$PY" "$TOOL" scan | grep -q "skills page: not set up"'
+
 echo "gu-fixture: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

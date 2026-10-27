@@ -68,6 +68,9 @@ SETS = {
     "recording": {"title": "Recording the BeG0nE tests", "together": True,
                   "note": "One films the game during every BeG0nE headset test so each fault can be seen picture by "
                           "picture, the other takes those videos off the PC again once nothing needs them."},
+    "ours": {"title": "Our own apps and libraries", "together": False,
+             "note": "The other things we built for flat-to-VR work, each from its page on TefMeister's GitHub "
+                     "(tools/ours.py gets it). Each one is useful on its own."},
     "outside": {"title": "Other people's tools", "together": False,
                 "note": "Downloads from other makers that help flat-to-VR work, each from its maker's GitHub "
                         "(tools/outside.py gets it). Each one is useful on its own."},
@@ -146,6 +149,11 @@ FEATURES = {
 # never disagree. Off until asked on every PC: each one downloads something.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import outside  # noqa: E402
+import ours  # noqa: E402
+# Our own apps and libraries (0.93.0), the same way: described and linked from tools/ours.py's list.
+for _name, _t in ours.TOOLS.items():
+    FEATURES[ours.feature_name(_name)] = {"label": _t["label"], "set": "ours", "ask_on_update": True,
+                                          "what": _t["what"], "link": ours.GH + _t["repo"]}
 for _name, _t in outside.TOOLS.items():
     FEATURES[outside.feature_name(_name)] = {"label": f"{_t['label']} (by {_t['maker']})", "set": "outside",
                                              "ask_on_update": True, "what": _t["what"], "link": outside.GH + _t["repo"]}

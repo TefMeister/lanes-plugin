@@ -173,6 +173,12 @@ to learn any of it up front: the sessions follow it for you, and you can switch 
   sound, never your desktop. Since 0.76.0 it can instead run only beside the jitter recorder, so every
   jitter report comes with its jittery seconds cut out of the recording frame by frame, each picture
   marked as standing still or jumping on screen. Offered once.
+- **More tools, each one optional (0.92.0 and 0.93.0).** Setup and the next update offer, with tick boxes,
+  ten tools by other makers (a recorder for what the headset shows, a frame-rate graph inside the headset,
+  connectors that take one frame of a game apart, and more) and our own apps and libraries: Window View (your
+  desktop windows inside any VR game), Hand Poser (pose the hands with sliders in RE Engine games), CubeKit for
+  Blender, the RE toolkit, the game control profiles, the cross-engine VR library, the BeG0nE knowledge and more
+  terminal looks. Each comes from its maker's GitHub, with a link to read first.
 - **Ideas, from anywhere.** Jot an idea into your ideas repo, even from your phone's browser. The next
   session files it under the right game, and that game's next session lists it for you to pick from.
 
@@ -224,6 +230,8 @@ official links:
 | 3D | Blender and Blender MCP, so Claude can build models with you, live, in your Blender |
 | VR | SteamVR, Virtual Desktop (for Quest headsets), the OpenXR Simulator (a pretend headset), VR Bench (a robot player) and Hand Freeze |
 | Videos | DaVinci Resolve (free) to edit, FFmpeg so Claude can cut and convert recordings |
+| Other makers' tools | ten tools by elliotttate: OpenXR OBS Mirror, xrFPS, OpenXR CAS, the PIX and Nsight Graphics connectors, MelonMCP, the vrframework guides and three UEVR add-ons |
+| Our own apps and libraries | Window View, Hand Poser, CubeKit, the RE toolkit, the game control profiles, the cross-engine VR library, the BeG0nE knowledge and more terminal looks |
 
 Per-game frameworks (REFramework, UEVR and similar) are only suggested when a game needs one.
 
@@ -296,7 +304,7 @@ any project. Expect changes: `/lanes:update` tells you what is new and never ins
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.92.0`, public, in daily use |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.93.0`, public, in daily use |
 
 ## Modding games?
 

@@ -240,6 +240,16 @@ says otherwise. For every ticked one: `features.py on outside_<name>`, then `out
 lines (an installer may open: say to click through it). Unticked: `features.py off outside_<name>`. Then
 `offers.py made outside-tools <yes|no>`. `docs/PROTOCOL.md` section 39.
 
+## 0.13.6 Our own apps and libraries (0.93.0, everyone, offered once)
+
+Only if `python "${CLAUDE_PLUGIN_ROOT}/tools/offers.py" should our-tools` says `offer`. Run
+`python "${CLAUDE_PLUGIN_ROOT}/tools/ours.py" list --json` and offer them the same way as §0.13.5: tick boxes, at most
+four a question, each option the label, its description and its link. Say first, in one line, that these are the
+other things the Lanes maker built (from TefMeister's GitHub), that the apps install without administrator rights and
+switch nothing on in any game, and that the rest are folders of tools and notes. Leave out any already got
+(`got` filled in). For every ticked one: `features.py on ours_<name>`, then `ours.py get <name>` and show its lines.
+Unticked: `features.py off ours_<name>`. Then `offers.py made our-tools <yes|no>`. `docs/PROTOCOL.md` section 40.
+
 ## 0.14 The superpowers skills (0.77.0, everyone, offered once)
 
 Only if `python "${CLAUDE_PLUGIN_ROOT}/tools/offers.py" should superpowers` says `offer`, and only if

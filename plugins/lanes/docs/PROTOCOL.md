@@ -1641,3 +1641,27 @@ as optional downloads with the links and descriptions and use all of them, as i 
   Unreal asset reader for projects with source (we mod shipped games); Steam Frame and Steam Link VR settings (not
   the headsets in use); the Mac apps and console recompilations (nothing to do with this work).
 - A new tool is one entry in `TOOLS` in outside.py; its extra, setup question and update check follow from that.
+
+## 40. Our own apps and libraries, as optional downloads (0.93.0, 2026-10-27)
+
+The maintainer, the same day as section 39: *"please go through our githubs tools, skills and all that good stuff and
+add the optional features to Lanes"*.
+
+- **`tools/ours.py`** holds the list, in the same shape as outside.py and reusing its checked download and clone:
+  each one's GitHub link, plain description and how it is got. An **app** (Window View, Hand Poser) comes from its
+  newest release zip, checked against the release's SHA256SUMS.txt when it has one, and its own install.ps1 puts it
+  in %LOCALAPPDATA%\Programs with a Desktop icon (no administrator rights; nothing is switched on in any game). An
+  app with no release yet says so and installs nothing. **CubeKit** is cloned and its newest add-on zip installed
+  into Blender 4.2 or newer. The **libraries** (the RE toolkit, the game control profiles, the cross-engine library,
+  the BeG0nE knowledge, more terminal looks) are shallow clones in `ours_dir`; the control profiles also set
+  `routes =` when it is not set yet.
+- **Each one is an extra** (set "Our own apps and libraries", `ours_<name>`), off until the PC says yes: setup
+  §0.13.6 and update step 17 ask once, with tick boxes, leaving out what is already there. `ours.py newer` names an
+  app with a newer release; installed.py now finds Window View and Hand Poser on a PC by itself.
+- **Not listed:** Hand Freeze and VR Bench (they have their own installers and questions), Grab Zones (part of one
+  game's mod), and anything still private (the MCP Game Bridge, 0ut-0f-f0cus): they are added when they are public.
+- A new app or library of ours is one entry in `TOOLS` in ours.py.
+- **Kept up by /gu (scan section 6).** The weekly check names a public `ours =` tool that Lanes does not offer
+  (`lanes_skip =` for a repo that is no tool), and, with `skills = <repo>/<file>`, every MCP server or plugin in use
+  on the PC that the skills page never names (`skills_skip =` for a private one) and a skills page left unchanged
+  for 45 days. The maintainer (2026-10-27): *"all this is what /fullscan and /gu are meant to do"*.

@@ -63,8 +63,8 @@ unasked; mention it in one line and carry on.
 python "${CLAUDE_PLUGIN_ROOT}/tools/gu.py" scan
 ```
 
-Five sections. If one is empty because nothing is set up for it in `lanes.conf` (`twin =`, `watch =`, `ours =`,
-`routes =`, `texts =` with `texts_owner =`), say so in one line and offer to set it up.
+Six sections. If one is empty because nothing is set up for it in `lanes.conf` (`twin =`, `watch =`, `ours =`,
+`routes =`, `texts =` with `texts_owner =`, `skills =`), say so in one line and offer to set it up.
 
 ## 2. Act, section by section
 
@@ -137,6 +137,17 @@ Five sections. If one is empty because nothing is set up for it in `lanes.conf` 
      The maintainer (2026-10-27), after the toolkit page missed five of our apps: *"this should have been covered by
      the /fullscan and /gu, can you make a fix for it so next time something like this is not forgotten"*.
    - Rerun the scan after: section 5 should come back empty.
+7. **Lanes and the skills page keep up** (0.93.0; scan section 6). Two gaps the scan names:
+   - **A public tool of ours that Lanes does not offer** (an `ours =` repo that is neither shipped, installed nor in
+     `tools/ours.py`): add it to `ours.py`'s list (label, repo, kind, a plain description), run the features doc,
+     and release; a repo that is not a tool for others goes in `lanes_skip =`. Private repos are never named.
+   - **The skills page** (`skills = <repo>/<file>`, such as the toolkit's SKILLS.md): each MCP server or Claude Code
+     plugin in use on this PC that the page never names, and a page left unchanged for a long time. Add a connector
+     only once it has done a real job (install, verify, what it is for, its maker and link, in the page's style);
+     one not yet proven goes in the page's "offered but not proven" line; a private one goes in `skills_skip =`.
+     Then read the page once against what is in use and fix what has moved on.
+   The maintainer (2026-10-27), when the skills page and Lanes' optional extras had fallen behind: *"all this is what
+   /fullscan and /gu are meant to do"*. Rerun the scan after: section 6 should say "nothing missing".
 
 ## 3. Finish
 
