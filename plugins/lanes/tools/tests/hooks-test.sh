@@ -196,6 +196,9 @@ THP="$(cygpath -m "$TH" 2>/dev/null || echo "$TH")"
 mkdir -p "$TH/wt" "$TH/claude" "$TH/state"
 printf '// Windows Terminal keeps comments here\n{\n  "defaultProfile": "{aaaa}",\n  "profiles": { "list": [\n    { "guid": "{aaaa}", "name": "Plain", "colorScheme": "Campbell", },\n    { "guid": "{bbbb}", "name": "Themed", "experimental.pixelShaderPath": "C:/their/own.hlsl" }\n  ] },\n  "schemes": []\n}\n' > "$TH/wt/settings.json"
 printf '{\n  "theme": "dark"\n}\n' > "$TH/claude/settings.json"
+# a PC that had Lanes before (the look is on there): without this, an empty state folder and a lanes.conf written in
+# the last five minutes made features.py call this a NEW install, the look off, and every check below failed (0.90.0)
+printf '{"kind": "update", "since": "0.84.0"}' > "$TH/state/features-state.json"
 export LANES_STATE_DIR="$THP/state" LANES_WT_SETTINGS="$THP/wt/settings.json" LANES_CLAUDE_DIR="$THP/claude" LANES_THEME_NO_FONT=1 WT_PROFILE_ID="{aaaa}"
 unset LANES_CONFIG
 out=$(bash "$HERE/../../hooks/theme-apply" 2>&1)
@@ -233,12 +236,12 @@ out=$(LANES_WT_SETTINGS="$THP/nowhere.json" bash "$HERE/../../hooks/theme-apply"
 # 0.41.1: a profile the plugin has to CREATE (no WT_PROFILE_ID, so not running inside Windows Terminal)
 # gets a start folder, or the tab would open in system32
 printf '{ "profiles": { "list": [ { "guid": "{cccc}", "name": "Plain" } ] }, "schemes": [] }\n' > "$TH/wt/fresh.json"
-rm -rf "$TH/state"; mkdir -p "$TH/state"
+rm -rf "$TH/state"; mkdir -p "$TH/state"; printf '{"kind": "update", "since": "0.84.0"}' > "$TH/state/features-state.json"
 out=$(env -u WT_PROFILE_ID LANES_WT_SETTINGS="$THP/wt/fresh.json" bash "$HERE/../../hooks/theme-apply" 2>&1)
 grep -q '"startingDirectory"' "$TH/wt/fresh.json" && ok "a created Green Monitor Claude profile has a start folder" || fail "the created profile has no startingDirectory (it would open in system32)"
 grep -qi 'system32' "$TH/wt/fresh.json" && fail "the start folder is system32" || ok "and it is not system32"
 # 0.51.0: a PC still showing the old shipped starburst is moved to the banner once; a look of its own is kept
-rm -rf "$TH/state"; mkdir -p "$TH/state"
+rm -rf "$TH/state"; mkdir -p "$TH/state"; printf '{"kind": "update", "since": "0.84.0"}' > "$TH/state/features-state.json"
 printf '{ "profiles": { "list": [ { "guid": "{dddd}", "name": "Old", "experimental.pixelShaderPath": "C:/x/theme/green-monitor-starburst/starburst.hlsl", "experimental.pixelShaderImagePath": "C:/x/theme/green-monitor-starburst/starburst.png" } ] }, "schemes": [] }
 ' > "$TH/wt/old.json"
 printf '{ "applied": true, "settings": "%s", "profile_guid": "{dddd}", "style_home": "C:/x/theme/green-monitor-starburst" }

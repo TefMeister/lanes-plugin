@@ -65,6 +65,9 @@ SETS = {
     "vr": {"title": "For VR mods", "together": True,
            "note": "One keeps the headset picture down to the gameplay, the other reports when that "
                    "picture or the hands are not smooth, so its reports are about the mod and not about blur."},
+    "recording": {"title": "Recording the BeG0nE tests", "together": True,
+                  "note": "One films the game during every BeG0nE headset test so each fault can be seen picture by "
+                          "picture, the other takes those videos off the PC again once nothing needs them."},
 }
 
 # The extras. `link` is where to read more before switching it on: our GitHub, or the maker's.
@@ -119,15 +122,22 @@ FEATURES = {
                     "what": "a quiet helper that starts with every session and turns each headset test of a mod wired "
                             "to it into a short report on jitter and hand faults",
                     "link": "https://github.com/TefMeister/BeG0nE"},
-    "begone_video_tidy": {"label": "BeG0nE videos clean up after themselves", "set": "vr", "ask_on_update": True,
-                          "what": "the videos recorded beside a BeG0nE test are taken off the PC once nothing needs "
-                                  "them: when the game is tested again on a later day, or after two weeks; the cut "
-                                  "frames and the reports stay",
-                          "link": PROTO_LINK + "38-beg0ne-videos-clean-up-after-themselves-0900-2026-10-27"},
     "vr_effects_off": {"label": "Gameplay only in VR", "set": "vr",
                        "what": "sessions switch off every blur and screen effect a game paints over the picture, such "
                                "as motion blur, blood on the screen and the low-health tint",
                        "link": PROTO_LINK + "19-gameplay-only-every-blur-and-screen-effect-off-in-vr-0600-2026-10-12"},
+    # Both off until asked: one films, the other deletes (0.90.0; begone_record was a setup-only offer since 0.80.0)
+    "begone_record": {"label": "Automatic BeG0nE recordings", "set": "recording", "ask_on_update": True,
+                      "what": "OBS films the game's own window (never the screen) for the whole of every BeG0nE "
+                              "headset or pretend-headset test, and each report is cut at its faulty seconds as "
+                              "frames; needs the BeG0nE recorders and OBS",
+                      "link": PROTO_LINK + "26-the-recording-and-the-jitter-log-side-by-side-0760-2026-10-17"},
+    "begone_video_tidy": {"label": "BeG0nE videos clean up after themselves", "set": "recording",
+                          "ask_on_update": True,
+                          "what": "the videos recorded beside a BeG0nE test are taken off the PC once nothing needs "
+                                  "them: when the game is tested again on a later day, or after two weeks; the cut "
+                                  "frames and the reports stay",
+                          "link": PROTO_LINK + "38-beg0ne-videos-clean-up-after-themselves-0900-2026-10-27"},
 }
 ON_WORDS, OFF_WORDS = ("on", "yes", "true", "1"), ("off", "no", "false", "0")
 
