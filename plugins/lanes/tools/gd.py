@@ -39,7 +39,6 @@ minutes is left for next time (the game may still be writing it).
 State: <state dir>/gd.json (the last full scan on this PC). Tests set LANES_CONFIG, LANES_STATE_DIR, LANES_GD_DIR.
 """
 import datetime
-import fnmatch
 import glob
 import hashlib
 import json
@@ -77,7 +76,6 @@ SHELVES = [
     ("performance", ["perf", "fps", "timing", "frametime", "profile", "gpu"]),
     ("logs", ["log", "logs", "txt", "framework", "console", "output"]),
 ]
-SHELF_NAMES = [s for s, _ in SHELVES] + ["other"]
 BEGONE_TOOLS = {"camera-jitter": "jitter", "ghost-hand": "hands", "occlusion-drift": "guns"}
 WARN_WORDS = (r"error|errors|fail|failed|failure|fatal|exception|crash|assert|warning|warn|refused|"
               r"denied|timeout|timed out|not found|missing|invalid|abort")

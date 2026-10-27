@@ -167,9 +167,17 @@ def files_under(root):
 
 
 def same_text(p, q):
-    """Equal, ignoring Windows/Unix line endings (git turns one into the other)."""
+    """Equal, ignoring Windows/Unix line endings (git turns one into the other) and the display name written as
+    "the maintainer" (a copy shipped in Lanes is rewritten that way on purpose; code health, 2026-10-27)."""
+    names = [n.encode("utf-8") for n in conf_values("display_name") if n.lower() != "user"]
+
+    def norm(data):
+        data = data.replace(b"\r\n", b"\n")
+        for n in names:
+            data = data.replace(n, b"the maintainer")
+        return data
     with open(p, "rb") as f, open(q, "rb") as g:
-        return f.read().replace(b"\r\n", b"\n") == g.read().replace(b"\r\n", b"\n")
+        return norm(f.read()) == norm(g.read())
 
 
 def changed_at(path):

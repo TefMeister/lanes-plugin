@@ -529,6 +529,9 @@ local function grip_pass(final)
     end
     S.letgo_dr, S.letgo_da = dr, da
     local allowed = (not GRIP_NEEDS_BUTTON) or holding
+    -- 2026-10-24 (Visceral RE8): a mod that holds the left hand itself (on a magazine going in) vetoes the grip
+    local veto = rawget(_G, "re8_grip_veto")
+    if type(veto) == "function" and veto() == true then allowed = false end
     local our_grip
     if S.take ~= nil then
         our_grip = allowed and (holding or keep_ok)
@@ -537,7 +540,10 @@ local function grip_pass(final)
         -- after the hand pulled away, it must leave the dock zone once before the auto-dock may take it again
         -- (otherwise praydog's dock re-grabs a hand that is still close, and the let-go never seems to happen)
         if S.need_clear and not near then S.need_clear = false end
-        our_grip = allowed and (holding or (near and not S.need_clear))
+        -- 2026-10-24 (Visceral RE8, the maintainer: "LG is janky, it sometimes snaps the gun from any distance"): the button alone took
+        -- the grip anywhere within REDOCK_KEEP_S of letting go (our own dock on the frozen socket, 21-74 cm away in the log).
+        -- A take now needs the hand near the socket too, button or not.
+        our_grip = allowed and near and (holding or not S.need_clear)
     end
     -- 2026-10-10 (the maintainer: tilting the rifle or moving the right controller "breaks that reload animation and it doesn't
     -- finish, the hand teleports back on the gun"): one line whenever the reload / button / dock / our grip changes, so the

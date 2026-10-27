@@ -10,7 +10,6 @@ Usage:  python make-fixture-board.py [target-dir]
 Prints the path it created. Safe to re-run; it deletes and rebuilds.
 """
 import datetime
-import io
 import os
 import shutil
 import subprocess
@@ -27,7 +26,7 @@ os.makedirs(os.path.join(TARGET, "status"))
 
 
 def write(rel, text):
-    io.open(os.path.join(TARGET, rel), "w", encoding="utf-8", newline="\n").write(text)
+    open(os.path.join(TARGET, rel), "w", encoding="utf-8", newline="\n").write(text)
 
 
 now = datetime.datetime.now()

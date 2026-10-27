@@ -15,7 +15,6 @@ headset) sticks to the pattern, and a pattern that has been called both is flagg
 HOW IT FINDS THE WHY: for each measure, the values across every jittery pattern and across every smooth pattern.
 A measure whose two ranges do not overlap separates the groups; the report says so, per game and across games.
 """
-import csv
 import hashlib
 import json
 import os
@@ -223,7 +222,7 @@ def report(base=None):
              f"Rebuilt {time.strftime('%Y-%m-%d %H:%M')} from {len(base['sessions'])} sessions boiled down to "
              f"{len(pats)} patterns. A pattern is one way a mod behaved; sessions that behaved the same way count "
              f"as one. A pattern is grouped as jittery or smooth by the checker's own verdict, unless the person wearing the "
-             f"headset said otherwise with `ride.py label`, which outranks it. Every line is `[measured]` on our own mods.", ""]
+             f"headset said otherwise with `file_jitter.py label`, which outranks it. Every line is `[measured]` on our own mods.", ""]
     # flat screen, simulator and real headset are compared only with themselves (they feel different)
     sections = []
     for place in [k for k in PLACES if any(_place(p) == k for p in pats)]:

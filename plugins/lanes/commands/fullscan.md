@@ -1,5 +1,5 @@
 ---
-description: (Full scan) The weekly check-up in one go - shelve and sift the collected data (Gold Digger), research every project and the shared library, check the tools, a tidiness pass, then save everything - in that order, with every install question gathered at the very end. Each part still runs on its own. Never launches anything.
+description: (Full scan) The weekly check-up in one go - shelve and sift the collected data (Gold Digger), research every project and the shared library, check the tools, re-read and tidy our own code (code health), a tidiness pass, then save everything - in that order, with every install question gathered at the very end. Each part still runs on its own. Never launches anything.
 ---
 
 `/fullscan` — **everything checked and brought up to date, in one go.** Asked for by the maintainer, 2026-10-26:
@@ -20,8 +20,8 @@ and Gold Digger parts to that project.
 - **Each part keeps its own rules and its own clone root**, exactly as when it runs alone. This command only sets the
   order. Parts run one after another, never side by side, so two parts never share a tree at the same moment.
 - **Run each part by following its own command**, through the Skill tool: the person's own short command when this
-  PC has one (`/gd`, `/gr`, `/sr`, `/gu`, `/gs`, `/sp`), otherwise the plugin's (`lanes:gd`, `lanes:gr`, `lanes:sr`,
-  `lanes:gu`, `lanes:gs`). A part that is not set up on this PC is skipped with one line saying so.
+  PC has one (`/gd`, `/gr`, `/sr`, `/gu`, `/ch`, `/gs`, `/sp`), otherwise the plugin's (`lanes:gd`, `lanes:gr`,
+  `lanes:sr`, `lanes:gu`, `lanes:ch`, `lanes:gs`). A part that is not set up on this PC is skipped with one line saying so.
 - **Questions wait until the end.** No part stops to ask mid-run; the weekly tool check's tick-box install question
   is asked last (step 7), so the person can leave the PC for the whole run.
 - **A part that fails is reported and the run carries on** with the next part. It never retries in a loop.
@@ -52,6 +52,15 @@ Whole estate (or the named project), with each command's own tiers, so quiet pro
 Run it up to, but not including, its install question. Keep its list of installs and updates, each with its
 "could break" line, for step 7. Pulls of our own clones and pushes of our own tool work need no question and happen here.
 
+## 5b. Code health (`/ch`)
+
+Added 2026-10-27 (the maintainer: *"please make a slash command /ch for Code health and also add this slash command
+to the /fullscan function"*). It runs right after the tool check, in the same clone root, never beside it. Its own
+rules hold: the working copy is saved first (`ch.py backup`), only changes that cannot alter behaviour are made, the
+tests must pass after them, everything structural becomes a board row. Its questions (removing old plugin versions,
+installing ruff and vulture) wait for step 7 with the rest. Skipped with one line when `features.py is-on code_health`
+says off.
+
 ## 6. Tidiness pass (`/gs`)
 
 Read-only, as always. It runs after everything above so it checks what this run wrote too.
@@ -59,14 +68,14 @@ Read-only, as always. It runs after everything above so it checks what this run 
 ## 7. Save, then the questions
 
 1. Save everything: the person's `/sp` if this PC has it, otherwise commit and push each lane root's own work.
-2. Ask the tool check's install question, in its full shape (`/gu`'s rules, "The shape of that question"): first a
+2. Ask the tool check's install question, with code health's questions after it, in its full shape (`/gu`'s rules, "The shape of that question"): first a
    plain numbered list of every update, each with what is in it, where it downloads from and what it could break; then
    the tick boxes, **"Everything" first**, then one per update. It covers every tool with a newer version: this plugin,
    our own apps, outside tools and connectors from other makers, installed Claude Code plugins and skills, PC programs
    and Python packages. Install what is ticked, with the test builds `/gu` uses. If nothing needs installing, say so
    and ask nothing.
 3. Stamp the run: `python "${CLAUDE_PLUGIN_ROOT}/tools/gd.py" fullscan-done` and `python
-   "${CLAUDE_PLUGIN_ROOT}/tools/gu.py" done`.
+   "${CLAUDE_PLUGIN_ROOT}/tools/gu.py" done` and `python "${CLAUDE_PLUGIN_ROOT}/tools/ch.py" done`.
 
 ## 8. Report
 

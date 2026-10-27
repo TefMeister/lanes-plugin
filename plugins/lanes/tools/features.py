@@ -110,6 +110,11 @@ FEATURES = {
                  "what": "one line at session start when the weekly full scan (/lanes:fullscan: Gold Digger, research, "
                          "the tool check, the tidiness pass, then save) is a week old",
                  "link": GH + "commands/fullscan.md"},
+    "code_health": {"label": "Code health", "set": "checkup",
+                    "what": "/lanes:ch re-reads your own tools with the Inspector on, saves a working copy to GitHub "
+                            "and a backup folder first, and tidies only what cannot change how they work; the weekly "
+                            "full scan runs it after the tool check",
+                    "link": GH + "commands/ch.md"},
     "begone_ride": {"label": "BeG0nE recorders", "set": "vr",
                     "what": "a quiet helper that starts with every session and turns each headset test of a mod wired "
                             "to it into a short report on jitter and hand faults",

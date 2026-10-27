@@ -26,8 +26,9 @@ The reminder brings the weekly tool check round, and the test builds make sure a
 
 Gold Digger keeps every run's logs on shelves, and the full scan reads them once a week together with the research, tool and tidiness checks.
 
-- **Gold Digger shelves** (`gold_digger`): after every run, the game's logs and the BeG0nE reports are copied onto shelves (camera, guns, jitter, menus and so on) in your transfer folder, never deleted, so /lanes:gd can read them shelf by shelf and hand the new facts to the notes. [Read more](https://github.com/TefMeister/lanes-plugin/blob/main/plugins/lanes/commands/gd.md). Goes well with: Weekly full scan.
-- **Weekly full scan** (`fullscan`): one line at session start when the weekly full scan (/lanes:fullscan: Gold Digger, research, the tool check, the tidiness pass, then save) is a week old. [Read more](https://github.com/TefMeister/lanes-plugin/blob/main/plugins/lanes/commands/fullscan.md). Goes well with: Gold Digger shelves.
+- **Gold Digger shelves** (`gold_digger`): after every run, the game's logs and the BeG0nE reports are copied onto shelves (camera, guns, jitter, menus and so on) in your transfer folder, never deleted, so /lanes:gd can read them shelf by shelf and hand the new facts to the notes. [Read more](https://github.com/TefMeister/lanes-plugin/blob/main/plugins/lanes/commands/gd.md). Goes well with: Weekly full scan, Code health.
+- **Weekly full scan** (`fullscan`): one line at session start when the weekly full scan (/lanes:fullscan: Gold Digger, research, the tool check, the tidiness pass, then save) is a week old. [Read more](https://github.com/TefMeister/lanes-plugin/blob/main/plugins/lanes/commands/fullscan.md). Goes well with: Gold Digger shelves, Code health.
+- **Code health** (`code_health`): /lanes:ch re-reads your own tools with the Inspector on, saves a working copy to GitHub and a backup folder first, and tidies only what cannot change how they work; the weekly full scan runs it after the tool check. [Read more](https://github.com/TefMeister/lanes-plugin/blob/main/plugins/lanes/commands/ch.md). Goes well with: Gold Digger shelves, Weekly full scan.
 
 ## For VR mods (best together)
 

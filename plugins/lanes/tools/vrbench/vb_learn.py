@@ -11,8 +11,6 @@ tested with no game, no simulator and no headset.
 import os
 from collections import namedtuple
 
-import vb_settings as S
-
 STAGES = ["preflight", "launch", "menus", "flat", "vr_head", "vr_hands", "vr_body", "vr_buttons", "report"]
 ALWAYS = ("preflight", "report")
 NEEDS_SCREEN_LINE = "this game needs the screen for the flat stages until plan 2 (keys still go in through the front)"
@@ -132,7 +130,3 @@ def write_debrief(L, reason):
     with open(path, "w", encoding="utf-8") as f:
         f.write("\n".join(rows) + "\n")
     return path
-
-
-def hand_count(tier):
-    return S.HANDS_FULL if tier == "full" else S.HANDS_LIGHT

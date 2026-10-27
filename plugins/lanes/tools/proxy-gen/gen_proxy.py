@@ -81,14 +81,14 @@ def emit_stubs_x64(exports):
         lines += [
             f'"  /* [{i}] {label} */\\n"',
             f'"  .globl proxy_stub_{i}\\n"',
-            f'"  .p2align 4\\n"',
+            '"  .p2align 4\\n"',
             f'"proxy_stub_{i}:\\n"',
             f'"  cmpb $0, proxy_seen+{i}(%rip)\\n"',
             f'"  je proxy_slow_{i}\\n"',
             f'"  jmp *proxy_real+{i}*PTR_SIZE(%rip)\\n"',
             f'"proxy_slow_{i}:\\n"',
             f'"  movl ${i}, %eax\\n"',
-            f'"  jmp proxy_slow_path\\n"',
+            '"  jmp proxy_slow_path\\n"',
         ]
     return "\n".join(lines)
 
@@ -100,14 +100,14 @@ def emit_stubs_x86(exports):
         lines += [
             f'"  /* [{i}] {label} */\\n"',
             f'"  .globl _proxy_stub_{i}\\n"',
-            f'"  .p2align 4\\n"',
+            '"  .p2align 4\\n"',
             f'"_proxy_stub_{i}:\\n"',
             f'"  cmpb $0, _proxy_seen+{i}\\n"',
             f'"  je proxy_slow_{i}\\n"',
             f'"  jmp *_proxy_real+{i}*PTR_SIZE\\n"',
             f'"proxy_slow_{i}:\\n"',
             f'"  pushl ${i}\\n"',
-            f'"  jmp proxy_slow_path\\n"',
+            '"  jmp proxy_slow_path\\n"',
         ]
     return "\n".join(lines)
 

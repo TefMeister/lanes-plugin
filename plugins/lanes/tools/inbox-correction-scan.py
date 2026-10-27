@@ -43,7 +43,6 @@ USAGE
 EXIT
   0 = no live falsehoods, 1 = at least one live falsehood, 2 = bad usage
 """
-import io
 import json
 import os
 import re
@@ -72,7 +71,7 @@ def scan(root):
     live, unverifiable, clean = [], [], []
     for path in inbox_files(root):
         try:
-            text = io.open(path, encoding="utf-8").read()
+            text = open(path, encoding="utf-8").read()
         except OSError:
             continue
 
@@ -97,7 +96,7 @@ def scan(root):
                 entry["state"] = "TARGET MISSING"
                 live.append(entry)
                 continue
-            body = io.open(tpath, encoding="utf-8").read()
+            body = open(tpath, encoding="utf-8").read()
             if needle in body:
                 entry["state"] = "STILL PRESENT"
                 live.append(entry)
