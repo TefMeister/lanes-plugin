@@ -80,6 +80,11 @@ def pc_name(c):
 
 
 def live_root(c):
+    # 2026-10-29: the conf's own `root` first. The board's parent was the whole rule before, and on a PC whose board
+    # clone sits in the home folder (not inside the clone root) every project read as GONE (38 warnings a session).
+    root = c.get("root", "")
+    if root and os.path.isdir(root):
+        return os.path.abspath(root)
     board = c.get("board", "")
     if board and os.path.isdir(board):
         return os.path.dirname(os.path.abspath(board))
