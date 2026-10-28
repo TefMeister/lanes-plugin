@@ -66,7 +66,7 @@ ALLOW_MARKS = ("privacy-guard:allow", "scrub-scan:allow")
 PLACEHOLDERS = {"user", "username", "you", "yourname", "your-name", "name", "someone", "example", "me", "x", "xx",
                 "test", "runner", "ci", "home", "root", "admin", "public", "default", "all users", "default user",
                 "%username%", "$user", "$username", "${user}", "${username}", "$env:username", "..."}
-# 0.95.0: any letter case (Windows writes c:\users\... in many logs), WSL's /mnt/c/Users/, and the old
+# 0.95.0: any letter case (Windows writes c:\users\<user> in many logs), WSL's /mnt/c/Users/, and the old
 # Documents and Settings folder; all three let a home path through before
 HOME_PATH = re.compile(r"(?:\b[A-Za-z]:(?:\\\\|\\|/)+(?:users|documents and settings)(?:\\\\|\\|/)+"
                        r"|(?<![\w.])/[a-z]/users/|(?<![\w.])/mnt/[a-z]/users/|(?<![\w.])/home/"
