@@ -216,3 +216,10 @@ role = DEV
 # /lanes:setup sees it is there and sessions know where to find it.
 # steamless = <folder holding Steamless.exe>
 # realesrgan = <folder holding realesrgan-ncnn-vulkan.exe>   (default %LOCALAPPDATA%\Programs\Real-ESRGAN)
+
+# The games check (0.95.0, tools/games.py): which project games are on this PC, and what changed since its record.
+# games_record holds games.tsv (which game each project is about, shared by every PC) and <PC name>-games.tsv (what
+# this PC had last time). Keep it in a PRIVATE repo clone. Not set = the check stays silent.
+# games_record = /path/to/a/private/repo/installed
+# game_dir.my-project = /path/to/a/game/no/store/knows    (one per project, per PC)
+# game_exe.my-project = Bin/Game.exe                      (its main program, relative to that folder)

@@ -94,6 +94,12 @@ FEATURES = {
                               "that carries the login name, a home-folder path or the e-mail address; public repos "
                               "also never get machine names",
                       "link": PROTO_LINK + "34-the-privacy-guard-no-login-no-home-paths-no-e-mail-on-github-0860-2026-10-25"},
+    "games_check": {"label": "Games check at session start", "set": "everyday",
+                    "what": "each session starts by checking this PC's project games against its record: a game a "
+                            "store updated (a mod may need a fix), one taken off or moved, a changed main program, a "
+                            "new project with no game set (tools/games.py overview lists every project and where its "
+                            "game is)",
+                    "link": GH + "tools/games.py"},
     "remote_control": {"label": "Remote Control in every session", "set": "everyday", "ask_on_update": True,
                        "what": "every Claude Code session on this PC starts with Remote Control on, so it can be "
                                "watched and typed into from the Claude phone app, claude.ai/code or a session on your "

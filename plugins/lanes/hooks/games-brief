@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# SessionStart hook (0.95.0): has anything about the projects' games changed on this PC since its record - a store
+# update, a game taken off or moved, a changed main program, a new project with no game set? The maintainer: "Lanes must
+# know if something has changed in the beginning of a session, so a quick check to see if game locations and files
+# still match must be done in the beginning of a session." Reads the PC only (no network), well under a second.
+# Silent when nothing changed, when games_record is not set, and on every failure path. Optional (features.py
+# games_check); LANES_GAMES_CHECK=0 turns it off.
+set -uo pipefail
+[ "${LANES_GAMES_CHECK:-1}" = "0" ] && exit 0
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+TOOL="${PLUGIN_ROOT}/tools/games.py"
+EMIT="${SCRIPT_DIR}/emit_context.py"
+[ -f "$TOOL" ] && [ -f "$EMIT" ] || exit 0
+
+PY=""
+for cand in python3 python py; do
+  command -v "$cand" >/dev/null 2>&1 || continue
+  "$cand" -c "" >/dev/null 2>&1 || continue
+  PY="$cand"; break
+done
+[ -n "$PY" ] || exit 0
+"$PY" "${PLUGIN_ROOT}/tools/features.py" is-on games_check >/dev/null 2>&1 || exit 0
+
+"$PY" "$TOOL" check 2>/dev/null | "$PY" "$EMIT"
+exit 0

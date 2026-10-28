@@ -55,8 +55,8 @@
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" privacy-rule",
             "shell": "bash",
-            "timeout": 10,
-            "statusMessage": "Loading the tools rule",
+            "timeout": 30,
+            "statusMessage": "Loading the privacy rule and checking GitHub for personal details",
             "async": false
           }
         ]
@@ -129,6 +129,18 @@
             "shell": "bash",
             "timeout": 60,
             "statusMessage": "Checking this PC's app folders against the saved builds",
+            "async": false
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" games-brief",
+            "shell": "bash",
+            "timeout": 30,
+            "statusMessage": "Checking this PC's games against its record",
             "async": false
           }
         ]
