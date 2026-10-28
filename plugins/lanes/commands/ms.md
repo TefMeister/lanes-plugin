@@ -104,6 +104,10 @@ Take as long as the work needs between their turns. During their turn, do nothin
 - **Release the claim last:** `bash "${CLAUDE_PLUGIN_ROOT}/tools/lane-claim.sh" release /ms <project>`.
 - Commit only this lane's paths, never `git add -A`, with the trailer `Lane: /ms <project>`.
   `git pull --rebase` before pushing.
+- **Update the public front page** if this estate has one, the same as `/lm` §6 step 6: the project's row after
+  any commit of work, the dated activity line only for real progress (0.94.2; this lane had no such step, and the
+  evening headset sessions it runs left their rows days behind). A manual session often stops when the person walks
+  away, so refresh the row after the push that closes each piece of work, not only at the very end.
 - **Report briefly.** They were there for all of it, so the summary is a reminder, not an account:
   what got proven, what got disproved, what is next, and what the next step requires.
 - Before the close-out box, **save the write-up as a session log** (0.44.0): pipe the plain-words summary (what was done, what the person saw, what is waited on) into `python "${CLAUDE_PLUGIN_ROOT}/tools/session-log.py" write <project> <short-slug>`, so the push shows in the box; add `--important` when the person says it finally works or the session cracked something after a long hunt. **When stuck on a problem**, run `session-log.py search <symptom words> --project <project>` before trying again. `docs/PROTOCOL.md` §17. 

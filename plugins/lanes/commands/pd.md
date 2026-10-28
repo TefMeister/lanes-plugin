@@ -223,6 +223,15 @@ reader anything (the maintainer, 2026-10-23: *"please only list things that have
 leave out lines that say still to be tested - they just fill the recent activity page"*). A dead end that settles a
 question IS progress and may go in; a session that only queued a test is not. The waiting lines belong on the board.
 
+**⚠️ The project's ROW is a different thing, with a different rule (0.94.2).** A front page that sums up every
+project in a table (a "where it stands" line and the day it was last refreshed) gets that project's row refreshed
+after **any** commit of work, waiting tests included: one plain sentence naming what was last worked on, and today's
+date. If it stands about where it stood, reword it slightly so a reader can see it is being worked on. Do the same for
+the project's summary in an index file beside it, if there is one. Only the dated activity LINE above waits for real
+progress. Until 0.94.2 the two were written as one rule, and sessions that had only queued a test left the row alone
+too: on 2026-10-28 rows were found days to weeks behind their projects. The close-out box now has a 🪧 row that names
+a row this session's work did not reach, and `/lanes:od` finds the rest.
+
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/tools/frontpage-scan.sh"     # is the page behind the boards?
 ```

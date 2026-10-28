@@ -39,6 +39,7 @@ import outside  # noqa: E402  (the release reader, the checked download, the run
 GH = "https://github.com/"
 LOCALAPPDATA = os.environ.get("LOCALAPPDATA", os.path.join(os.path.expanduser("~"), "AppData", "Local"))
 MARKER = "lanes-release.txt"
+TASKLIST_TIMEOUT_S = 30     # asking Windows whether an app is running
 
 # name: what it is. `repo` is its GitHub home; an app names its install folder and program.
 TOOLS = {
@@ -138,7 +139,7 @@ def latest(repo):
 def app_running(exe):
     try:
         out = subprocess.run(["tasklist", "/FI", f"IMAGENAME eq {exe}"], capture_output=True, text=True,
-                             timeout=30).stdout
+                             timeout=TASKLIST_TIMEOUT_S).stdout
         return exe.lower() in out.lower()
     except (OSError, subprocess.SubprocessError):
         return False

@@ -173,5 +173,26 @@ check "od: an app with no download" 'printf "%s" "$out" | grep -q "nodl: an app 
 check "od: a library without the one-zip link" 'printf "%s" "$out" | grep -q "lib: a library with no one-zip download link"'
 check "od: a library with the link, and od_skip, stay quiet" '! printf "%s" "$out" | grep -q "libok:\|skipped:"'
 
+# the pages that sum up every project (0.94.2): a profile row behind its repo's work, and one whose repo only filed
+# reports since; INDEX.json naming an older release than GitHub's newest
+sp() { mkdir -p "$(dirname "$T/sp/$1/$2")"; echo "$3" >> "$T/sp/$1/$2"; git -C "$T/sp/$1" add -A
+  GIT_COMMITTER_DATE="2026-10-${4}T12:00:00+0000" git -C "$T/sp/$1" -c user.name=t -c user.email=t@t commit -q -m "$2 $4"; }
+for r in proj filed; do git init -q "$T/sp/$r"; sp $r README.md "# $r" 01; done
+for d in 10 11 12; do sp proj src/a.txt $d $d; sp filed data/r.txt $d $d; sp filed knowledge/k.md $d $d; done
+mkdir -p "$T/sp/profile"
+printf '| Name | Where it stands | Updated |\n| --- | --- | --- |\n| **Proj** | [proj](https://github.com/me/proj) one thing | 10-01 |\n| **Filed** | [filed](https://github.com/me/filed) reports | 10-01 |\n' > "$T/sp/profile/README.md"
+printf '{"projects": [{"repo": "proj", "stage": "worked on 2026-10-12", "latest_release": "v1.0.0"}]}' > "$T/sp/profile/INDEX.json"
+out="$(cd "$HERE/.." && "$PY" -c "
+import datetime, gu_texts as g
+r = g.summary_pages(['$T/sp/profile/README.md', '$T/sp/profile/INDEX.json'], {'proj': '$T/sp/proj', 'filed': '$T/sp/filed'},
+                    {'proj': {'tagName': 'v1.1.0'}}, datetime.date(2026, 10, 28), 'me')
+for k, v in r.items():
+    for f in v: print(k + ': ' + f)
+")"
+check "summary: a row behind three commits of work" 'printf "%s" "$out" | grep -q "proj: the README.md row \"Proj\", dated 2026-10-01, is behind: 3 commits"'
+check "summary: reports filed since are not work" '! printf "%s" "$out" | grep -q "^filed:"'
+check "summary: INDEX.json naming an older release" 'printf "%s" "$out" | grep -q "INDEX.json says latest_release v1.0.0, GitHub.s newest is v1.1.0"'
+check "summary: a stage dated after the work is not behind" '! printf "%s" "$out" | grep -q "INDEX.json.s stage"'
+
 echo "gu-fixture: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

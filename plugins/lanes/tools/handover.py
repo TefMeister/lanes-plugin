@@ -82,6 +82,10 @@ GIT_TIMEOUT_S = 30
 FETCH_TIMEOUT_S = 90
 PUSH_TIMEOUT_S = 60
 TIME_FMT = "%Y-%m-%d %H:%M %z"
+ENDS_MISSING_DAYS = 2                               # another PC starting sessions this long with no end reported
+PROFILE_TITLE_CHARS = 40                            # a front-page row's title, shortened in the box
+END_LOG = "end-log.txt"                             # beside the snapshots: which sessions reached their end report
+END_LOG_KEEP_LINES = 200
 
 
 def conf_path():
@@ -280,6 +284,56 @@ def snapshot_read(session):
         return None
 
 
+def end_log_path():
+    return os.path.join(os.path.dirname(snapshot_path("x")), END_LOG)
+
+
+def end_log(word, session):
+    """'began' / 'done' for a session's end report, so the next session can tell an end that was cut off from one
+    that never started (0.94.2). Kept short; never raises."""
+    sid = re.sub(r"[^\w\-]", "_", session or "-")
+    try:
+        p = end_log_path()
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        try:
+            with open(p, encoding="utf-8") as f:
+                kept = f.read().splitlines()[-END_LOG_KEEP_LINES:]
+        except OSError:
+            kept = []
+        kept.append("%s %s %s" % (word, sid, datetime.now().astimezone().strftime(TIME_FMT)))
+        with open(p, "w", encoding="utf-8", newline="\n") as f:
+            f.write("\n".join(kept) + "\n")
+    except OSError:
+        pass
+
+
+def last_session_end(current):
+    """How this PC's previous session ended, as one line, or "" when it reported its end in full. The previous session
+    is the newest start snapshot that is not this one's."""
+    folder = os.path.dirname(snapshot_path("x"))
+    mine = os.path.basename(snapshot_path(current)) if current else ""
+    try:
+        snaps = [n for n in os.listdir(folder) if n.startswith("handover-") and n.endswith(".json") and n != mine]
+    except OSError:
+        return ""
+    if not snaps:
+        return ""
+    prev = max(snaps, key=lambda n: os.path.getmtime(os.path.join(folder, n)))[len("handover-"):-len(".json")]
+    try:
+        with open(end_log_path(), encoding="utf-8") as f:
+            words = [l.split()[0] for l in f.read().splitlines() if len(l.split()) > 1 and l.split()[1] == prev]
+    except OSError:
+        return ""    # no end has been logged on this PC yet (the first session after 0.94.2): nothing to compare
+    if "done" in words:
+        return ""
+    if "began" in words:
+        return ("HANDOVER: the last session on this PC began its end report but was closed before it finished, so the "
+                "other PC was not told how it ended.")
+    return ("HANDOVER: the last session on this PC ended without its end steps (the window was closed or the PC "
+            "switched off). Whatever it left undone at the end - the save, notes, the front-page rows - is still "
+            "undone: check them first.")
+
+
 def board_ref(board):
     return "origin/main" if git(["rev-parse", "--verify", "-q", "origin/main"], board)[0] else "origin/HEAD"
 
@@ -363,9 +417,43 @@ def others(board, me, fetched=None):
             out.append({"machine": machine, "error": "has a report on the board that could not be read"})
             continue
         role = hb.get("role", "")
+        # the file holds only the newest report, so the last END is read from the board's history (0.94.2)
+        ok, last = git(["log", "-1", "--format=%cI", "--grep=^handover: .* end, ", ref, "--", path], board)
+        ok2, every = git(["log", "--format=%cI", ref, "--", path], board)
+        try:
+            last_end = datetime.fromisoformat(last.strip()) if ok and last.strip() else None
+            first = datetime.fromisoformat(every.splitlines()[-1].strip()) if ok2 and every.strip() else None
+        except ValueError:
+            last_end = first = None
         out.append({"machine": machine, "who": "%s (%s)" % (machine, role) if role else machine,
-                    "when": when, "state": hb.get("state", "unknown")})
+                    "when": when, "state": hb.get("state", "unknown"), "event": hb.get("event", ""),
+                    "last_end": last_end, "first": first})
     return fetched, out
+
+
+def pc_text(pc):
+    """How another PC last reported, in words that do not call a session START an ending (they did until 0.94.2:
+    "ended NOT SAVED" was printed for a PC whose sessions had not reported an end for 18 days)."""
+    if pc.get("event") == "end":
+        return "last session ended %s, %s" % (age_text(pc["when"]), pc["state"])
+    state = pc["state"].replace("NOT SAVED:", "NOT SAVED at that point:", 1) if pc["state"].startswith("NOT SAVED") \
+        else pc["state"] + " at that point"
+    return "last seen starting a session %s, %s" % (age_text(pc["when"]), state)
+
+
+def ends_missing(pc):
+    """A warning when another PC keeps starting sessions but none of them reports an end: its sessions stop with the
+    window closed or the PC switched off, so whatever a session does last (the save, the front page, the notes) is
+    skipped there. Found 2026-10-28: the home PC, 41 starts and 0 ends in 18 days, and its project rows weeks behind."""
+    last_end = pc.get("last_end") or pc.get("first")    # a PC new to the board is measured from its first report
+    if pc.get("event") == "end" or not last_end:
+        return ""
+    if (pc["when"] - last_end).total_seconds() < ENDS_MISSING_DAYS * SECONDS_PER_DAY:
+        return ""
+    last_end = pc.get("last_end")
+    since = "since %s" % last_end.strftime("%Y-%m-%d") if last_end else "on the board yet"
+    return ("%s has not reported a session end %s: its sessions stop without their end steps (window closed or PC "
+            "off), so check its saves, notes and front-page rows" % (pc["machine"], since))
 
 
 def others_report(board, me):
@@ -377,8 +465,9 @@ def others_report(board, me):
         if "error" in pc:
             lines.append("HANDOVER: %s %s." % (pc["machine"], pc["error"]))
         else:
-            lines.append("HANDOVER: %s last saved %s, %s, and ended %s."
-                         % (pc["who"], pc["when"].strftime("%Y-%m-%d %H:%M"), age_text(pc["when"]), pc["state"]))
+            lines.append("HANDOVER: %s %s (%s)." % (pc["who"], pc_text(pc), pc["when"].strftime("%Y-%m-%d %H:%M")))
+            if ends_missing(pc):
+                lines.append("HANDOVER: ⚠️ " + ends_missing(pc) + ".")
     if not lines:
         lines.append("HANDOVER: no other PC has reported on the board yet.")
     if not fetched:
@@ -436,6 +525,9 @@ def close_box(conf, session):
     if roots and rest > 0:
         word = "the other" if (pushed or problems) else "all"
         lines.append("| 📦 %s %s | nothing to push |" % (word, plural(rest, "repo", "repos")))
+    profile = profile_cell(conf, pushed, snap)
+    if profile:
+        lines.append("| 🪧 Front page | %s |" % profile)
     lines.append("| 🔍 Inspector | %s |" % inspector_cell(session))
     has_board = bool(board) and os.path.isdir(board)
     fetched = fetch_board(board)[0] if has_board else False
@@ -447,7 +539,9 @@ def close_box(conf, session):
             if "error" in pc:
                 lines.append("| 🖥️ %s | %s |" % (pc["machine"], pc["error"]))
             else:
-                lines.append("| 🖥️ %s | last saved %s, ended %s |" % (pc["who"], age_text(pc["when"]), pc["state"]))
+                lines.append("| 🖥️ %s | %s |" % (pc["who"], pc_text(pc)))
+                if ends_missing(pc):
+                    lines.append("| 🖥️ %s | ⚠️ %s |" % (pc["machine"], ends_missing(pc)))
         if not pcs:
             lines.append("| 🖥️ Other PC | has not reported yet |")
         if not fetched:
@@ -461,6 +555,66 @@ def close_box(conf, session):
         # 0.63.0: without the early summary nothing keeps the conversation short, so say when it is safe
         lines.append("| 🧹 Clear | SAVED - safe to /clear |")
     return green, lines
+
+
+def profile_rows(page):
+    """[(repo, folder, 'MM-DD', title)] of the front page's table rows: each links to a repo (or a folder of one)
+    and carries the day it was last refreshed"""
+    link = re.compile(r"\]\(https://github\.com/[\w.-]+/([\w.-]+)(?:/tree/[^/)]+/([^)#]+))?\)", re.I)
+    out = []
+    try:
+        with open(page, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+    except OSError:
+        return out
+    for line in lines:
+        m = link.search(line)
+        if not line.startswith("| ") or not m:
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        mmdd = next((c for c in cells if re.fullmatch(r"\d\d-\d\d", c)), None)
+        if mmdd:
+            out.append((m.group(1).lower(), (m.group(2) or "").strip("/"), mmdd, cells[0].strip("*")))
+    return out
+
+
+def profile_cell(conf, pushed, snap):
+    """The close-out box's front-page row (0.94.2): a repo this session pushed real work to, whose front-page row is
+    not dated today. The rule says to refresh the row after any commit; nothing checked it, a check at session END
+    never ran on a PC whose sessions stop with the window closed, and on 2026-10-28 rows were found weeks behind
+    their projects. The box is printed in every write-up, so this is where it is caught. "" when nothing applies."""
+    page = os.environ.get("LANES_FRONTPAGE") or conf.get("frontpage", "")
+    if not page or not pushed:
+        return ""
+    folder = page if os.path.isdir(page) else os.path.dirname(page)
+    rows = profile_rows(os.path.join(folder, "README.md"))
+    if not rows:
+        return ""
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    try:
+        from gu_texts import NOT_WORK
+    except ImportError:
+        NOT_WORK = ()
+    today = datetime.now().strftime("%m-%d")
+    behind, fine = [], 0
+    for r in pushed:
+        before = (snap or {}).get(norm(r["repo"]))
+        for repo, sub, mmdd, title in rows:
+            if repo != r["name"].lower():
+                continue
+            spec = ["--", sub or "."] + [":(exclude,glob)%s" % p for p in NOT_WORK]
+            ok, n = git(["rev-list", "--count", "--invert-grep", "--grep=^handover: ", before + ".." + r["head"]]
+                        + spec, r["repo"])
+            if not (ok and n.isdigit() and int(n)):
+                continue
+            if mmdd == today:
+                fine += 1
+            else:
+                behind.append("\"%s\" (%s)" % (title[:PROFILE_TITLE_CHARS], mmdd))
+    if behind:
+        return "⚠️ this session's work is not on its row yet: %s. Refresh the row, its INDEX.json stage, and Recent " \
+               "Activity if it moved forward" % ", ".join(behind)
+    return "%s refreshed today" % plural(fine, "row", "rows") if fine else ""
 
 
 def early_summary_on():
@@ -561,11 +715,16 @@ def main(argv):
         print("\n".join(lines)); return 0 if green else 1
     if mode not in ("check", "start", "end"):
         print(__doc__); return 2
+    if mode == "end":
+        end_log("began", session)
     roots = roots_from(conf)
     rows = scan_roots(roots)
     green, saved_lines, _ = saved_report(roots, rows)
     lines = list(saved_lines)
     if mode == "start":
+        prev = last_session_end(session)    # read before this session's own snapshot is the newest
+        if prev:
+            lines.append(prev)
         snapshot_write(session, rows)
     if mode in ("start", "end"):
         lines += others_report(board, me)
@@ -573,6 +732,8 @@ def main(argv):
             r = write_heartbeat(board, me, role, mode, green, saved_lines)
             if r:
                 lines.append(r)
+    if mode == "end":
+        end_log("done", session)
     print("\n".join(lines))
     return 0 if green else (1 if roots else 2)
 
