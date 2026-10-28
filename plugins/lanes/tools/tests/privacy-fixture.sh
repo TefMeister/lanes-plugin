@@ -23,10 +23,10 @@ printf 'display_name = Someone\nroot = %s/root\n' "$T" > "$T/lanes.conf"
 env_run() { USERNAME=someone LANES_CONFIG="$T/lanes.conf" LANES_STATE_DIR="$T/state" "$PY" "$PG" "$@"; }
 refused() { printf '%s\n' "$1" | env_run text ${2:-} >/dev/null 2>&1; [ $? -eq 1 ]; }
 
-check "a lower-case home path is refused" 'refused "c:\\users\\GEORGEX\\notes"'   # privacy-guard:allow
-check "a WSL home path is refused" 'refused "/mnt/c/Users/hankx/notes"'            # privacy-guard:allow
-check "a Documents and Settings path is refused" 'refused "C:\\Documents and Settings\\erinx\\x"'   # privacy-guard:allow
-check "the display name, ~ and placeholders still pass" '! refused "C:\\Users\\Someone\\x ~/y C:/Users/Public/z %USERPROFILE%"'
+check "a lower-case home path is refused" 'refused "c:\\users\\GEORGEX\\notes"'   # privacy-guard:allow scrub-scan:allow (made-up names)
+check "a WSL home path is refused" 'refused "/mnt/c/Users/hankx/notes"'            # privacy-guard:allow scrub-scan:allow (made-up names)
+check "a Documents and Settings path is refused" 'refused "C:\\Documents and Settings\\erinx\\x"'   # privacy-guard:allow scrub-scan:allow (made-up names)
+check "the display name, ~ and placeholders still pass" '! refused "C:\\Users\\Someone\\x ~/y C:/Users/Public/z %USERPROFILE%"'   # scrub-scan:allow (placeholders)
 
 check "a real e-mail passes while nothing knows it" '! refused "write to fake.person@example.org"'
 mkdir -p "$T/state"
@@ -44,7 +44,7 @@ cd "$T/root/r"
 git config lanes.visibility private
 git config core.hooksPath "$T/nohooks"
 echo ok > a.txt; git add a.txt; git commit -q -m one; git push -q origin HEAD:main 2>/dev/null
-echo "see C:/Users/hiddenx/secret" > b.txt; git add b.txt; git commit -q -m two   # privacy-guard:allow
+echo "see C:/Users/hiddenx/secret" > b.txt; git add b.txt; git commit -q -m two   # privacy-guard:allow scrub-scan:allow (made-up name)
 L="$(git rev-parse HEAD)"; R="$(git rev-parse origin/main)"
 out="$(printf 'refs/heads/main %s refs/heads/main %s\n' "$L" "$R" | env_run push origin https://github.com/x/y.git 2>&1)"
 check "a home path in a pushed commit is refused at push" 'printf "%s" "$out" | grep -q "b.txt:1"'

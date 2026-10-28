@@ -385,7 +385,7 @@ releases, descriptions and gists were clean apart from what is listed here `[ver
   carrying the real address passed every check. *Fixed:* a refuse-everywhere list kept on the PC only
   (`private-words.txt`, never printed, never published); the session start asks for it once when it is empty.
 - **15. Home-folder paths in lower case, under WSL's `/mnt/c/Users/` and under `Documents and Settings` passed.**
-  Windows writes `c:\users\...` in many logs. *Fixed:* one pattern, any letter case, all three forms.
+  Windows writes `c:\users\<user>` in many logs. *Fixed:* one pattern, any letter case, all three forms.
 - **16. The push check read only authors and messages, never the files.** A rebase, cherry-pick, merge, a commit
   made with `--no-verify` or before the guard existed reached GitHub with nothing checking its content. *Fixed:*
   the pre-push hook reads the lines every pushed commit adds, including ones taken out again later (history keeps
