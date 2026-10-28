@@ -323,4 +323,9 @@ def main():
 
 
 if __name__ == "__main__":
+    for _stream in (sys.stdout, sys.stderr):   # a character the console cannot show prints as ? (0.94.2)
+        try:
+            _stream.reconfigure(errors="replace")
+        except (AttributeError, ValueError):
+            pass
     sys.exit(main())
