@@ -1015,8 +1015,13 @@ of the board that had not been pulled. Both are the same gap: nothing was checki
 - **Every session opens with the handover light** (`hooks/handover-brief`, `tools/handover.py start`):
   1. `HANDOVER: SAVED` or `HANDOVER: NOT SAVED` — every clone in every lane root; a file never added, a
      change not committed, or a commit on no remote branch at all makes it red and names the repo.
-  2. `HANDOVER: <PC> (<role>) last saved <when>, <how long ago>, and ended SAVED / NOT SAVED: …` — one
-     line per other PC, **read from GitHub (`origin/main`), never from this disk**.
+  2. `HANDOVER: <PC> (<role>) last session ended <how long ago>, SAVED / NOT SAVED: …` (or `last seen starting a
+     session …` when its newest report is a start) — one line per other PC, **read from GitHub (`origin/main`),
+     never from this disk**. Until 0.94.2 a start report was also printed as "ended", which hid that one PC had not
+     reported a single session END for 26 days. Now a PC that keeps starting sessions with no end for
+     `ENDS_MISSING_DAYS` gets a ⚠️ line of its own (here and in the close-out box), and each PC's own next session
+     says when its previous one stopped without its end steps (the window closed, the PC switched off) or was cut
+     off half-way (`lanes-sessions/end-log.txt`).
   3. with `handover.py fresh [ROOT]`: `FRESH` or `STALE` for one clone root, after fetching every repo in
      it; `--pull` brings it up, fast-forward only. Each lane's pre-flight pull is where this belongs.
 - **Every session ends by reporting itself** (`hooks/handover-end`, `handover.py end --write`): one small
@@ -1025,7 +1030,10 @@ of the board that had not been pulled. Both are the same gap: nothing was checki
 - **Every lane's write-up ends with the close-out box** (`handover.py close`, since 0.40.0; §5 shows it),
   pasted unchanged under the gate/model box: `SAVED` / `NOT SAVED` as the headline, then what this
   session pushed, the Inspector's count, any claim still held, and the other PC's last save. `NOT SAVED`
-  at the end of a session is an instruction: save first, then end. **No box, no trust.**
+  at the end of a session is an instruction: save first, then end. **No box, no trust.** Since 0.94.2 a
+  `🪧 Front page` row names a repo this session pushed real work to whose row on the front page (`frontpage =`,
+  the README beside it) is not dated today: the row rule had no check, and the session-end steps it relied on
+  never ran on a PC whose sessions stop with the window closed.
 - **Two things are kept on one PC on purpose and never count:** the Inspector's local notes (`inspector/`)
   and Python caches. Anything else untracked is red. Build leftovers belong in `.gitignore`, not in the
   light's blind spot.

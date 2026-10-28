@@ -28,6 +28,7 @@ import sys
 
 import gu
 import gu_texts
+import lanes_common
 
 GIT_TIMEOUT_S = 60
 # what is not part of a download: a change here alone does not make the download out of date
@@ -155,6 +156,7 @@ def scan(as_json):
 
 
 def main(argv):
+    lanes_common.utf8_console()
     if argv and argv[0] == "scan":
         return scan("--json" in argv)
     print(__doc__)

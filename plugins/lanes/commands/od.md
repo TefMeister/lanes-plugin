@@ -49,7 +49,10 @@ look older than it is.
    all the texts and descriptions up to date"*). Section 3 of the scan lists what the checks caught across every
    public repo of the account: a description or front page naming an older version than the newest release
    (pre-releases count when there is no full release), "nothing released" or "private" beside a public release, and
-   a status part unchanged for weeks while work landed. **Then the part no check can do:** read every public repo's
+   a status part unchanged for weeks while work landed. Since 0.94.2 it also reads the pages that sum up every
+   project (the profile README beside `frontpage =`, and INDEX.json): a row or index entry whose date is older than
+   three commits of real work in its repo or folder (filed reports, notes, inboxes, front-page edits and estate-wide
+   sweeps do not count), or that names an older release than GitHub's newest. **Then the part no check can do:** read every public repo's
    one-line description once against where the project stands, and the front-page rows that summarise them (a
    profile page or index, if the account has one). Where they disagree:
    - **Learn the true state first**, from the project's own board, notes and newest release, never from memory. A

@@ -40,6 +40,7 @@ import sys
 import urllib.request
 
 import gu_texts
+import lanes_common
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 STATE_DIR = os.environ.get("LANES_STATE_DIR") or os.path.join(os.path.expanduser("~"), ".claude", "lanes")
@@ -314,7 +315,16 @@ def texts_report():
     if not roots and not owner:
         return None
     return gu_texts.scan(roots, owner, today(), catalogs=conf_values("catalog"), ours=conf_values("ours"),
-                         apps=installed_apps())
+                         apps=installed_apps(), summaries=summary_pages())
+
+
+def summary_pages():
+    """the pages that sum up every project, beside the `frontpage =` page (the profile README and INDEX.json; 0.94.2)"""
+    out = []
+    for fp in conf_values("frontpage")[-1:]:
+        folder = fp if os.path.isdir(fp) else os.path.dirname(fp)
+        out += [p for p in (os.path.join(folder, "README.md"), os.path.join(folder, "INDEX.json")) if os.path.isfile(p)]
+    return out
 
 
 # ---- 6. Lanes and the skills page keep up with what we use (0.93.0) ---------------------------------------------
@@ -471,6 +481,7 @@ def nudge():
 
 
 def main(argv):
+    lanes_common.utf8_console()
     if not argv or argv[0] in ("-h", "--help"):
         print(__doc__)
         return 0

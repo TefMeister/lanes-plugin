@@ -38,6 +38,12 @@ STATUS_STALE_COMMITS = 15    # ... while this much work landed is worth a look
 FRONT_PAGES = ("README.md", "mod/README.md")
 CATALOG_STALE_COMMITS = 10   # a tool's repo moving this much after the catalog page last changed is worth a look
 CATALOG_SKIP = {"README.md", "test", "tests", "__pycache__", "lib", "templates"}
+ROW_STALE_COMMITS = 3        # commits of real work after a summary row's date before it counts as behind
+SWEEP_REPOS = 4              # a commit subject seen in this many repos is an estate-wide sweep, not progress
+NOT_WORK = ("external-research/**", "**/inbox/**", "inbox/**", "inspector/**", "**/inspector/**", "ideas/**",
+            "README.md", "**/README.md",   # a front page changing is texts, not the project moving
+            "**/data/**", "**/knowledge/**", "**/archive/**")   # reports filed and old files shelved, not the tool
+# moving: every BeG0nE row read as weeks behind on 2026-10-28 because the rider files its reports there
 VERSION_RE = re.compile(r"(?<![\w.])v?(\d+)\.(\d+)\.(\d+)(?![\w])|(?<![\w.])v(\d+)\.(\d+)(?![\w.])")
 CURRENT_RE = re.compile(r"current|latest|newest|download|get it|released", re.I)
 # A phrase in quotes is a page TALKING ABOUT the check (the plugin README does), not a status claim.
@@ -229,9 +235,95 @@ def check_catalog(spec, clones, ours, apps, public):
     return flags
 
 
-def scan(roots, owner, now, catalogs=(), ours=(), apps=()):
+def row_date(mmdd, now):
+    """a table's MM-DD as a date: this year, or last year when that would be in the future"""
+    try:
+        d = datetime.date(now.year, int(mmdd[:2]), int(mmdd[3:5]))
+    except ValueError:
+        return None
+    return d if d <= now else d.replace(year=now.year - 1)
+
+
+def work_since(clone, sub, since):
+    """[(subject, date)] of commits on GitHub's copy after `since` (a date) that touch `sub` (or the whole repo), leaving
+    out research notes, inboxes, Inspector notes and ideas, which move without the project moving"""
+    ref = front_page(clone, "README.md")[0] or "HEAD"
+    spec = ["--", sub or "."] + [f":(exclude,glob){p}" for p in NOT_WORK]
+    rc, out = git(clone, "log", "--format=%s%x09%cs", f"--since={since.isoformat()}T23:59:59", ref, *spec)
+    return [tuple(line.rsplit("\t", 1)) for line in out.splitlines() if "\t" in line] if rc == 0 else []
+
+
+def summary_pages(pages, clones, releases, now, owner):
+    """{repo: [flags]} for the pages that sum up every project (0.94.2): the profile README's table rows (each links to
+    its repo, or a folder in it, and carries an MM-DD date) and INDEX.json's projects (latest_release, a dated stage).
+    A row is behind when ROW_STALE_COMMITS or more commits of real work landed after its date, or when it names an
+    older version than the newest release. A commit whose subject turns up in SWEEP_REPOS or more repos is an
+    estate-wide sweep (a privacy clean-up, say), not progress, and does not count. The maintainer, 2026-10-28:
+    "things are still being out of date and descriptions not updated throughout the github, sometimes only in some
+    places and not others"."""
+    entries = []        # (repo, sub, date, text, what)
+    link = re.compile(r"\]\(https://github\.com/" + re.escape(owner) + r"/([\w.-]+)(?:/tree/[^/)]+/([^)#]+))?\)", re.I)
+    for page in pages:
+        if page.endswith(".json"):
+            try:
+                with open(page, encoding="utf-8") as f:
+                    projects = json.load(f).get("projects") or []
+            except (OSError, ValueError):
+                continue
+            for p in projects:
+                stage = p.get("stage") or ""
+                dates = sorted(re.findall(r"\d{4}-\d\d-\d\d", stage))
+                when = datetime.date.fromisoformat(dates[-1]) if dates else None
+                entries.append((p.get("repo", ""), "", when, stage + " " + str(p.get("latest_release") or ""),
+                                "INDEX.json's stage"))
+                rel = (releases.get(p.get("repo", "").lower()) or {}).get("tagName")
+                said = p.get("latest_release")
+                if rel and said and tag_version(said) and tag_version(said) < (tag_version(rel) or (0, 0, 0)):
+                    entries.append((p["repo"], "", None, "", f"INDEX.json says latest_release {said}, GitHub's "
+                                                              f"newest is {rel}"))
+            continue
+        try:
+            with open(page, encoding="utf-8") as f:
+                lines = f.read().splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            m = link.search(line)
+            if not line.startswith("| ") or not m:
+                continue
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            mmdd = next((c for c in cells if re.fullmatch(r"\d\d-\d\d", c)), None)
+            entries.append((m.group(1), (m.group(2) or "").strip("/"), row_date(mmdd, now) if mmdd else None, line,
+                            f"the {os.path.basename(page)} row \"{cells[0].strip('*')[:40]}\""))
+    found, subjects = [], {}
+    for repo, sub, when, text, what in entries:
+        clone = clones.get(repo.lower())
+        commits = work_since(clone, sub, when) if clone and when else []
+        for s, _ in commits:
+            subjects.setdefault(s, set()).add(repo.lower())
+        found.append((repo, sub, when, text, what, commits))
+    out = {}
+    for repo, sub, when, text, what, commits in found:
+        if not text:                                   # a plain fact found above (INDEX.json's latest_release)
+            out.setdefault(repo, []).append(what)
+            continue
+        work = [(s, d) for s, d in commits if len(subjects.get(s, ())) < SWEEP_REPOS]
+        if len(work) >= ROW_STALE_COMMITS:
+            out.setdefault(repo, []).append(f"{what}, dated {when}, is behind: {len(work)} commits of work since"
+                                            + (f" in {sub}/" if sub else "") + f", newest {work[0][1]} \"{work[0][0][:70]}\"")
+        rel = (releases.get(repo.lower()) or {}).get("tagName")
+        latest = tag_version(rel)
+        # INDEX.json's version is its latest_release, already compared above; said twice it read as two faults
+        if latest and not sub and not what.startswith("INDEX.json") and latest not in versions(text) \
+                and any(v < latest for v in versions(text)):
+            out.setdefault(repo, []).append(f"{what} names an older version than the newest release {rel}")
+    return out
+
+
+def scan(roots, owner, now, catalogs=(), ours=(), apps=(), summaries=()):
     """{'owner', 'checked', 'without_clone', 'repos': [{'name', 'flags'}], 'error'}. `catalogs` are pages that should
-    name every tool of ours (`catalog = <repo>/<file>`, 0.91.0); their findings come under that repo's name."""
+    name every tool of ours (`catalog = <repo>/<file>`, 0.91.0); their findings come under that repo's name.
+    `summaries` are the pages that sum up every project (the profile README and INDEX.json, 0.94.2)."""
     owner = owner or gh_login()
     if not owner:
         return {"owner": "", "checked": 0, "without_clone": 0, "repos": [], "error": "no account (texts_owner)"}
@@ -256,5 +348,9 @@ def scan(roots, owner, now, catalogs=(), ours=(), apps=()):
         flags = check_catalog(spec, clones, ours, apps, public)
         if flags:
             out.setdefault(spec.replace("\\", "/").split("/")[0], []).extend(flags)
+    releases = {r["name"].lower(): newest_release(owner, r) for r in repos
+                if r.get("visibility", "").upper() == "PUBLIC" and not r.get("isArchived")}
+    for name, flags in summary_pages(summaries, clones, releases, now, owner).items():
+        out.setdefault(name, []).extend(flags)
     return {"owner": owner, "checked": checked, "without_clone": missing,
             "repos": [{"name": n, "flags": f} for n, f in out.items()], "error": None}

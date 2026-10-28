@@ -162,6 +162,16 @@ role = DEV
 #                                            in Git's bash. Only scripts that build and test, never install.
 #   critical = <part of a winget Id or pip name> | <what it could break>   one more build-critical tool
 #   update_safety = off                      no test builds at all (an extra, 0.84.0; see docs/EXTRAS.md)
+#   texts = <folder of clones>               where /lanes:od reads each public repo's front page (0.69.0)
+#   texts_owner = <GitHub account>           whose repos /lanes:od checks (default: the account gh is signed in as)
+#   od_skip = <repo>                         a repo /lanes:od leaves alone (0.94.0)
+#   ch_repo = <clone>                        a repo /lanes:ch looks after (0.89.0; default: every `ours =` line)
+#   ch_backup = <folder>                     where /lanes:ch keeps its working copy first (default: the transfer
+#                                            folder's "Code health backups")
+#   ours_dir = <folder>                      where our own tools are cloned when chosen at setup (0.93.0; default
+#                                            ~/Documents/Lanes our tools; apps go in %LOCALAPPDATA%\Programs)
+#   outside_dir = <folder>                   the same for other makers' tools (0.92.0; default
+#                                            ~/Documents/Lanes outside tools)
 # Many tools publish real updates as nightly builds on a separate repo (praydog/UEVR-nightly,
 # praydog/REFramework-nightly); watch that one when the main page's releases are years old.
 # twin = /path/to/toolkit/tools/menu-o-matic | /path/to/lanes-plugin/plugins/lanes/tools/menu-o-matic
