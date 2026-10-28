@@ -19,6 +19,7 @@ save moves it to decided.md. The Inspector writes only this folder. It never edi
 import json
 import os
 import re
+import subprocess
 import time
 
 FOLDER = "inspector"
@@ -218,3 +219,33 @@ class Record:
             self.originals[name] = text
             changed = True
         return changed
+
+
+def project_name(repo, prefix=""):
+    return prefix.rstrip("/") or os.path.basename(os.path.normpath(repo))
+
+
+def rel_to(repo, path):
+    return os.path.relpath(path, repo).replace("\\", "/")
+
+
+def copy_label(repo, own):
+    """Which copy a note sits in, when it is not the Inspector's own root (0.95.0). On 2026-10-28 the start of a
+    session listed three notes for the plugin that were already answered: they sat in the tool check's copy, nine
+    commits behind GitHub, and the line gave no hint, so the live copy was searched and nothing found."""
+    parent = os.path.dirname(os.path.normpath(repo))
+    label = ""
+    if own and os.path.normcase(os.path.normpath(own)) != os.path.normcase(parent):
+        label = " (the copy in " + os.path.basename(parent) + ")"
+    behind = _git_out(repo, "rev-list", "--count", "HEAD..@{u}").strip()
+    if behind.isdigit() and int(behind):
+        label += f" [{behind} commit(s) behind GitHub: pull it first, the notes may be answered already]"
+    return label
+
+
+def _git_out(repo, *args):
+    try:
+        r = subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True, encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+    return r.stdout if r.returncode == 0 else ""

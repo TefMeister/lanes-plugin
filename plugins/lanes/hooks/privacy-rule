@@ -26,6 +26,14 @@ else
   # keep the hooks' own copy of the checker current after a plugin update
   "$PY" "${PLUGIN_ROOT}/tools/privacy-guard.py" install >/dev/null 2>&1
 fi
+# 0.95.0: no list of the person's own private words yet = their real e-mail is unknown to the guard whenever git's
+# e-mail is the noreply address (the usual set-up); and the quick audit tells once about a commit on GitHub carrying it
+if ! "$PY" "${PLUGIN_ROOT}/tools/privacy-guard.py" private-words 2>/dev/null | grep -q '[1-9][0-9]* word'; then
+  NOTE="${NOTE} The guard has no private list on this PC yet, so it cannot know the person's real e-mail address: ask them once for it (and any other PC's login) and add each with: python \"${PLUGIN_ROOT}/tools/privacy-guard.py\" private-words add (the word on stdin; it never leaves the PC and is never printed)."
+fi
+AUDIT="$("$PY" "${PLUGIN_ROOT}/tools/privacy-guard.py" audit --quick 2>/dev/null)"
+[ -n "$AUDIT" ] && NOTE="${NOTE}
+${AUDIT}"
 
 printf '%s' "PRIVACY RULE (lanes plugin, iron rule): nothing that goes to GitHub - files, notes, boards, scripts, commit messages, issues, release notes, repo descriptions, private repos included - may carry this PC's login name, a home-folder path (C:\Users\<user>, /c/Users/<user>, /home/<user>), or the person's e-mail address; public repos also never carry machine names. Write ~ for the home folder in notes, and in code look the folder up when it runs (os.path.expanduser('~'), \$HOME, %USERPROFILE%). The display name the person chose is the only name. A git hook on this PC refuses any commit that breaks this (privacy-guard.py); never skip it with --no-verify: fix the line and commit again.${NOTE}" \
   | "$PY" "${SCRIPT_DIR}/emit_context.py"

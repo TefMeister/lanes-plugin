@@ -185,4 +185,14 @@ out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" check 2>&1)
 assert_contains "demo-broken (live root): damaged clone" "$out" "the broken clone is called damaged"
 assert_not_contains "demo-broken (live root): no remote" "$out" "and not blamed on a missing remote"
 
+echo "0.95.0: the -gu root is read, a side branch's unpushed work counts, an old rewritten copy does not"
+mkdir -p "$T/A/clones-gu"; q git clone -q "$T/remote-clean" "$T/A/clones-gu/demo-clean"
+( cd "$T/A/clones-gu/demo-clean" && q git checkout -q -b side && echo s > s.txt && q git add s.txt \
+  && q git commit -q -m "side work" && q git checkout -q main )
+( cd "$T/A/clones/demo-clean" && q git checkout -q -b oldcopy && q git commit -q --amend -m "seed, as before a rewrite" \
+  && q git checkout -q main )
+out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" check 2>&1)
+assert_contains "demo-clean (/gu root): 1 commit(s) not pushed" "$out" "work on a side branch in the -gu root is not on GitHub"
+assert_not_contains "demo-clean (live root)" "$out" "a branch GitHub holds in rewritten form is nothing to save"
+
 [ "$FAILED" = "0" ] && echo "handover-fixture: ALL PASSED" || { echo "handover-fixture: FAILED"; exit 1; }

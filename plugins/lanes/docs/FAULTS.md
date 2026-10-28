@@ -373,9 +373,70 @@ source is a directory, and a `git -C "<clone>" pull --ff-only` is then prepended
 installer's own summary. `smoke-test.sh` covers both the stale case and that a `github`-sourced
 marketplace is *not* given a pointless pull; both confirmed to fail against the old code.
 
+### ✅ 14–24. The 2026-10-28 security, privacy and storage test day (all fixed in 0.95.0)
+
+**Found** by a `/pt` run the maintainer asked for before 1.0: "one thing that CANNOT fail is the security and
+privacy of it". Every repo on GitHub was read branch by branch (and the issues, releases, descriptions and gists),
+every clone in every root compared with GitHub, and the guard fed made-up leaks. Public repos' files, issues,
+releases, descriptions and gists were clean apart from what is listed here `[verified-live 2026-10-28]`.
+
+- **14. The privacy guard did not know the person's real e-mail address.** It learned the address from git's
+  settings, and the usual, safe set-up has git's address set to the GitHub noreply one, so on the dev PC a line
+  carrying the real address passed every check. *Fixed:* a refuse-everywhere list kept on the PC only
+  (`private-words.txt`, never printed, never published); the session start asks for it once when it is empty.
+- **15. Home-folder paths in lower case, under WSL's `/mnt/c/Users/` and under `Documents and Settings` passed.**
+  Windows writes `c:\users\...` in many logs. *Fixed:* one pattern, any letter case, all three forms.
+- **16. The push check read only authors and messages, never the files.** A rebase, cherry-pick, merge, a commit
+  made with `--no-verify` or before the guard existed reached GitHub with nothing checking its content. *Fixed:*
+  the pre-push hook reads the lines every pushed commit adds, including ones taken out again later (history keeps
+  them).
+- **17. Nothing checked what GitHub already held.** Four side branches of the private `staging` repo still held the
+  home PC's login (about 50 lines of paths) and the old contact e-mail, after the 2026-10-23 and 2026-10-25
+  clean-ups had both reported every branch clean; and one commit on the public profile repo, made on github.com
+  on 2026-10-27, carries the real address as its author (GitHub's own e-mail setting, nothing on a PC). *Fixed:*
+  `privacy-guard.py audit` reads every branch of every repo and the authors of every commit; a quick form runs at
+  session start and tells each new finding once. The four branches were scrubbed and pushed the same day; the
+  GitHub setting is the maintainer's to switch.
+- **18. 823 old tags from before the history clean-up stayed in every clone on the dev PC.** The move tool moved
+  branches, not tags, so each clone still held the old commits with the old e-mail. A `git push --tags` would have
+  been refused by the e-mail check, so nothing leaked, but they were one forced push away. *Fixed:*
+  `privacy-guard.py drop-old-tags` swaps each for GitHub's cleaned tag of the same name; done on the dev PC, the
+  audit counts any that remain.
+- **19. The handover light skipped two clone roots and every side branch.** It knew the lane roots `-pd -gr -sr
+  -gs` but not `-gu -gd`, so 24 clones were never checked, and it counted only the checked-out branch, so work on
+  a split branch or a worktree left it green. *Fixed:* both roots (and `gd_root`) are read, and every other local
+  branch counts, except one whose every change GitHub already holds in rewritten form (an old copy: `git cherry`).
+- **20. The Inspector's carried-over notes named the project but not the copy.** Three notes listed for the
+  plugin at session start were already answered: they sat in the tool check's copy, eleven commits behind.
+  *Fixed:* the line names the copy and says when it is behind GitHub.
+- **21. The games check (the maintainer's own, outside the plugin) matched games by name.** It called classic
+  DOOM + DOOM II "DOOM (2016)", installed, and missed Ashes 2063 and Brutal Doom on the dev PC; its session-start
+  half compared that wrong answer with a record made by the same matcher, so it stayed silent. *Fixed:* the new
+  `tools/games.py` matches by the store's own id and checks at session start.
+- **22. A never-publish word matched inside longer words** (a short machine name inside a renderer's or a mod's
+  name in a credit), so a real credit would have been refused. *Fixed:* whole words only.
+- **23. The guard's refusal printed the full e-mail address**, into terminals and so into session write-ups.
+  *Fixed:* masked to its first two letters and the domain.
+- **24. The privacy hook's status line said "Loading the tools rule".** *Fixed.*
+
+Tests: `tools/tests/privacy-fixture.sh` (13 checks) and `tools/tests/games-fixture.sh` (14), both run by the
+smoke test.
+
 ---
 
 ## Investigated, not a fault
+
+### 🔍 I. "SAVED" while a clone held 32 commits on no remote branch (2026-10-28)
+
+A side branch in the-evil-within-vr held 32 commits GitHub did not have by id. All 32 were old copies from before
+the history clean-up (`git cherry` against GitHub's branch: every one already there as an equal change), so there
+was nothing to save and green was the right answer. Since 0.95.0 the light counts side branches and leaves out
+exactly this case; the audit names such branches because they still carry the old e-mail.
+
+### 🔍 J. Three Out of Date findings on the first run (2026-10-28)
+
+Grip Zones, Hand Poser and Window View each changed after their newest download. Checked against GitHub: true,
+all three had program changes that day. Real findings for those projects, not a fault in `/od`.
 
 ### 🔍 A. Two hard errors in a port comparison
 
@@ -493,6 +554,13 @@ that if it *does* arrive later, there is a dated baseline saying when it did not
 ---
 
 ## Still open
+
+### The home PC's computer name is in about 70 lines across 24 public repos (found 2026-10-28)
+
+Mostly notes such as "home PC (<name>)" and "verified on <name>" written before the iron rule, plus one setting in
+BeG0nE. The rule says public repos never carry machine names; this name is also a common graphics-card word, so it
+identifies little. Waiting on the maintainer: scrub them all, or leave the old notes. `privacy-guard.py audit` lists
+each line.
 
 ### Two PCs copying the same ideas leave a project repo stuck mid-rebase (found 2026-09-26)
 

@@ -906,6 +906,22 @@ else
   fail "handover-fixture.sh failed"
 fi
 
+echo "privacy-guard.py - the gaps the 2026-10-28 test day found, and the audit of what GitHub holds (0.95.0)"
+if out=$(bash "$HERE/privacy-fixture.sh" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "privacy-fixture.sh failed"
+fi
+
+echo "games.py - which project games are on this PC, and what changed since its record (0.95.0)"
+if out=$(bash "$HERE/games-fixture.sh" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "games-fixture.sh failed"
+fi
+
 # privacy guard (0.86.0): a login or a home path is refused, ~ and the display name pass
 PG="$HERE/../../tools/privacy-guard.py"
 PGD=$(mktemp -d)

@@ -62,8 +62,8 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import inspector_checks as ic  # noqa: E402
-from inspector_store import (BLOCKING_STATES, EXAMPLES_SHOWN, Record, record_dir,  # noqa: E402
-                             verdict_state)
+from inspector_store import (BLOCKING_STATES, EXAMPLES_SHOWN, Record, copy_label, project_name,  # noqa: E402
+                             record_dir, rel_to, verdict_state)
 DUP_MAX_LINES = 20000   # a file longer than this is data, not a helper worth matching against
 # Evidence folders keep a snapshot of the script a run used: copies by design, not copy-paste.
 # (First Village review, 2026-09-26: 14 of 29 DUPLICATE findings pointed into recon/.)
@@ -176,10 +176,6 @@ def project_prefix(repo, rel):
     if os.path.basename(os.path.normpath(repo)).lower() in multi and "/" in rel:
         return rel.split("/", 1)[0] + "/"
     return ""
-
-
-def project_name(repo, prefix=""):
-    return prefix.rstrip("/") or os.path.basename(os.path.normpath(repo))
 
 
 def repo_allowed(repo, prefix=""):
@@ -386,10 +382,6 @@ def describe(item):
            "badfix": "fix now is not allowed for this kind: it could change behaviour, use fix later or keep",
            }.get(verdict_state(item["verdict"], item["kind"]), "waiting")
     return f"  {item['id']} {item['kind']} {item['path']}: {item['what']} [{tag}]"
-
-
-def rel_to(repo, path):
-    return os.path.relpath(path, repo).replace("\\", "/")
 
 
 # ------------------------------------------------------------------ commands
@@ -614,7 +606,8 @@ def brief(session=None):
         rec = Record(repo, prefix)
         waiting = [i for i in blocking(rec) if session is None or i.get("session", "") != session]
         if waiting:
-            out.append(f"  {project_name(repo, prefix)}: {len(waiting)} note(s) in {rel_to(repo, rec.path)}/")
+            out.append(f"  {project_name(repo, prefix)}{copy_label(repo, read_conf("inspector_root"))}: {len(waiting)} note(s) in "
+                       f"{rel_to(repo, rec.path)}/")
     if not out:
         return ""
     return ("INSPECTOR: an earlier session ended with notes unanswered, so they carried over. Answer them "

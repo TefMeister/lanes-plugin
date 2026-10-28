@@ -71,7 +71,9 @@ SECONDS_PER_MINUTE, SECONDS_PER_HOUR, SECONDS_PER_DAY = 60, 3600, 86400
 AGE_IN_HOURS_UP_TO_H = 48                           # "21 h ago" up to two days, then "3 days ago"
 STATE_MAX_CHARS = 300                               # the NOT SAVED detail kept in the board file
 
-ROOT_SUFFIXES = ("-pd", "-gr", "-sr", "-gs")      # the lane roots beside the live one (PROTOCOL section 3)
+# the lane roots beside the live one (PROTOCOL section 3); -gu and -gd (the tool check and Gold Digger) were missing
+# until 0.95.0, so 24 clones on the maintainer's dev PC were never checked and the light said SAVED without them
+ROOT_SUFFIXES = ("-pd", "-gr", "-sr", "-gs", "-gu", "-gd")
 IGNORED_PATH_PARTS = ("inspector/", "__pycache__/")  # kept on one PC on purpose
 IGNORED_SUFFIXES = (".pyc",)
 HEARTBEAT_DIR = "handover"
@@ -135,7 +137,7 @@ def roots_from(conf):
         for s in ROOT_SUFFIXES:
             if os.path.isdir(live + s):
                 found.append(live + s)
-    for key in ("root", "lane_roots"):
+    for key in ("root", "lane_roots", "gd_root"):
         for p in re.split(r"[,\s]+", conf.get(key, "")):
             if p and os.path.isdir(p):
                 found.append(p)
@@ -171,6 +173,32 @@ def ignored(path):
     return p.endswith(IGNORED_SUFFIXES)
 
 
+def side_branch_commits(repo):
+    """Commits on the OTHER local branches that GitHub does not hold (0.95.0). Only HEAD was counted before, so work
+    on a side branch (a split branch, a worktree) left the light green while it lived on this PC only. A branch whose
+    every commit GitHub already holds as an equal change (an old copy from before a history clean-up, which rewrote
+    the commit ids) has nothing to save and is not counted; privacy-guard.py audit names those, since they still
+    carry the old details."""
+    ok, cur = git(["rev-parse", "--abbrev-ref", "HEAD"], repo)
+    ok2, heads = git(["for-each-ref", "--format=%(refname:short)", "refs/heads"], repo)
+    if not ok2:
+        return 0
+    total = 0
+    for b in heads.splitlines():
+        if not b or b == cur:
+            continue
+        ok, n = git(["rev-list", "--count", b, "--not", "--remotes"], repo)
+        if not (ok and n.isdigit() and int(n)):
+            continue
+        up = "origin/" + b
+        if not git(["rev-parse", "-q", "--verify", up], repo)[0]:
+            up = "HEAD"
+        ok, cherry = git(["cherry", up, b], repo)
+        new = sum(1 for l in cherry.splitlines() if l.startswith("+")) if ok else int(n)
+        total += new
+    return total
+
+
 def repo_state(repo):
     """(untracked, changed, unpushed, note, head) for one clone; note is a reason it could not be read."""
     ok, head = git(["rev-parse", "HEAD"], repo)
@@ -194,6 +222,8 @@ def repo_state(repo):
     # commits on no remote branch at all: catches a branch that was never pushed, not only a stale upstream
     ok, n = git(["rev-list", "--count", "HEAD", "--not", "--remotes"], repo)
     unpushed = int(n) if ok and n.isdigit() else 0
+    if ok:
+        unpushed += side_branch_commits(repo)
     if ok:
         note = ""
     else:

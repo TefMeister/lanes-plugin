@@ -1542,6 +1542,18 @@ rule. A rule the model applies is behavioural; a git hook is not.
   `commit-msg` from its hooks.
 - **What it cannot do:** it guards what is committed from now on. Old commits keep what they had; cleaning git
   history is a separate, deliberate job that rewrites every copy, so it is the person's decision.
+- **Closed gaps and the audit (0.95.0, the 2026-10-28 test day):** the person's own words that must never leave the
+  PC, above all their real e-mail address when git's own is the noreply one, go in `~/.claude/lanes/private-words.txt`
+  (`privacy-guard.py private-words add`, word on stdin; never printed, never published), refused in every repo; the
+  session start asks for it once while the list is empty. Home paths are caught in any letter case, under
+  `/mnt/<drive>/Users/` and under `Documents and Settings`; never-publish words match only as whole words. The push
+  check now also reads the lines every pushed commit adds, so a rebase, cherry-pick, merge or `--no-verify` commit is
+  checked before GitHub sees it. `privacy-guard.py audit` reads what GitHub already holds (every branch of every
+  clone, as of the last fetch, and every commit's author) and old copies left on the PC after a history clean-up;
+  `audit --quick` runs at session start and tells each new finding once; `drop-old-tags --yes` swaps old tags for
+  GitHub's cleaned ones. An edit made on github.com uses the e-mail GitHub's own settings give it: the audit names
+  such commits so the person can switch on "Keep my email addresses private" (and "Block command line pushes that
+  expose my email") in GitHub's e-mail settings.
 - Optional (`features.py`: `privacy_guard`, in the everyday helpers); a PC that already had Lanes has it on.
 
 ## 35. Remote Control in every session (0.87.0, 2026-10-26)
@@ -1690,4 +1702,24 @@ be shiny and has the latest stuff"*. `/lanes:od` (`tools/od.py`, `commands/od.md
 Publishing a download of our own tool needs no question, once its own tests pass; it carries `SHA256SUMS.txt` and
 plain notes on how far it was tested. Never a game mod, never a repo made public. `/fullscan` runs it just before
 `/gu` (step 4b), so what it publishes is there for the tool check to offer. On or off: `out_of_date`.
+
+## 42. The games check: which project games are on this PC, and what changed (0.95.0, 2026-10-28)
+
+The maintainer: *"the state of what games are installed on the pc and what are not ... see if they match what is on
+github and vice versa, and Lanes must know if something has changed in the beginning of a session"*.
+
+- **Which game each project is about** lives in `games.tsv` in the `games_record` folder (a private repo clone), one
+  file for every PC, by the store's own id (`games.py set <project> steam <appid>`), never by name: matching names
+  once called classic DOOM "DOOM (2016)". A game no store knows is `folder`, and each PC names its folder with
+  `game_dir.<project>` (and `game_exe.<project>`) in lanes.conf; a tool project with no game is `none`.
+- **Each PC's record** is `<PC name>-games.tsv` beside it: where each game is, the store's build number, and the
+  main program of a folder game. `games.py record --push` writes it and pushes only that file; home folders are
+  written as `~`.
+- **At session start** (`hooks/games-brief`, under a second, PC only) `games.py check` names a store update (a mod
+  that patches the game may need a fix), a game taken off, moved or found, a changed main program, a project folder
+  with no game set and a listed project with no folder; silent when nothing changed. The session says it in plain
+  words, then brings the record level once the change is understood.
+- **`games.py overview`** lists every project with its game: on this PC or not, and on each other PC that recorded.
+  Our own mod files are checked by `builds.py check`; this one is about the games themselves.
+- On or off: `games_check` (everyday helpers).
 
