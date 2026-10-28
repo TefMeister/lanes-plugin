@@ -295,9 +295,20 @@ def summary_pages(pages, clones, releases, now, owner):
             mmdd = next((c for c in cells if re.fullmatch(r"\d\d-\d\d", c)), None)
             entries.append((m.group(1), (m.group(2) or "").strip("/"), row_date(mmdd, now) if mmdd else None, line,
                             f"the {os.path.basename(page)} row \"{cells[0].strip('*')[:40]}\""))
+    # several rows for one repo (a row per terminal theme, say) are one summary of it: the newest of them is measured,
+    # once, so work on one theme does not read as every other theme's row falling behind (0.94.3)
+    newest = {}
+    for repo, sub, when, text, what in entries:
+        if when and what.startswith("the "):
+            key = (repo.lower(), sub)
+            if key not in newest or when > newest[key][0]:
+                newest[key] = (when, what)
     found, subjects = [], {}
     for repo, sub, when, text, what in entries:
         clone = clones.get(repo.lower())
+        group = newest.get((repo.lower(), sub)) if what.startswith("the ") else None
+        if group and group[1] != what:
+            when = None                                # measured once, under the group's newest row
         commits = work_since(clone, sub, when) if clone and when else []
         for s, _ in commits:
             subjects.setdefault(s, set()).add(repo.lower())

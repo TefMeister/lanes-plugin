@@ -263,6 +263,11 @@ def cmd_test():
     print("would record:", fg[2] if fg else "no (not a game in fullscreen)")
 
 if __name__ == "__main__":
+    for _stream in (sys.stdout, sys.stderr):   # a character the console cannot show prints as ? (0.94.2)
+        try:
+            _stream.reconfigure(errors="replace")
+        except (AttributeError, ValueError):
+            pass
     a = sys.argv[1:]
     if not a: watch()
     elif a[0] == "install": cmd_install()
