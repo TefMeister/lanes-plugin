@@ -88,5 +88,48 @@ check "git: push --no-verify is refused" 'gh_refused "git push --no-verify"'
 check "git: commit -nm is refused" 'gh_refused "git commit -nm x"'
 check "git: a one-off core.hooksPath is refused" 'gh_refused "git -c core.hooksPath=nowhere push"'
 check "git: a plain push and push -n (dry run) pass" '! gh_refused "git push -u origin main" && ! gh_refused "git push -n"'
+
+# binary files (0.99.1): a picture's hidden text and a binary's paths are checked; chance words in compressed bytes are not
+mkdir -p "$T/root/bin"; cd "$T/root/bin"; git init -q; git config lanes.visibility public; git config core.hooksPath "$T/nohooks"
+"$PY" - <<'PYEOF'
+import struct, zlib
+def chunk(k, b): return struct.pack(">I", len(b)) + k + b + struct.pack(">I", zlib.crc32(k + b) & 0xffffffff)
+def png(text):
+    ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 0, 0, 0, 0)
+    body = chunk(b"IHDR", ihdr) + (chunk(b"tEXt", text) if text else b"") + chunk(b"IDAT", zlib.compress(b"\0\0")) + chunk(b"IEND", b"")
+    return b"\x89PNG\r\n\x1a\n" + body
+open("render.png", "wb").write(png(b"File\0C:\\Users\\hiddenx\\guns\\gun.blend"))   # privacy-guard:allow scrub-scan:allow (made-up name)
+open("clean.png", "wb").write(png(b"Software\0Blender"))
+open("tool.dll", "wb").write(b"MZ\0\0" + b"\0" * 64 + b"C:\\Users\\hiddenx\\src\\tool.pdb\0" + b"\0" * 16)   # privacy-guard:allow scrub-scan:allow (made-up name)
+open("noise.bin", "wb").write(b"\0\x01\x02 BOXNAME q\x01\0" * 4)
+PYEOF
+staged_refused() { git add -A >/dev/null 2>&1; env_run staged >/dev/null 2>&1; r=$?; git reset -q; [ $r -eq 1 ]; }
+only() { for f in render.png clean.png tool.dll noise.bin; do [ "$f" = "$1" ] || mv "$f" "../$f.away" 2>/dev/null; done; }
+back() { for f in render.png clean.png tool.dll noise.bin; do [ -f "../$f.away" ] && mv "../$f.away" "$f"; done; }
+only render.png; check "binary: a PNG whose hidden text names a home folder is refused" 'staged_refused'; back
+only clean.png;  check "binary: a PNG with harmless hidden text passes" '! staged_refused'; back
+only tool.dll;   check "binary: a dll naming a home folder (its .pdb path) is refused" 'staged_refused'; back
+only noise.bin;  check "binary: a never-publish word by chance in other bytes passes" '! staged_refused'; back
+only render.png; git add -A; git commit -q -m pic; L="$(git rev-parse HEAD)"
+out="$(printf 'refs/heads/main %s refs/heads/main %s\n' "$L" "0000000000000000000000000000000000000000" | env_run push origin https://github.com/x/y.git 2>&1)"
+check "binary: the push check finds the picture's hidden text too" 'printf "%s" "$out" | grep -q "render.png (hidden text"'
+back
+# a release zip holding a pk3 (itself a zip) whose model file names a home folder: found inside both layers
+"$PY" - "$T" <<'PYEOF'
+import io, sys, zipfile
+def z(members):
+    b = io.BytesIO()
+    with zipfile.ZipFile(b, "w", zipfile.ZIP_DEFLATED) as f:
+        for n, d in members: f.writestr(n, d)
+    return b.getvalue()
+pk3 = z([("modeldef.gun", "Path C:/Users/hiddenx/guns/models\nFrameIndex GUN A 0 0\n")])   # privacy-guard:allow scrub-scan:allow (made-up name)
+open(sys.argv[1] + "/rel.zip", "wb").write(z([("mod/gun.pk3", pk3), ("README.txt", "install it")]))
+open(sys.argv[1] + "/relclean.zip", "wb").write(z([("mod/gun.pk3", z([("modeldef.gun", "Path models\n")])), ("README.txt", "ok")]))
+PYEOF
+mkdir -p "$T/root/zips"; cd "$T/root/zips"; git init -q; git config lanes.visibility public; cp "$T/rel.zip" .
+check "zip: a pk3 inside a zip naming a home folder is refused at commit" 'staged_refused'
+cd "$HERE"
+check "zip: gh release upload of that zip is refused" 'gh_refused "gh release upload v1 rel.zip"'
+check "zip: a clean release zip passes" '! gh_refused "gh release upload v1 relclean.zip"'
 echo "privacy-fixture: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

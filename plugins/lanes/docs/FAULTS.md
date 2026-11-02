@@ -756,7 +756,8 @@ checks in the test suites:
   folder. Refused now. `[inferred-static]`
 
 Also checked, nothing wrong: every public repo's whole history (52 repos) and every clone's current files carry no
-login, home path or private word (only made-up test names); conversation copies stay on the PC; the session-logs
+login, home path or private word in their TEXT (only made-up test names; pictures, programs and zips were not read
+then, see the follow-up below); conversation copies stay on the PC; the session-logs
 repo is private and clean; every place Lanes deletes files keeps a copy or acts only on its own temporary folders;
 lane-claim and builds only undo their own commit after a refused push; downloaded zips cannot escape their folder.
 
@@ -764,3 +765,25 @@ lane-claim and builds only undo their own commit after a refused push; downloade
 unless GitHub's "Keep my email addresses private" setting is on. One such commit (2026-10-27) is public on the profile
 repo; two on the private ideas repo are from 2026-10-28. Older private-repo history keeps the address by the
 2026-10-25 decision.
+
+### Release audit follow-up (2026-11-02, after 0.99.0): the guard never read pictures, programs or zips
+
+The text check above was blind to anything binary, so a second sweep read every public repo's pictures, programs and
+release downloads the way the new check does:
+- **Blender writes the .blend file's full path into every rendered picture** (hidden text inside the PNG). 19
+  progress pictures on the public Ashes weapons repo named the home folder and login this way. The current files
+  were cleaned the same day (pixels unchanged); the history is cleaned in a copy, waiting for Tefa's push.
+  `[measured 2026-11-02]`
+- **Programs built on a PC keep that PC's folders** (the debug-file path inside an .exe or .dll), and model
+  definitions inside a .pk3 can too. The two public Ashes release downloads carried the home folder this way;
+  both were replaced with cleaned copies of the same size and re-checked after download. `[measured 2026-11-02]`
+- **A code comment naming the dev PC by its machine name** sat in ten public Village Scope downloads (one line of
+  a script). Cleaned copies are ready, waiting for Tefa's upload. `[measured 2026-11-02]`
+- **The profile repo's history** held Tefa's real e-mail on one website commit and a machine name in old notes;
+  rewritten on Tefa's yes (Tefa ran the push). `[measured 2026-11-02]`
+- **Fixed in the guard (0.99.1):** staged and pushed binaries are now read: a picture's hidden text exactly, other
+  binaries as their readable strings (where a never-publish word may be chance and is let through), and zips member
+  by member, three layers deep (a .pk3 inside a release zip). The gh guard uses the same check for release uploads.
+  Checks in privacy-fixture.sh. `[measured 2026-11-02]`
+- **Still open:** old history of about 31 public repos names the PCs by machine name in old notes (current files
+  are clean). Cleaning it is Tefa's decision.

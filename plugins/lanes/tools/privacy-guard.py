@@ -38,6 +38,10 @@ WHAT IS REFUSED
   - every word in ~/.claude/lanes/never-publish.txt (machine names and the like; that list never leaves the PC).
   Private repos may keep machine names: some tools file their records by computer name.
   Only ADDED lines are checked, so an old line elsewhere in a file never blocks an unrelated commit.
+  Binary files too (0.99.1): a picture's hidden text (PNG text chunks, JPEG comment/EXIF/XMP) gets every check, since
+  Blender writes the .blend file's full path into each render; any other binary (exe, dll, pdb, zip) is searched for
+  home paths, the login, e-mail and private words (never-publish words are skipped there: short ones turn up by
+  chance in compressed bytes).
   A line holding "privacy-guard:allow" or "scrub-scan:allow" is skipped (deliberate test fixtures).
 
 HOW IT HOOKS IN
@@ -52,8 +56,9 @@ import os
 import re
 import subprocess
 import sys
+import zlib
 
-HOME = os.path.expanduser("~")
+HOME =os.path.expanduser("~")
 STATE = os.environ.get("LANES_STATE_DIR") or os.path.join(HOME, ".claude", "lanes")
 HOOKDIR = os.path.join(STATE, "githooks")
 NEVER = os.path.join(STATE, "never-publish.txt")
@@ -201,10 +206,116 @@ def report(findings, what):
     return 1
 
 
+BINARY_MAX_BYTES = 64 * 1024 * 1024   # a bigger file is not read (it would not go to GitHub anyway)
+BINARY_MIN_STRING = 6                 # printable runs shorter than this are noise
+ZIP_MAX_DEPTH = 3                     # zips inside zips (a pk3 inside a release zip) are opened this deep
+ZIP_MAGIC = b"PK\x03\x04"
+BINARY_SNIFF_BYTES = 8000             # a NUL byte this early means binary (git's own test)
+NOISY = "a never-publish word"        # short words turn up by chance inside compressed bytes
+JPEG_SOS, JPEG_COM = 0xDA, 0xFE      # JPEG markers: start of the image data; a comment
+JPEG_APP_FIRST, JPEG_APP_LAST = 0xE0, 0xEF   # APP0..APP15: EXIF, XMP and the like
+
+
+def blob_bytes(*args):
+    r = subprocess.run(["git"] + list(args), capture_output=True)
+    return r.stdout if r.returncode == 0 else b""
+
+
+def binary_texts(data):
+    """(texts, exact) for a binary file (0.99.1, release audit 2026-11-02). Blender writes the .blend file's full path,
+    home folder included, into every PNG it renders; 19 published progress pictures carried it, and the text checks
+    skipped every binary file. PNG: its text chunks. JPEG: its comment and APPn (EXIF, XMP) segments. exact=True: the
+    texts are metadata, every check applies. Anything else (exe, dll, pdb, zip...): its printable runs, exact=False,
+    so only the checks that cannot fire by chance apply (home paths, login, e-mail, private words)."""
+    if len(data) > BINARY_MAX_BYTES:
+        return [], True
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        out, i = [], 8
+        while i + 8 <= len(data):
+            n = int.from_bytes(data[i:i + 4], "big")
+            kind, body = data[i + 4:i + 8], data[i + 8:i + 8 + n]
+            if kind in (b"tEXt", b"iTXt"):
+                out.append(body.replace(b"\0", b" ").decode("utf-8", "replace"))
+            elif kind == b"zTXt":
+                key, _, rest = body.partition(b"\0")
+                try:
+                    out.append(key.decode("latin1") + " " + zlib.decompress(rest[1:]).decode("utf-8", "replace"))
+                except zlib.error:
+                    pass
+            i += 12 + n
+        return out, True
+    if data[:2] == b"\xff\xd8":
+        out, i = [], 2
+        while i + 4 <= len(data) and data[i] == 0xFF:
+            marker, n = data[i + 1], int.from_bytes(data[i + 2:i + 4], "big")
+            if marker == JPEG_SOS:                  # start of the image data: no metadata after it
+                break
+            if marker == JPEG_COM or JPEG_APP_FIRST <= marker <= JPEG_APP_LAST:
+                out += [s.decode("latin1") for s in re.findall(rb"[\x20-\x7e]{%d,}" % BINARY_MIN_STRING,
+                                                               data[i + 4:i + 2 + n])]
+            i += 2 + n
+        return out, True
+    return [s.decode("latin1") for s in re.findall(rb"[\x20-\x7e]{%d,}" % BINARY_MIN_STRING, data)], False
+
+
+def is_binary(data):
+    return b"\0" in data[:BINARY_SNIFF_BYTES] or data[:4] == ZIP_MAGIC
+
+
+def check_member(data, ws, display, depth):
+    """One file from inside a zip: a binary (or another zip) goes back through check_binary, text line by line."""
+    if is_binary(data):
+        return set(check_binary(data, ws, display, depth + 1))
+    return {w for line in data.decode("utf-8", "replace").splitlines() for w in check_line(line, ws, display)}
+
+
+def check_zip(data, ws, display, depth):
+    """Every member's name and content of a zip, pk3 or other zip-based file, or None when it will not open. The
+    Ashes release zips carried a home path inside a pk3's model file, unseen by the byte search."""
+    import io
+    import zipfile
+    why = set()
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as z:
+            for info in z.infolist():
+                why |= set(check_line(info.filename, ws, display))
+                if not info.is_dir() and info.file_size <= BINARY_MAX_BYTES:
+                    why |= check_member(z.read(info), ws, display, depth)
+    except (zipfile.BadZipFile, OSError, RuntimeError, NotImplementedError):
+        return None
+    return why
+
+
+def check_binary(data, ws, display, depth=0):
+    if data[:4] == ZIP_MAGIC and depth < ZIP_MAX_DEPTH:
+        why = check_zip(data, ws, display, depth)
+        if why is not None:
+            return sorted(why)
+    texts, exact = binary_texts(data)
+    why = set()
+    for t in texts:
+        why |= set(check_line(t, ws, display))
+    return sorted(w for w in why if exact or not w.startswith(NOISY))
+
+
+def binary_paths(*diff_args):
+    """Files a diff adds or changes that git treats as binary ('-' in --numstat)."""
+    out = []
+    for line in git("diff", "--numstat", "--no-renames", "--diff-filter=AM", *diff_args).splitlines():
+        parts = line.split("\t", 2)
+        if len(parts) == 3 and parts[0] == "-" and parts[1] == "-":
+            out.append(parts[2])
+    return out
+
+
 def cmd_staged():
     public = visibility() != "private"
     ws, display = words(public), conf_value("display_name").lower()
     findings = []
+    for name in binary_paths("--cached"):
+        why = check_binary(blob_bytes("show", ":" + name), ws, display)
+        if why:
+            findings.append((name + " (hidden text inside the file)", why))
     for name in git("diff", "--cached", "--name-only", "--diff-filter=AR", "-z").split("\0"):
         if name:
             why = check_line(name, ws, display)
@@ -286,6 +397,17 @@ def pushed_content(rng, ws, display):
             if why:
                 findings.append(("commit %s, %s:%d" % (commit, cur, line_no), why))
             line_no += 1
+    # binary files each pushed commit adds or changes (0.99.1): their hidden text, as the commit check reads it
+    commit = ""
+    for line in git("log", "--numstat", "--no-renames", "--diff-filter=AM", "--format=%x01%H", *rng).splitlines():
+        if line.startswith("\x01"):
+            commit = line[1:]
+            continue
+        parts = line.split("\t", 2)
+        if len(parts) == 3 and parts[0] == "-" and parts[1] == "-":
+            why = check_binary(blob_bytes("show", "%s:%s" % (commit, parts[2])), ws, display)
+            if why:
+                findings.append(("commit %s, %s (hidden text inside the file)" % (commit[:9], parts[2]), why))
     return findings
 
 

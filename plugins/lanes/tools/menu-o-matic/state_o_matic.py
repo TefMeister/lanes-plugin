@@ -27,17 +27,21 @@ def observe(hwnd, seconds, states=None, poke=None):
     """Collect the signs and return (state, why, signs). Used by `watch` and by the replay engine."""
     import mom_window as W
     gap = seconds / max(1, LOOKS - 1)
-    read0, t0 = W.bytes_read(hwnd), time.time()
+    read0, cpu0, t0 = W.bytes_read(hwnd), W.cpu_seconds(hwnd), time.time()
     images = []
     for k in range(LOOKS):
         images.append(W.capture(hwnd))
         if k < LOOKS - 1:
             time.sleep(gap)
-    read1, t1 = W.bytes_read(hwnd), time.time()
+    read1, cpu1, t1 = W.bytes_read(hwnd), W.cpu_seconds(hwnd), time.time()
     avg, ever = S.motion(images)
     signs = {"letterbox": S.letterbox(images[-1]), "motion": round(avg, 3), "motion_anywhere": round(ever, 3)}
     if read0 is not None and read1 is not None and t1 > t0:
         signs["disk_mb_s"] = round((read1 - read0) / (t1 - t0) / 1e6, 1)
+    if cpu0 is not None and cpu1 is not None and t1 > t0:
+        signs["cpu_cores"] = round((cpu1 - cpu0) / (t1 - t0), 2)
+    signs["hung"] = W.hung(hwnd)
+    signs["in_front"] = W.in_front(hwnd)
     if states:
         for name, cp in states["checkpoints"].items():
             if R.matches(states, name, images[-1])[1]:

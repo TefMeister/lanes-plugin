@@ -29,7 +29,6 @@ PUBLISHING = re.compile(r"\bgh(?:\.exe)?\s+(?:issue|pr|release|gist|label|variab
 SKIP_HOOKS = re.compile(r"\bgit\b[^;&|\n]*?(?:\s(?:commit|push|merge|rebase|am|cherry-pick)\b[^;&|\n]*?\s--no-verify\b"
                         r"|\scommit\b[^;&|\n]*?\s-[a-zA-Z]*n[a-zA-Z]*(?=\s|$)|\s-c\s+core\.hookspath\s*=)", re.I)
 FILE_MAX_BYTES = 8 * 1024 * 1024  # a file bigger than this is not read (a build zip of a few MB still is)
-ZIP_MEMBER_MAX_BYTES = 2 * 1024 * 1024
 TOKEN = re.compile(r"""[^\s"'`|;&<>()=]+""")
 
 
@@ -52,21 +51,16 @@ def named_files(cmd, cwd):
     return seen
 
 
-def file_texts(path):
-    """The file's text, or for a zip each member's name and text."""
-    import zipfile
+def file_findings(path, pg, ws, display):
+    """Reasons one named file may not go up: text line by line; a picture, a program or a zip (members, zips inside
+    zips) through the privacy guard's binary check (0.99.1)."""
     if os.path.getsize(path) > FILE_MAX_BYTES:
-        return []
-    if zipfile.is_zipfile(path):
-        out = []
-        with zipfile.ZipFile(path) as z:
-            for info in z.infolist():
-                out.append(info.filename)
-                if info.file_size <= ZIP_MEMBER_MAX_BYTES and not info.is_dir():
-                    out.append(z.read(info).decode("utf-8", "ignore"))
-        return out
+        return set()
     with open(path, "rb") as f:
-        return [f.read().decode("utf-8", "ignore")]
+        data = f.read()
+    if b"\0" in data[:8000] or data[:4] == b"PK\x03\x04":
+        return set(pg.check_binary(data, ws, display))
+    return {why for line in data.decode("utf-8", "ignore").splitlines() for why in pg.check_line(line, ws, display)}
 
 
 def main():
@@ -95,8 +89,7 @@ def main():
         found = {why for line in cmd.splitlines() for why in pg.check_line(line, ws, display)}
         for path in named_files(cmd, data.get("cwd") or os.getcwd()):
             try:
-                for text in file_texts(path):
-                    found |= {why for line in text.splitlines() for why in pg.check_line(line, ws, display)}
+                found |= file_findings(path, pg, ws, display)
             except Exception:
                 continue
         found = sorted(found)

@@ -329,6 +329,35 @@ def bytes_read(hwnd):
         kernel32.CloseHandle(handle)
 
 
+def cpu_seconds(hwnd):
+    """Processor time the window's process has used so far, all threads together (seconds), or None. Two readings
+    give how many cores it keeps busy: a frozen game stuck in a loop keeps burning them (RE2, 2026-11-02: 2.0 cores)."""
+    kernel32 = ctypes.windll.kernel32
+    pid = w.DWORD()
+    u.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+    kernel32.OpenProcess.restype = w.HANDLE
+    handle = kernel32.OpenProcess(0x1000, False, pid.value)   # PROCESS_QUERY_LIMITED_INFORMATION
+    if not handle:
+        return None
+    try:
+        c, e, k, us = (w.FILETIME() for _ in range(4))
+        if not kernel32.GetProcessTimes(handle, ctypes.byref(c), ctypes.byref(e), ctypes.byref(k), ctypes.byref(us)):
+            return None
+        ft = lambda f: (f.dwHighDateTime << 32) | f.dwLowDateTime
+        return (ft(k) + ft(us)) / 1e7
+    finally:
+        kernel32.CloseHandle(handle)
+
+
+def hung(hwnd):
+    """Windows' own word: the window has stopped answering messages (the "Not Responding" title)."""
+    return bool(u.IsHungAppWindow(hwnd))
+
+
+def in_front(hwnd):
+    return u.GetForegroundWindow() == hwnd
+
+
 class NotInFront(RuntimeError):
     """The target window could not be brought to the front, so no key was sent."""
 
