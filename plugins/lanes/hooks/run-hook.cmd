@@ -12,6 +12,10 @@ REM "session-start.sh") so Claude Code's Windows auto-detection -- which
 REM prepends "bash" to any command containing .sh -- doesn't interfere.
 REM
 REM Usage: run-hook.cmd <script-name> [args...]   e.g. run-hook.cmd board-brief
+REM
+REM Each branch below ends with `call exit /b %%ERRORLEVEL%%`, which hands back bash's own exit code.
+REM It used to read `exit /b %ERRORLEVEL%`, but inside ( ) cmd.exe fills that in BEFORE bash runs, so
+REM it was always 0 (a bare `exit /b` is 0 there too, measured): every guard's refusal (exit 2) reached Claude Code as "all fine" (found 2026-11-01).
 
 if "%~1"=="" (
     echo run-hook.cmd: missing script name >&2
@@ -23,18 +27,18 @@ set "HOOK_DIR=%~dp0"
 REM Try Git for Windows bash in standard locations
 if exist "C:\Program Files\Git\bin\bash.exe" (
     "C:\Program Files\Git\bin\bash.exe" "%HOOK_DIR%%~1" %2 %3 %4 %5 %6 %7 %8 %9
-    exit /b %ERRORLEVEL%
+    call exit /b %%ERRORLEVEL%%
 )
 if exist "C:\Program Files (x86)\Git\bin\bash.exe" (
     "C:\Program Files (x86)\Git\bin\bash.exe" "%HOOK_DIR%%~1" %2 %3 %4 %5 %6 %7 %8 %9
-    exit /b %ERRORLEVEL%
+    call exit /b %%ERRORLEVEL%%
 )
 
 REM Try bash on PATH (e.g. user-installed Git Bash, MSYS2, Cygwin)
 where bash >nul 2>nul
 if %ERRORLEVEL% equ 0 (
     bash "%HOOK_DIR%%~1" %2 %3 %4 %5 %6 %7 %8 %9
-    exit /b %ERRORLEVEL%
+    call exit /b %%ERRORLEVEL%%
 )
 
 REM No bash found - exit silently rather than error

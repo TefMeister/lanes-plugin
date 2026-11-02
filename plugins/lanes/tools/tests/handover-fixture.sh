@@ -195,4 +195,31 @@ out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" check 2>&1)
 assert_contains "demo-clean (/gu root): 1 commit(s) not pushed" "$out" "work on a side branch in the -gu root is not on GitHub"
 assert_not_contains "demo-clean (live root)" "$out" "a branch GitHub holds in rewritten form is nothing to save"
 
+echo "lanes-next (two-PC test Run 2): a start report is held back for an hour, but never when the light changed"
+# PC A's board file says SAVED (its last written report was the green end above); PC A is red now (the side branch
+# and the damaged clone). A start within the hour must still be written, because the light changed.
+reports() { git -C "$T/A/clones/board" fetch -q origin && git -C "$T/A/clones/board" log --oneline origin/main -- handover/PCA.txt | wc -l | tr -d ' '; }
+before=$(reports)
+out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" start --write 2>&1)
+assert_contains "reported NOT SAVED on the board" "$out" "a start whose light changed is written at once"
+after=$(reports)
+[ "$after" -eq $((before + 1)) ] && ok "one new report on the remote" || fail "one new report on the remote ($before -> $after)"
+hb=$(git -C "$T/A/clones/board" show origin/main:handover/PCA.txt 2>&1)
+assert_contains "state = NOT SAVED" "$hb" "and it says NOT SAVED"
+out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" start --write 2>&1)
+assert_not_contains "this PC (PCA) reported" "$out" "the same light again within the hour is held back"
+[ "$(reports)" -eq "$after" ] && ok "no second report on the remote" || fail "no second report on the remote"
+
+echo "board cloned outside the root (the home PC's layout): the lane roots beside 'root' are still read"
+# Two-PC test Run 4: with the board in the home folder, a file left in the /pd root never turned the light red.
+mkdir -p "$T/C/userdir" "$T/C/clones" "$T/C/clones-pd"
+q git clone -q "$T/remote-board" "$T/C/userdir/board"
+q git clone -q "$T/remote-clean" "$T/C/clones/demo-clean"
+q git clone -q "$T/remote-clean" "$T/C/clones-pd/demo-clean"
+echo leftover > "$T/C/clones-pd/demo-clean/leftover.txt"
+printf 'board = %s\nroot = %s\nmachine_name = PCC\nrole = HOME\n' "$TP/C/userdir/board" "$TP/C/clones" > "$T/C/lanes.conf"
+out=$(LANES_CONFIG="$TP/C/lanes.conf" "$PY" "$TOOL" check 2>&1); rc=$?
+assert_contains "demo-clean (/pd root): 1 file(s) never added" "$out" "a file left in the /pd root beside 'root' is named"
+[ "$rc" = "1" ] && ok "exit 1 when red" || fail "exit 1 when red (got $rc)"
+
 [ "$FAILED" = "0" ] && echo "handover-fixture: ALL PASSED" || { echo "handover-fixture: FAILED"; exit 1; }

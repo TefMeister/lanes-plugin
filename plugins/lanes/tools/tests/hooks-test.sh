@@ -54,6 +54,8 @@ run_hook lane-claim-guard.py '{"prompt":"/pd demo-alpha","session_id":"s1"}'
 [ "$RC" = "2" ] && ok "blocks /pd on the same claimed job" \
                 || fail "should block /pd too (rc=$RC)"
 
+run_hook lane-claim-guard.py '{"prompt":"/ms demo-alpha","session_id":"s1"}'
+[ "$RC" = "2" ] && ok "a typed /ms on a claimed job is blocked (2026-11-02)" || fail "/ms on a claimed job must be blocked (rc=$RC)"
 run_hook lane-claim-guard.py '{"prompt":"/lm force demo-alpha","session_id":"s1"}'
 [ "$RC" = "0" ] && ok "the word force lets it through" || fail "force must pass (rc=$RC)"
 
@@ -204,7 +206,8 @@ unset LANES_CONFIG
 out=$(bash "$HERE/../../hooks/theme-apply" 2>&1)
 assert_contains "now has the plugin's look" "$out" "the hook says the look went on"
 assert_contains "restart" "$out" "and that Claude Code's own colours follow after a restart"
-grep -q 'lanes.hlsl' "$TH/wt/settings.json" && ok "the profile points at the shader" || fail "no shader path in the profile"
+grep -q 'green-monitor-lanes/lanes-still.hlsl' "$TH/wt/settings.json" && ok "the profile points at the still shader (the default since 2026-11-01)" || fail "the profile is not on the still shader"
+assert_contains "motion animated" "$out" "the user hears how to get the moving light"
 grep -q '"name": "RobCo"' "$TH/wt/settings.json" && ok "the RobCo scheme was added" || fail "no RobCo scheme"
 grep -q 'their/own.hlsl' "$TH/wt/settings.json" && ok "the other profile's own look is untouched" || fail "the other profile was changed"
 [ -f "$TH/wt/settings.json.lanes-backup" ] && ok "the terminal's settings were backed up first" || fail "no backup"
@@ -214,9 +217,16 @@ grep -q '"custom:robco"' "$TH/claude/settings.json" && ok "Claude Code's theme i
 assert_not_contains "$THP" "$out" "no path in what the user is told"
 out=$(bash "$HERE/../../hooks/theme-apply" 2>&1)
 [ -z "$out" ] && ok "once applied, the hook is silent" || fail "the hook repeats itself: $out"
+out=$("$PY" "$HERE/../../tools/theme.py" motion animated 2>&1)
+grep -q 'green-monitor-lanes/lanes.hlsl' "$TH/wt/settings.json" && ok "motion animated puts the moving shader on" || fail "motion animated did not switch the shader"
+assert_contains "a bit more of the processor" "$out" "and warns that it uses a bit more of the PC"
+out=$(bash "$HERE/../../hooks/theme-apply" 2>&1)
+[ -z "$out" ] && ok "a chosen moving light is never switched back by the hook" || fail "the hook undid the user's choice: $out"
+out=$("$PY" "$HERE/../../tools/theme.py" motion still 2>&1)
+grep -q 'green-monitor-lanes/lanes-still.hlsl' "$TH/wt/settings.json" && ok "motion still switches back" || fail "motion still did not switch back"
 out=$("$PY" "$HERE/../../tools/theme.py" restore 2>&1)
 assert_contains "back as they were" "$out" "restore says so"
-grep -q 'lanes.hlsl' "$TH/wt/settings.json" && fail "the shader path is still there after restore" || ok "the profile is back to plain"
+grep -q 'green-monitor-lanes/' "$TH/wt/settings.json" && fail "the shader path is still there after restore" || ok "the profile is back to plain"
 grep -q '"colorScheme": "Campbell"' "$TH/wt/settings.json" && ok "its old scheme is back" || fail "the old scheme did not come back"
 grep -q '"theme": "dark"' "$TH/claude/settings.json" && ok "Claude Code's old theme is back" || fail "Claude Code's theme did not come back"
 [ -f "$TH/state/theme-state.json" ] && fail "the state file survived restore" || ok "restore cleared the state, so a later apply works again"
@@ -248,7 +258,7 @@ printf '{ "applied": true, "settings": "%s", "profile_guid": "{dddd}", "style_ho
 ' "$THP/wt/old.json" > "$TH/state/theme-state.json"
 out=$(LANES_WT_SETTINGS="$THP/wt/old.json" bash "$HERE/../../hooks/theme-apply" 2>&1)
 assert_contains "new picture" "$out" "a PC on the old starburst hears the picture changed"
-grep -q 'green-monitor-lanes/lanes.hlsl' "$TH/wt/old.json" && ok "its profile now shows the banner" || fail "the old starburst profile was not moved over"
+grep -q 'green-monitor-lanes/lanes-still.hlsl' "$TH/wt/old.json" && ok "its profile now shows the banner, still" || fail "the old starburst profile was not moved over"
 out=$(LANES_WT_SETTINGS="$THP/wt/old.json" bash "$HERE/../../hooks/theme-apply" 2>&1)
 [ -z "$out" ] && ok "the move happens once" || fail "the upgrade repeats: $out"
 printf '{ "profiles": { "list": [ { "guid": "{eeee}", "name": "Mine", "experimental.pixelShaderPath": "C:/their/own.hlsl" } ] }, "schemes": [] }
@@ -257,6 +267,17 @@ printf '{ "applied": true, "settings": "%s", "profile_guid": "{eeee}", "style_ho
 ' "$THP/wt/mine.json" > "$TH/state/theme-state.json"
 out=$(LANES_WT_SETTINGS="$THP/wt/mine.json" bash "$HERE/../../hooks/theme-apply" 2>&1)
 grep -q 'their/own.hlsl' "$TH/wt/mine.json" && ok "a look picked since is kept on upgrade" || fail "the upgrade replaced a look of their own"
+# 2026-11-01: a PC on the shipped moving banner (state from before "motion" existed) is moved to the still one, once
+printf '{ "profiles": { "list": [ { "guid": "{ffff}", "name": "Moving", "experimental.pixelShaderPath": "C:/x/theme/green-monitor-lanes/lanes.hlsl" } ] }, "schemes": [] }
+' > "$TH/wt/moving.json"
+printf '{ "applied": true, "settings": "%s", "profile_guid": "{ffff}", "style_home": "C:/x/theme/green-monitor-lanes" }
+' "$THP/wt/moving.json" > "$TH/state/theme-state.json"
+out=$(LANES_WT_SETTINGS="$THP/wt/moving.json" bash "$HERE/../../hooks/theme-apply" 2>&1)
+assert_contains "still by default" "$out" "a PC on the moving banner hears it is still now"
+assert_contains "motion animated" "$out" "and how to get the moving light back"
+grep -q 'green-monitor-lanes/lanes-still.hlsl' "$TH/wt/moving.json" && ok "its profile now shows the still banner" || fail "the moving banner was not moved to the still one"
+out=$(LANES_WT_SETTINGS="$THP/wt/moving.json" bash "$HERE/../../hooks/theme-apply" 2>&1)
+[ -z "$out" ] && ok "that move happens once" || fail "the still move repeats: $out"
 unset LANES_STATE_DIR LANES_WT_SETTINGS LANES_CLAUDE_DIR LANES_THEME_NO_FONT WT_PROFILE_ID
 rm -rf "$TH"
 grep -q 'theme-apply' "$HERE/../../hooks/hooks.json" && ok "the theme hook is registered for session start" || fail "hooks.json does not run theme-apply"
@@ -341,6 +362,98 @@ assert_contains 'private by default' "$out" "the session-start rule is printed b
 unset LANES_CONFIG; rm -rf "$RG"
 grep -q 'repo-guard.py' "$HOOKS/hooks.json" && grep -q 'repo-rule' "$HOOKS/hooks.json" \
   && ok "repo-guard and repo-rule are registered" || fail "hooks.json is missing repo-guard or repo-rule"
+
+# ---------------------------------------------------------------- update hold (lanes-next, 2026-11-01)
+echo "update-hold-guard"
+UH=$(mktemp -d); UHP=$(cygpath -m "$UH" 2>/dev/null || echo "$UH")
+export LANES_STATE_DIR="$UHP" LANES_CONFIG="$UHP/lanes.conf"; : > "$UH/lanes.conf"
+uh_bash() { run_hook update-hold-guard.py "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":$(printf '%s' "$1" | "$PY" -c 'import json,sys;print(json.dumps(sys.stdin.read()))')}}"; }
+uh_bash 'claude plugin update lanes@lanes-plugin'
+[ "$RC" = "0" ] && [ -z "$OUT" ] && ok "no hold: an update passes" || fail "no hold should pass (rc=$RC)"
+"$PY" "$HERE/../hold.py" status >/dev/null 2>&1; [ "$?" = "1" ] && ok "hold status says off (exit 1)" || fail "status should exit 1 with no hold"
+"$PY" "$HERE/../hold.py" on >/dev/null 2>&1; [ "$?" = "2" ] && ok "a hold without a reason is refused" || fail "hold on with no reason should exit 2"
+"$PY" "$HERE/../hold.py" on "two-PC test" --hours 2 >/dev/null 2>&1
+"$PY" "$HERE/../hold.py" status >/dev/null 2>&1; [ "$?" = "0" ] && ok "hold on -> status says on" || fail "status should exit 0 with a hold"
+uh_bash 'claude plugin update lanes@lanes-plugin'
+[ "$RC" = "2" ] && ok "held: claude plugin update lanes is refused" || fail "held update should be refused (rc=$RC)"
+assert_contains 'two-PC test' "$OUT" "the refusal names the reason"
+uh_bash 'claude plugin marketplace update lanes-plugin && claude plugin update lanes@lanes-plugin'
+[ "$RC" = "2" ] && ok "held: a marketplace update of Lanes is refused" || fail "held marketplace update should be refused (rc=$RC)"
+uh_bash 'claude plugin marketplace update'
+[ "$RC" = "2" ] && ok "held: updating every marketplace is refused" || fail "bare marketplace update should be refused (rc=$RC)"
+uh_bash 'claude plugin install lanes@lanes-plugin'
+[ "$RC" = "2" ] && ok "held: a reinstall is refused" || fail "held install should be refused (rc=$RC)"
+uh_bash 'python "$P/tools/uninstall.py" --yes'
+[ "$RC" = "2" ] && ok "held: uninstall.py is refused" || fail "held uninstall should be refused (rc=$RC)"
+uh_bash 'claude plugin update superpowers@claude-plugins-official'
+[ "$RC" = "0" ] && [ -z "$OUT" ] && ok "held: another plugin's update passes" || fail "other plugin update should pass (rc=$RC)"
+uh_bash 'claude plugin marketplace update claude-plugins-official'
+[ "$RC" = "0" ] && [ -z "$OUT" ] && ok "held: another marketplace's update passes" || fail "other marketplace should pass (rc=$RC)"
+uh_bash 'python "$P/tools/update-check.py" --json; git pull'
+[ "$RC" = "0" ] && [ -z "$OUT" ] && ok "held: checking for an update passes" || fail "update-check should pass (rc=$RC)"
+printf 'update_hold = off\n' > "$UH/lanes.conf"
+uh_bash 'claude plugin update lanes@lanes-plugin'
+[ "$RC" = "0" ] && ok "update_hold = off ignores the hold" || fail "feature off should pass (rc=$RC)"
+: > "$UH/lanes.conf"
+"$PY" -c "import json,time;p=r'$UHP/update-hold.json';h=json.load(open(p));h['until']=time.time()-1;json.dump(h,open(p,'w'))"
+uh_bash 'claude plugin update lanes@lanes-plugin'
+[ "$RC" = "0" ] && ok "an expired hold no longer blocks" || fail "expired hold should pass (rc=$RC)"
+"$PY" "$HERE/../hold.py" on "again" >/dev/null 2>&1; "$PY" "$HERE/../hold.py" off >/dev/null 2>&1
+uh_bash 'claude plugin update lanes@lanes-plugin'
+[ "$RC" = "0" ] && ok "hold off -> updates pass again" || fail "after off should pass (rc=$RC)"
+run_hook update-hold-guard.py 'this is not json'
+[ "$RC" = "0" ] && ok "bad input passes (never fails closed)" || fail "bad input must pass (rc=$RC)"
+unset LANES_STATE_DIR LANES_CONFIG; rm -rf "$UH"
+grep -q 'update-hold-guard.py' "$HOOKS/hooks.json" && ok "update-hold-guard is registered" || fail "hooks.json is missing update-hold-guard"
+
+# ---------------------------------------------------------------- the launcher keeps a refusal (2026-11-01)
+# Claude Code starts every hook through run-hook.cmd; on Windows that runs in cmd.exe. Until 2026-11-01 it handed
+# back 0 whatever the guard said, so no refusal ever reached Claude Code. Checked through the real launcher here.
+echo "run-hook.cmd exit code"
+case "$(uname -s 2>/dev/null)" in
+  MINGW*|MSYS*|CYGWIN*)
+    LH=$(mktemp -d); LHP=$(cygpath -m "$LH")
+    printf '%s' '{"hook_event_name":"UserPromptSubmit","prompt":"/pd","session_id":"holder"}'       | LANES_PD_LOCK="$LHP/pd.lock" "$PY" "$HOOKS/pd-guard.py" >/dev/null 2>&1
+    printf '%s' '{"hook_event_name":"UserPromptSubmit","prompt":"/pd","session_id":"second"}'       | LANES_PD_LOCK="$LHP/pd.lock" "$HOOKS/run-hook.cmd" py-hook pd-guard.py >/dev/null 2>&1; rc=$?
+    [ "$rc" = "2" ] && ok "a refusal comes back through run-hook.cmd as exit 2" || fail "run-hook.cmd lost the refusal (rc=$rc, wanted 2)"
+    printf '%s' '{"hook_event_name":"UserPromptSubmit","prompt":"hello","session_id":"second"}'       | LANES_PD_LOCK="$LHP/pd.lock" "$HOOKS/run-hook.cmd" py-hook pd-guard.py >/dev/null 2>&1; rc=$?
+    [ "$rc" = "0" ] && ok "a pass comes back through run-hook.cmd as exit 0" || fail "run-hook.cmd pass should be 0 (rc=$rc)"
+    rm -rf "$LH" ;;
+  *) ok "not Windows: run-hook.cmd runs as a shell script, exit codes pass by exec" ;;
+esac
+
+# ---------------------------------------------------------------- skill-lane-guard (two-PC test, 2026-11-02)
+# Claude starting the pd / lm / ms skill itself must meet the same checks as a typed command.
+echo "skill-lane-guard"
+SK=$(mktemp -d); SKP=$(cygpath -m "$SK" 2>/dev/null || echo "$SK")
+export LANES_PD_LOCK="$SKP/pd.lock" LANE_CLAIM_REPO="$FIX"
+sk() { run_hook skill-lane-guard.py "{\"hook_event_name\":\"PreToolUse\",\"tool_name\":\"Skill\",\"session_id\":\"$1\",\"tool_input\":{\"skill\":\"$2\",\"args\":\"$3\"}}"; }
+sk first pd ""
+[ "$RC" = "0" ] && ok "the first session's pd skill passes and takes the lock" || fail "first pd skill should pass (rc=$RC, out=$OUT)"
+[ -f "$SK/pd.lock" ] && ok "and the lock file names a holder" || fail "the pd skill did not take the lock"
+sk second pd ""
+[ "$RC" = "2" ] && ok "a second session's pd skill is refused" || fail "second pd skill should be refused (rc=$RC)"
+assert_contains 'PD GUARD' "$OUT" "the refusal carries the lock's reason"
+sk second lanes:pd "demo-beta"
+[ "$RC" = "2" ] && ok "the long name lanes:pd is refused too" || fail "lanes:pd should be refused (rc=$RC)"
+sk first pd "demo-beta"
+[ "$RC" = "0" ] && ok "the lock holder's own pd skill passes" || fail "holder should pass (rc=$RC, out=$OUT)"
+sk third lm "demo-alpha"
+[ "$RC" = "2" ] && ok "an lm skill on a claimed project is refused" || fail "lm on a claimed project should be refused (rc=$RC)"
+assert_contains 'lane-claim-guard' "$OUT" "the refusal carries the claim guard's reason"
+sk third ms "demo-alpha"
+[ "$RC" = "2" ] && ok "an ms skill on a claimed project is refused" || fail "ms on a claimed project should be refused (rc=$RC, out=$OUT)"
+sk third lm "demo-beta"
+[ "$RC" = "0" ] && ok "an lm skill on an idle project passes" || fail "lm on an idle project should pass (rc=$RC, out=$OUT)"
+sk third lm "force demo-alpha"
+[ "$RC" = "0" ] && ok "lm force passes, as typed" || fail "lm force should pass (rc=$RC)"
+sk third gates ""
+[ "$RC" = "0" ] && [ -z "$OUT" ] && ok "other skills pass untouched" || fail "other skills should pass silently (rc=$RC)"
+run_hook skill-lane-guard.py 'this is not json'
+[ "$RC" = "0" ] && ok "bad input passes (never fails closed)" || fail "bad input must pass (rc=$RC)"
+unset LANES_PD_LOCK LANE_CLAIM_REPO; rm -rf "$SK"
+grep -q 'skill-lane-guard.py' "$HOOKS/hooks.json" && grep -q '"matcher": "Skill"' "$HOOKS/hooks.json" \
+  && ok "skill-lane-guard is registered on the Skill tool" || fail "hooks.json is missing skill-lane-guard on Skill"
 
 echo
 if [ "$FAILED" -eq 0 ]; then echo "hooks-test: all assertions passed"; else echo "hooks-test: FAILURES above"; fi

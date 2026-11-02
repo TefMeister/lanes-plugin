@@ -102,6 +102,19 @@ def run_claude(args):
         return False, str(e)
 
 
+KEEP_IN_STATE = ("never-publish.txt", "private-words.txt")   # the person's own lists: never deleted
+
+
+def hooks_path_is_ours():
+    """True when git's machine-wide hook setting points into Lanes' state folder (privacy-guard.py install)."""
+    try:
+        r = subprocess.run(["git", "config", "--global", "core.hooksPath"], capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    hp = r.stdout.strip().replace("\\", "/").lower()
+    return bool(hp) and hp.startswith(STATE_DIR.replace("\\", "/").lower())
+
+
 def items():
     """What Lanes put on this PC: (key, present, what it is, what removing it does)."""
     shortcut = (read_json(os.path.join(STATE_DIR, "shortcut-state.json")) or {}).get("path", "")
@@ -115,7 +128,10 @@ def items():
         ("shortcut", bool(shortcut) and os.path.isfile(shortcut), "the 'Lanes' Desktop shortcut", "deleted"),
         ("theme", bool(theme.get("applied")), "the green-monitor terminal look",
          "the terminal and Claude Code's theme go back to how they were"),
-        ("state", os.path.isdir(STATE_DIR), "Lanes' own state folder (%s)" % STATE_DIR, "deleted"),
+        ("privacy", hooks_path_is_ours(), "the privacy guard's machine-wide git hooks",
+         "git's hook setting goes back to how it was"),
+        ("state", os.path.isdir(STATE_DIR), "Lanes' own state folder (%s)" % STATE_DIR,
+         "deleted, except your private word lists (%s), which stay for a reinstall" % ", ".join(KEEP_IN_STATE)),
         ("readerlog", os.path.isfile(READER_LOG), "the reader guard's log", "deleted"),
         ("inspector", os.path.isdir(DEFAULT_INSPECTOR) and (not insp or os.path.normcase(os.path.abspath(insp))
                                                          == os.path.normcase(os.path.abspath(DEFAULT_INSPECTOR))),
@@ -165,12 +181,26 @@ def do(keep_settings, keep_plugin):
         step("Desktop shortcut removed", *run_tool([os.path.join(HERE, "shortcut.py"), "remove"]))
     if present["theme"]:
         step("terminal look put back", *run_tool([os.path.join(HERE, "theme.py"), "restore"]))
+    if present["privacy"]:
+        step("privacy guard's git hooks switched off", *run_tool([os.path.join(HERE, "privacy-guard.py"), "uninstall"]))
     if present["state"]:
+        # 0.99.0 (release audit): the person's own never-publish and private-word lists stay. Deleting them meant a
+        # reinstall ran the privacy guard without them, and they are the person's words, not Lanes' state.
         try:
-            shutil.rmtree(STATE_DIR)
-            step("state folder deleted", True, STATE_DIR)
+            for name in os.listdir(STATE_DIR):
+                if name in KEEP_IN_STATE:
+                    continue
+                p = os.path.join(STATE_DIR, name)
+                if os.path.isdir(p) and not os.path.islink(p):
+                    shutil.rmtree(p)
+                else:
+                    os.remove(p)
+            if not os.listdir(STATE_DIR):
+                os.rmdir(STATE_DIR)
+            step("state folder emptied", True, STATE_DIR + (" (kept: your private word lists)"
+                                                            if os.path.isdir(STATE_DIR) else ""))
         except OSError as e:
-            step("state folder deleted", False, str(e))
+            step("state folder emptied", False, str(e))
     if present["readerlog"]:
         try:
             os.remove(READER_LOG)

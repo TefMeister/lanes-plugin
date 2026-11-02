@@ -1723,3 +1723,24 @@ github and vice versa, and Lanes must know if something has changed in the begin
   Our own mod files are checked by `builds.py check`; this one is about the games themselves.
 - On or off: `games_check` (everyday helpers).
 
+
+## 43. Hold Lanes updates while a test runs (lanes-next, 2026-11-01)
+
+The maintainer, during the second two-PC test, when told to type `/fullscan skip:gu` so the tool check would not
+update Lanes halfway: *"please see if you can build a guard around it instead, so something cannot overwrite
+something else"*. A rule that has to be remembered gets forgotten; a lock does not.
+
+- **`python tools/hold.py on "<why>" [--hours N]`** puts a hold on this PC (12 hours by default, 72 at most);
+  `off` lifts it, `status` says whether one is on. It is one small file in the Lanes state folder
+  (`update-hold.json`), with the reason, the PC's Lanes name and the time it lifts by itself, so a session that
+  forgets `off` cannot freeze Lanes for good. It is per PC: hold both PCs for a two-PC test.
+- **While it is on, `hooks/update-hold-guard.py` refuses** every command that would change the installed Lanes:
+  `claude plugin update|install|uninstall|enable|disable` naming lanes, `claude plugin marketplace
+  update|add|remove` for the Lanes marketplace or for every marketplace at once, and `uninstall.py`. The refusal
+  names the reason and the time it lifts. Other plugins, other marketplaces and update CHECKS pass.
+- **`update-check.py`** still sees a newer version, but says it is waiting behind the hold instead of offering it;
+  `--json` carries `held` and `hold`. So `/lanes:update`, `/lanes:gu` and `/lanes:fullscan` keep running and simply
+  leave Lanes alone.
+- Only the person lifts a hold early. Never fails closed on its own errors.
+- On or off: `update_hold` (only an explicit `update_hold = off` switches the guard off, since a hold exists only
+  because someone put it on).

@@ -70,7 +70,8 @@ Five sections (the fifth only points at `/lanes:od`). If one is empty because no
 
 1. **Our apps and tools.**
    - Lanes plugin newer: list each version in between with one plain line (from `/lanes:update`'s `changes`), then
-     follow `/lanes:update` on a yes.
+     follow `/lanes:update` on a yes. If `held` is true (a test holds Lanes updates, `tools/hold.py`), only say the
+     update is waiting and why; do not offer it, and do not try to get round the hold.
    - Hand Freeze newer: `python "${CLAUDE_PLUGIN_ROOT}/tools/hand-freeze.py" install` on a yes.
    - RE Engine MCP or UEVR-MCP newer (`python "${CLAUDE_PLUGIN_ROOT}/tools/engine-mcp.py" status`, 0.82.0):
      `engine-mcp.py install re` or `install uevr`, the same as the first install. Not while a session is using it.

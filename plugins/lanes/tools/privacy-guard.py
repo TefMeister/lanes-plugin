@@ -108,13 +108,32 @@ def words(public):
     return out
 
 
-def list_file(path):
-    """The words in one of the PC's own lists: one per line, # starts a comment."""
+def list_file(path, allowed=False):
+    """The words in one of the PC's own lists: one per line, # starts a comment. A line starting with ! is not a
+    word but a pattern that is fine to publish even though it holds one (0.96.0): a machine named after its graphics
+    card, BOX say, writes "!box[ -]?\\d" so "BOX 5080" still passes. allowed=True returns those patterns instead."""
     try:
         with open(path, encoding="utf-8") as f:
-            return [l.strip() for l in f if l.strip() and not l.strip().startswith("#")]
+            lines = [l.strip() for l in f if l.strip() and not l.strip().startswith("#")]
     except OSError:
         return []
+    return [l[1:].strip() for l in lines if l.startswith("!")] if allowed else [l for l in lines if not l.startswith("!")]
+
+
+_ALLOWED = None
+
+
+def allowed_patterns():
+    """The ! patterns from both lists, compiled once."""
+    global _ALLOWED
+    if _ALLOWED is None:
+        _ALLOWED = []
+        for p in list_file(NEVER, True) + list_file(PRIVATE, True):
+            try:
+                _ALLOWED.append(re.compile(p, re.I))
+            except re.error:
+                pass
+    return _ALLOWED
 
 
 def safe_getuser():
@@ -129,6 +148,8 @@ def has_word(low, w):
     "the home PC (BOX)", not in a renderer called "D3D9DrvBOX" in a credit."""
     if w not in low:
         return False
+    for p in allowed_patterns():
+        low = p.sub(" ", low)
     return re.search(r"(?<![a-z0-9])" + re.escape(w) + r"(?![a-z0-9])", low) is not None
 
 

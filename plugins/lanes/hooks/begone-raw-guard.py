@@ -102,7 +102,7 @@ def check(tool, inp, exts, roots):
 
 def main():
     try:
-        data = json.load(sys.stdin)
+        data = json.loads(sys.stdin.buffer.read().decode("utf-8-sig", "replace"))  # a BOM (PowerShell pipe) must not open the guard
         if data.get("hook_event_name", "PreToolUse") != "PreToolUse":
             return 0
         exts, roots = setup()

@@ -40,6 +40,7 @@ GH = "https://github.com/"
 LOCALAPPDATA = os.environ.get("LOCALAPPDATA", os.path.join(os.path.expanduser("~"), "AppData", "Local"))
 MARKER = "lanes-release.txt"
 TASKLIST_TIMEOUT_S = 30     # asking Windows whether an app is running
+HAND_FREEZE_TIMEOUT_S = 60  # hand-freeze.py status, which may ask GitHub for the newest release
 
 # name: what it is. `repo` is its GitHub home; an app names its install folder and program.
 TOOLS = {
@@ -49,11 +50,11 @@ TOOLS = {
                             "(Direct3D 11 and 12), see-through as you like, used with the mouse and keyboard (Page Up "
                             "/ Page Down) or the VR controllers while the game only hears the controllers, so a mod "
                             "can be tuned without taking the headset off"},
-    "hand_poser": {"label": "Hand Poser (untested)", "repo": "TefMeister/hand-poser-vr", "kind": "app",
+    "hand_poser": {"label": "Hand Poser", "repo": "TefMeister/hand-poser-vr", "kind": "app",
                    "folder": "HandPoser", "exe": "HandPoser.exe",
                    "what": "a compact window of sliders that poses the player's fingers and wrists live in RE Engine "
                            "games (needs REFramework): one box per finger, undo, autosave, named poses, one pose per "
-                           "gun. Inspired by alphaZomega's EMV Engine; not yet confirmed in a real headset session"},
+                           "gun. Inspired by alphaZomega's EMV Engine; in use with Visceral RE8, other RE Engine games not tried yet"},
     "grip_zones": {"label": "Grip Zones", "repo": "TefMeister/grip-zones-vr", "kind": "app",
                    "folder": "GripZones", "exe": "GripZones.exe",
                    "what": "a small window of sliders that moves and resizes every place the hand can grip a gun in "
@@ -289,7 +290,18 @@ def main(a):
         return 1 if bad else 0
     if cmd == "newer":
         n = newer()
-        print("\n".join(n) or "every app of ours here is the newest")
+        # Hand Freeze has its own installer, so it is not in TOOLS; ask it too, or "the newest" is not true
+        # (both PCs sat on v3.2 for a day after v4 came out while this said so, 2026-10-28)
+        hf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hand-freeze.py")
+        try:
+            s = json.loads(subprocess.run([sys.executable, hf, "status", "--json"], capture_output=True, text=True,
+                                          timeout=HAND_FREEZE_TIMEOUT_S).stdout or "{}")
+            if s.get("installed") and s.get("newer"):
+                n.append(f"Hand Freeze: {s.get('installed_release')} -> {s.get('latest_release')} "
+                         f"(python hand-freeze.py install)")
+        except (OSError, ValueError, subprocess.SubprocessError):
+            pass
+        print("\n".join(n) or "every app of ours here is the newest (VR Bench is checked by its own updater)")
         return 1 if n else 0
     print(__doc__)
     return 2

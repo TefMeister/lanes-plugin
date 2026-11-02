@@ -43,6 +43,16 @@ check "settings put aside, not deleted" 'ls "$T/pc/.claude/" | grep -q "^lanes.c
 check "the plugin removal is the last step" 'printf "%s" "$out" | grep -q "claude plugin uninstall lanes@lanes-plugin"'
 check "the person's own notes untouched" '[ "$(cat "$T/pc/work/repo/notes.md")" = "my notes" ]'
 
+# 0.99.0: the person's own private word lists survive an uninstall, so a reinstall's privacy guard still knows them
+make_pc
+printf 'BOXNAME
+' > "$LANES_STATE_DIR/never-publish.txt"; printf 'secret-word
+' > "$LANES_STATE_DIR/private-words.txt"
+out="$("$PY" "$TOOL" do)"
+check "never-publish list kept" '[ "$(cat "$LANES_STATE_DIR/never-publish.txt")" = "BOXNAME" ]'
+check "private-words list kept" '[ -f "$LANES_STATE_DIR/private-words.txt" ]'
+check "everything else in the state folder gone" '[ "$(ls "$LANES_STATE_DIR" | wc -l)" -eq 2 ]'
+
 make_pc
 "$PY" "$TOOL" do --keep-settings --keep-plugin >/dev/null
 check "--keep-settings keeps lanes.conf" '[ -f "$LANES_CONFIG" ]'

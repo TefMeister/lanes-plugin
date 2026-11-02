@@ -308,6 +308,8 @@ case "$MODE" in
       exit 2
     fi
     f="$OWED/$role/$name"
+    # `list` prints the name with .md, but people (and sessions) drop it - accept both (two-PC test, 2026-10-28).
+    [ ! -f "$f" ] && [ -f "$f.md" ] && { f="$f.md"; name="$name.md"; }
     [ -f "$f" ] || { echo "owed done: no such item: $f" >&2; exit 2; }
     title=$(sed -n 's/^#[[:space:]]\+//p' "$f" | head -1)
     rm -f "$f" || exit 2

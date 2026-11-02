@@ -39,6 +39,8 @@ KNOWN = {
                       "recorder, an in-headset frame-rate graph, frame-inspection connectors and more (tools/outside.py)"),
     "our-tools": ("0.93.0", "our own apps and libraries from TefMeister's GitHub: Window View, Hand Poser, CubeKit, the "
                   "RE toolkit, the game control profiles, the cross-engine library and more (tools/ours.py)"),
+    "github-email": ("0.96.0", "keep your e-mail address private on GitHub: two switches on GitHub's e-mail settings page, "
+                     "and git set to sign your work with GitHub's private no-reply address"),
     "superpowers": ("0.77.0", "the superpowers skills plugin (obra): ways of working Claude follows, such as planning before "
                     "building, debugging step by step and checking work before calling it done"),
 }

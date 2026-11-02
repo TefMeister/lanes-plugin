@@ -385,7 +385,7 @@ def catalog():
                      for f in ("vrbench_layer.dll", "vrbench_layer32.dll")), False, False),
         ("vr", "windowview", "Window View (desktop windows inside a VR game; untested)",
          lambda: os.path.isdir(os.path.join(LOCALAPPDATA, "Programs", "WindowView")), False, False),
-        ("vr", "handposer", "Hand Poser (finger sliders for RE Engine games; untested)",
+        ("vr", "handposer", "Hand Poser (finger sliders for RE Engine games; in use with Visceral RE8)",
          lambda: os.path.isfile(os.path.join(LOCALAPPDATA, "Programs", "HandPoser", "HandPoser.exe")), False, False),
         ("video", "resolve", "DaVinci Resolve (free)", resolve, False, True),
         ("video", "ffmpeg", "FFmpeg", ffmpeg, False, False),

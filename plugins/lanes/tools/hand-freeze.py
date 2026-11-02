@@ -125,7 +125,7 @@ def install():
     with zipfile.ZipFile(zpath) as z:
         for m in z.infolist():
             name = m.filename.replace("\\", "/")           # the release zip was made with Windows separators
-            if name.endswith("/") or ".." in name.split("/"):
+            if name.endswith("/") or ".." in name.split("/") or ":" in name:   # ":" = a drive letter (C:x) escapes the folder
                 continue
             dest = os.path.join(out_dir, *name.split("/"))
             os.makedirs(os.path.dirname(dest), exist_ok=True)

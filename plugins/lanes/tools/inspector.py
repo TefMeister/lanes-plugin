@@ -506,6 +506,11 @@ def final_gate(root, names, carry=False):
             if not repo_allowed(repo, prefix):
                 continue
             rec = Record(repo, prefix)
+            if not os.path.isdir(rec.path) and not (rec.items or rec.old):
+                # Nothing was ever noted here. Saving would create an empty notes folder, and the check below would
+                # then refuse the release because that folder is not committed (two-PC test, 2026-11-01: a claim
+                # release on a quiet project was refused for a folder the gate had just made, in another lane's copy).
+                continue
             rec.save()  # file what was answered (to decided.md) before checking the folder is committed
             stop = blocking(rec)
             if stop and carry:

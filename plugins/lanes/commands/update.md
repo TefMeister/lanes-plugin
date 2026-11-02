@@ -19,6 +19,10 @@ description: (Update) Checks GitHub for a newer version of the lanes plugin, say
 
 2. **Up to date** (`newer` is false): say so in one line, with the version. Go to step 6.
 
+   **Held** (`held` is true): a test has put a hold on Lanes updates on this PC (`tools/hold.py`, PROTOCOL §43).
+   Say in one line that the new version is waiting, and why (`hold.why`, until `hold.until_iso`). Do not offer or
+   run the update; the guard would refuse it anyway. Only the person lifts a hold early. Go to step 6.
+
 3. **Newer version available:** tell the user in two or three plain sentences:
    - that a new version is out, and which one they have;
    - **what it means for them**, drawn from `changes` (each entry is one plain line per version

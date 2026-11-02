@@ -79,11 +79,15 @@ SETS = {
 # The extras. `link` is where to read more before switching it on: our GitHub, or the maker's.
 FEATURES = {
     "theme": {"label": "The green look", "set": "everyday",
-              "what": "puts the plugin's old-green-monitor look on this terminal; /lanes:theme restore undoes it",
+              "what": "puts the plugin's old-green-monitor look on this terminal, still by default (/lanes:theme animated adds a moving light that uses a bit more of the PC); /lanes:theme restore undoes it",
               "link": GH + "commands/theme.md"},
     "talk_rule": {"label": "Check before agreeing", "set": "everyday",
                   "what": "Claude never says \"you are right\" before checking what you said",
                   "link": GH + "hooks/talk-rule"},
+    "straight_talk": {"label": "Straight talk", "set": "everyday",
+                      "what": "Claude talks like a friend: warm but honest and direct, and when you miss something "
+                              "obvious it says so with a light ribbing instead of \"easy to miss\"",
+                      "link": GH + "hooks/straight-talk"},
     "tools_rule": {"label": "Use the tools, grow the tools", "set": "everyday",
                    "what": "Claude drives menus and tests with the tools this PC has (routes, VR Bench, BeG0nE, the "
                            "live-game connectors) before doing it by hand, records what it learns, and adds a small "
@@ -111,6 +115,10 @@ FEATURES = {
     "gu_nudge": {"label": "Weekly tool reminder", "set": "tools",
                  "what": "one line at session start when the weekly tool check (/lanes:gu) is a week old",
                  "link": PROTO_LINK + "23-the-weekly-tool-check-lanesgu-0670-2026-10-14"},
+    "update_hold": {"label": "Hold Lanes updates during a test", "set": "tools",
+                    "what": "while a test is running, `hold.py on \"why\"` stops every session on this PC from "
+                            "updating or reinstalling Lanes until it is lifted (or 12 hours pass)",
+                    "link": PROTO_LINK + "43-hold-lanes-updates-while-a-test-runs-lanes-next-2026-11-01"},
     "update_safety": {"label": "Test builds before updates", "set": "tools",
                       "what": "in the weekly tool check, an update that could break what you build (a compiler, "
                               "Visual Studio, Python, Blender) is test-built first and put back if your work stops "

@@ -213,6 +213,17 @@ def fetch_latest(clone):
     return latest, changes
 
 
+def read_hold():
+    """The active update hold (tools/hold.py), or None. Never raises."""
+    try:
+        import time as _t
+        with open(os.path.join(STATE_DIR, "update-hold.json"), encoding="utf-8") as f:
+            h = json.load(f)
+        return h if isinstance(h, dict) and float(h.get("until", 0)) > _t.time() else None
+    except Exception:
+        return None
+
+
 def main():
     try:
         sys.stdout.reconfigure(encoding="utf-8")  # the bell icon in ASK_LINE is not in cp1252
@@ -258,12 +269,18 @@ def main():
         update_cmds += [f"claude plugin marketplace update {name}",
                         f"claude plugin update {PLUGIN_NAME}@{name}"]
 
+    hold = read_hold()
     if args.json:
         print(json.dumps({"plugin": PLUGIN_NAME, "installed": installed, "latest": latest, "newer": newer,
-                          "snoozed": snoozed, "marketplace": name, "changes": missed,
+                          "snoozed": snoozed, "held": bool(hold), "hold": hold, "marketplace": name, "changes": missed,
                           "update_commands": update_cmds,
                           "installed_root": root, "ran_from_repo": ran_from_repo,
                           "marketplace_source": source, "marketplace_behind": behind}, indent=2))
+        return 0
+    if newer and hold:
+        print(f"A newer {PLUGIN_NAME} ({latest}, this machine has {installed}) is WAITING: Lanes updates are held on "
+              f"this PC ({hold.get('why', 'no reason given')}, until {hold.get('until_iso', '?')}). Say so in one "
+              f"plain line; do not offer or run the update while the hold is on.")
         return 0
     if newer and not snoozed:
         shown = "; ".join(f"{v}: {s.rstrip('.')}" for v, s in missed[:MAX_CHANGES_SHOWN])

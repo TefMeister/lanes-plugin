@@ -279,7 +279,9 @@ Setup asks; it stays off otherwise.
 
 **The look (new in 0.41.0).** This is how the plugin ships: after you install it and restart Claude
 Code, the first session puts an old green monitor on your terminal, with the Lanes banner in dim green behind
-the text and a light that slowly runs down the screen.
+the text. The banner stays still, which is light on the PC. A moving version, with a light slowly running down
+the screen, is one command away (`/lanes:theme animated`); it makes the terminal redraw itself all the time, so it
+uses a bit more of the processor and graphics card.
 
 ![The plugin's look](https://raw.githubusercontent.com/TefMeister/terminal-themes/main/preview/green-monitor-lanes.png)
 
@@ -308,7 +310,7 @@ any project. Expect changes: `/lanes:update` tells you what is new and never ins
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.95.0`, public, in daily use |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.99.0`, public, in daily use |
 
 ## Modding games?
 

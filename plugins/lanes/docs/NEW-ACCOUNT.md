@@ -136,6 +136,9 @@ STEP 7 - A second PC
 7.2  Tell Claude the same thing as in step 5, with that PC's folder. Everything already on GitHub is copied down;
      nothing is made twice.
 
+7.3  For the whole recommended two-PC setup (a synced transfer folder, backups kept on each PC, a private link
+     between the PCs and sessions that can message each other), read `TWO-PCS.md`.
+
 
 STEP 8 - Optional extras
 

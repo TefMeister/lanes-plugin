@@ -205,5 +205,20 @@ check(bool(d) and "archive" in d[0].fix, "copies between research scripts sugges
 d = ic.check_duplicates("r/steer.lua", copy, {h: ["r/pose.lua"] for h in ic.windows(copy, ".lua")})
 check(bool(d) and "shared helper" in d[0].fix, "copies between working scripts still suggest one shared helper")
 
+print("fault (two-PC test 2026-11-01): the release gate made an empty notes folder, then refused it")
+root = tempfile.mkdtemp()
+for name in ("quiet", "noted"):
+    repo = os.path.join(root, name)
+    os.makedirs(os.path.join(repo, "dev-archive"))
+    subprocess.run(["git", "init", "-q", repo], check=True)
+msg = I.final_gate(root, ["quiet"])
+check(msg is None, "releasing a project with no notes at all passes")
+check(not os.path.isdir(os.path.join(root, "quiet", "dev-archive", "inspector")), "and makes no notes folder")
+os.makedirs(os.path.join(root, "noted", "dev-archive", "inspector"))
+with open(os.path.join(root, "noted", "dev-archive", "inspector", "decided.md"), "w") as f:
+    f.write("# Decided" + chr(10))
+msg = I.final_gate(root, ["noted"])
+check(bool(msg) and "not committed" in msg, "a notes folder that exists and is not committed still holds the release")
+
 print(f"inspector-faults-test: {N} checks, {FAILED} failed")
 sys.exit(1 if FAILED else 0)

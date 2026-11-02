@@ -66,6 +66,9 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from git_leftovers import leftovers  # noqa: E402
+
 STATUS_WORKERS = 8                                  # clones read at once; git status is disk-bound
 SECONDS_PER_MINUTE, SECONDS_PER_HOUR, SECONDS_PER_DAY = 60, 3600, 86400
 AGE_IN_HOURS_UP_TO_H = 48                           # "21 h ago" up to two days, then "3 days ago"
@@ -141,6 +144,13 @@ def roots_from(conf):
         for p in re.split(r"[,\s]+", conf.get(key, "")):
             if p and os.path.isdir(p):
                 found.append(p)
+                # The lane roots sit beside the live `root` too. Looking only beside the board missed them when
+                # the board is cloned elsewhere (home PC: board in the home folder, so a file left in the /pd
+                # root never turned the light red; two-PC test Run 4, S2).
+                if key == "root":
+                    for s in ROOT_SUFFIXES:
+                        if os.path.isdir(p.rstrip("\\/") + s):
+                            found.append(p.rstrip("\\/") + s)
     out, seen = [], set()
     for p in found:
         if norm(p) not in seen:
@@ -225,7 +235,14 @@ def repo_state(repo):
     if ok:
         unpushed += side_branch_commits(repo)
     if ok:
-        note = ""
+        note = leftovers(repo)  # a save cut off half-way: a lock file or a pull left open (two-PC test 4)
+        # 0.99.0 (release audit): a stash lives on this PC only and was invisible here. One from a 2026-10-23 tidy-up
+        # sat unseen for ten days. A failed `pull --autostash` leaves one too.
+        sok, stashes = git(["stash", "list"], repo)
+        n_stash = len(stashes.splitlines()) if sok and stashes.strip() else 0
+        if n_stash:
+            stash_note = "%d stash(es) kept on this PC only (git stash list)" % n_stash
+            note = (note + "; " + stash_note) if note else stash_note
     else:
         # 0.41.2: a clone that HAS a remote but cannot count against it is damaged (a fetch that died
         # half-way left a ref pointing at a commit that never arrived - seen 2026-10-01), and
@@ -655,18 +672,48 @@ def early_summary_on():
         return False
 
 
+def start_report_changes_light(path, green):
+    """True when the report on the board says the other light (SAVED vs NOT SAVED) than this PC has now.
+
+    The hourly hold-back on start reports exists to save commits, never to leave the other PC looking at a stale
+    red light: on 2026-11-01 the home PC wrote NOT SAVED at 10:43 and a SAVED start at 11:23 wrote nothing, so the
+    dev PC saw red for up to an hour (two-PC test, Run 2). A change of light is always written.
+    """
+    try:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("state = "):
+                    was_green = line[len("state = "):].strip() == "SAVED"
+                    return was_green != bool(green)
+    except OSError:
+        pass
+    return True   # unreadable or no state line: write a fresh one
+
+
+def report_age_s(board, path):
+    """Seconds since the report was last COMMITTED (git), falling back to the file's modified time.
+
+    The file's modified time moves whenever a checkout or rebase rewrites it, which made an old report look new.
+    """
+    rel = os.path.relpath(path, board).replace(os.sep, "/")
+    ok, out = git(["log", "-1", "--format=%ct", "--", rel], board)
+    if ok and out.strip().isdigit():
+        return datetime.now().timestamp() - int(out.strip())
+    try:
+        return datetime.now().timestamp() - os.path.getmtime(path)
+    except OSError:
+        return START_WRITE_MIN_AGE_S   # unknown age: allow the write
+
+
 def write_heartbeat(board, me, role, event, green, problem_lines):
     """One small file on the board, committed on its own and pushed. Returns a one-line result."""
     if not board or not os.path.isdir(board):
         return "HANDOVER: not reported - no board."
     hb_dir = os.path.join(board, HEARTBEAT_DIR)
     path = os.path.join(hb_dir, me + ".txt")
-    if event == "start" and os.path.isfile(path):
-        try:
-            if (datetime.now().timestamp() - os.path.getmtime(path)) < START_WRITE_MIN_AGE_S:
-                return ""
-        except OSError:
-            pass
+    if event == "start" and os.path.isfile(path) and not start_report_changes_light(path, green) \
+            and report_age_s(board, path) < START_WRITE_MIN_AGE_S:
+        return ""
     os.makedirs(hb_dir, exist_ok=True)
     state = "SAVED" if green else "NOT SAVED: " + "; ".join(l.strip() for l in problem_lines[1:])[:STATE_MAX_CHARS]
     now = datetime.now().astimezone().strftime(TIME_FMT)

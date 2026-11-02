@@ -180,6 +180,24 @@ account, the people whose tools, mods or findings your work uses, even one usefu
 No GitHub account or no `gh`: skip it and record `offers.py made thanks no-github`. What sessions do with it:
 `docs/PROTOCOL.md` section 25.
 
+## 0.12.1 Keep your e-mail private on GitHub (0.96.0, everyone with a GitHub account, offered once, recommended)
+
+Only if `python "${CLAUDE_PLUGIN_ROOT}/tools/offers.py" should github-email` says `offer`. Say in plain words: every
+change saved to GitHub carries an e-mail address, and anyone can read it; an edit made on the github.com website
+uses your real address unless GitHub is told not to. Lanes' privacy guard checks what sessions save on this PC, but
+it cannot see what is saved on the website. **Recommend both switches**, then ask **one question**
+(AskUserQuestion): *"GitHub has two settings that keep your e-mail address private. Shall I show you where they are,
+and set this PC to sign your work with GitHub's private address?"* Options: **"Yes (recommended)"** and **"Not now"**.
+- **Yes:** give the link https://github.com/settings/emails and the two boxes to tick, in plain words:
+  **"Keep my email addresses private"** and **"Block command line pushes that expose my email"**. They are ticked by
+  hand (GitHub offers no way to tick them for you). Then set git's address to the private one:
+  `git config --global user.email "$(gh api user --jq '"\(.id)+\(.login)@users.noreply.github.com"')"` and show
+  the result. If `gh` is missing or not signed in, give the link and skip the git step. Run `offers.py made
+  github-email yes`.
+- **Not now:** `offers.py made github-email no`. It is not asked again; the privacy guard still checks every commit.
+Why it matters: on 2026-10-28 a test of Lanes found one edit made on the website carrying a real address, the only
+leak left after every commit made on the PCs had been cleaned (`docs/PROTOCOL.md` section 34).
+
 ## 0.12.5 Unlock everything before modding a game? (0.81.0, game modders, offered once)
 
 Only if `python "${CLAUDE_PLUGIN_ROOT}/tools/offers.py" should unlock-all` says `offer`, and only for people who mod

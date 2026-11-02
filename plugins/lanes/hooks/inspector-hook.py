@@ -160,7 +160,7 @@ def pre_commit(data):
 
 def main():
     try:
-        data = json.load(sys.stdin)
+        data = json.loads(sys.stdin.buffer.read().decode("utf-8-sig", "replace"))  # a BOM (PowerShell pipe) must not open the guard
     except Exception:
         return 0
     try:

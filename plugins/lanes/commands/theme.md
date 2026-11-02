@@ -1,11 +1,13 @@
 ---
-description: (Theme) The look the plugin ships with - an old green monitor, the Lanes banner faint behind the text and a light rolling down the screen, in Windows Terminal. The first session after installing puts it on by itself; this command puts it on again, replaces a look you had before, or puts everything back the way it was. Safe beside every other lane.
+description: (Theme) The look the plugin ships with - an old green monitor and the Lanes banner faint behind the text, still by default (a moving light is one switch away), in Windows Terminal. The first session after installing puts it on by itself; this command puts it on again, replaces a look you had before, or puts everything back the way it was. Safe beside every other lane.
 ---
 
 `/lanes:theme` is the plugin's look: the `green-monitor-lanes` style from the
 [terminal-themes](https://github.com/TefMeister/terminal-themes) repo, shipped inside the plugin so
-everyone who installs it gets the same screen. It runs in **Windows Terminal** (the shader and the
-rolling light are its pixel-shader feature); elsewhere it says so and changes nothing.
+everyone who installs it gets the same screen. It runs in **Windows Terminal** (the shader is its
+pixel-shader feature); elsewhere it says so and changes nothing. **The banner is still by default** (since
+2026-11-01, asked for by the maintainer to take load off the PC); the moving version, with a light slowly
+running down the screen, is the alternative.
 
 The tool is `python "${CLAUDE_PLUGIN_ROOT}/tools/theme.py"`; read its `--help` once. Print its
 `THEME:` lines back to the user in plain words.
@@ -23,9 +25,13 @@ The tool is `python "${CLAUDE_PLUGIN_ROOT}/tools/theme.py"`; read its `--help` o
   user in plain words: the plugin comes with one look; open Windows Terminal, click the small down
   arrow next to the + on the tab bar, pick "Green Monitor Claude"; it opens on the Desktop.
 - **`apply force`** → `theme.py apply --force`. Only when the user asked for the replacement.
+- **`animated`** → `theme.py motion animated`. Puts the moving light on. **Always pass on the tool's note in plain
+  words:** the moving light makes Windows Terminal redraw the window about 60 times a second even when nothing
+  changes, so it uses a bit more of the processor and graphics card than the still banner.
+- **`still`** → `theme.py motion still`. Back to the still banner, the default.
 - **`shortcut`** → `python "${CLAUDE_PLUGIN_ROOT}/tools/shortcut.py" create` (0.53.0). Puts a shortcut named
   **Lanes** on the Desktop that opens Claude Code in this look: Windows Terminal, the profile the look is on, the
-  same font, colours, banner and rolling light, starting in the folder this session runs in (`--folder <dir>` for
+  same font, colours and banner (still or moving, as the look is set), starting in the folder this session runs in (`--folder <dir>` for
   another). The first session after the look goes on offers it once by itself (hook `shortcut-offer`); after that
   only this command makes one. `shortcut remove` takes it away, `shortcut status` says where it is.
   `shortcut = off` in `lanes.conf` (or `LANES_SHORTCUT=0`) stops the offer.
@@ -38,5 +44,7 @@ The tool is `python "${CLAUDE_PLUGIN_ROOT}/tools/theme.py"`; read its `--help` o
   Code's own colours follow after a restart**. One sentence, plus how to undo it.
 - `theme = off` in `lanes.conf` (or `LANES_THEME=0`) stops the first-session apply on a PC where it
   is not wanted.
+- A PC that had the moving look from an earlier version is moved to the still one once, at session start, and told
+  how to get the moving light back; a look the user picked since, or a moving light they chose, is never touched.
 - The style, the shader's tuning numbers and the other styles live in the terminal-themes repo; a
   different picture goes in through `experimental.pixelShaderImagePath`, as its README says.

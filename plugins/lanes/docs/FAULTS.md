@@ -551,6 +551,17 @@ wording swaps, each with a zero-line same-copy drift control `[verified-live 202
 Recorded so the next run does not re-chase a divergence that was predicted but never arrived — and so
 that if it *does* arrive later, there is a dated baseline saying when it did not.
 
+### 🔍 I. Two oddities from the home PC's `/lm` in the second two-PC test (2026-10-28)
+
+- **`lane-claim.sh release` refused once.** Cause: the session's own `deployed/` stamp was uncommitted in that clone,
+  so the release's `git pull --rebase` stopped, and the tool said so ("dirty tree or conflict"). Committing the stamp
+  let it release. That is the tool refusing to rebase over unsaved work, as designed. Worth one line in `/lm`'s
+  write-up order: commit the deploy stamp before the release.
+- **`gate-scan.sh --check the-darkness-vr` said "no claude-memory clone found".** Cause: `--check` takes no
+  project; its one argument is the path of the board clone, so a project name is read as a folder that does not
+  exist. Used as `/lm` §10 writes it (`gate-scan.sh --check`, no argument) it works `[verified-live 2026-10-28, n=1]`.
+  The message could name the argument it did not find; a wording fix, not a fault.
+
 ---
 
 ## Still open
@@ -585,3 +596,171 @@ behind the boards. It also takes the newest ISO date *anywhere* on a board, so a
 
 **Fix to make.** Fetch both repos and read them through `git show origin/main:<path>` (as `gate-scan.sh` and
 `owed.sh` already do), and ignore dates later than today. Same family as fault 13.
+
+**Seen again 2026-10-28, in the close-out box's 🪧 Front page row (0.94.2).** A `/pd` session refreshed a project's
+row in its own lane root's copy of the front page and pushed it; the close-out box kept saying the row was not
+refreshed, because `frontpage =` in `lanes.conf` names the modding root's copy, which had not been pulled. After a pull
+of that copy the row read "1 row refreshed today" `[verified-live 2026-10-28, n=1]`. Harm: a session that did the job
+is told it did not, and is sent to do it twice in a clone that is not its own lane's. Same fix: read `origin/main`.
+
+### "Every app of ours here is the newest" while Hand Freeze was a version behind (found 2026-10-28)
+
+**What happened.** `ours.py newer` answered "every app of ours here is the newest" on the dev PC, which had Hand Freeze
+v3.2 while v4 had been out a day; both PCs' app notes said v3.2 `[verified-live 2026-10-28, n=1]`. Cause: Hand Freeze
+has its own installer, so it is not in `ours.py`'s list, and only `/gu` (weekly) asks `hand-freeze.py status`. Harm: a
+fix the person asked for (v4's right-stick click) sits uninstalled for up to a week while a check says all is current.
+**Fixed** on `next`: `newer` also asks Hand Freeze's installer, and says that VR Bench is checked by its own updater.
+
+### The app notes keep a renamed app (found 2026-10-28)
+
+**What happened.** The home PC's `installed/PC1.json` lists both **Grab Zones** (2026-10-25) and **Grip Zones**
+(2026-10-28), though the Grip Zones installer removes Grab Zones; the dev PC's start-up line then says "PC1 has Grab
+Zones; this PC does not" `[verified-live 2026-10-28, n=1]`. Harm: small, a ghost app in the other-PC line. **Fix to
+make:** `installed.py scan` drops an app whose program is no longer there, or knows the rename.
+
+### Out of Date passed two front pages that still said UNTESTED (found 2026-10-28)
+
+**What happened.** `/od` reported "nothing found by the checks" on GitHub's texts, while Window View's description and
+front page still opened with **UNTESTED ... proven on the OpenXR Simulator only** (worn in a headset since 2026-10-24),
+and Hand Poser's said **UNTESTED** while it was in use with Visceral RE8; both apps' own release notes said otherwise
+`[verified-live 2026-10-28, n=2]`. Harm: a visitor, or Lanes' own offer list ("Hand Poser (untested)"), keeps telling
+people a tool is unproven after it is in daily use, which is exactly what `/od` exists to catch. Fixed by hand the same
+day (descriptions, both READMEs, the Lanes labels). **Fix to make:** section 3 should flag a description or README
+that says untested/unproven while the repo's newest release notes, or the board, say it was worn or used.
+
+### `owed.sh done` refused the name `list` shows, minus `.md` (found and fixed 2026-10-28)
+
+**What happened.** In the first two-PC test both PCs cleared a reminder with the name as a person (or a session)
+naturally types it, without `.md`; `done` answered "no such item", although `list` prints the same name on the line
+below the title `[verified-live 2026-10-28, n=2]`. Harm: a reminder that was done stays open, so the other PC is
+greeted with it again and may plan around work already finished (the same harm as the Hand Freeze reminder of
+2026-10-14). **Fixed** on the `next` branch and in the estate copy: `done` now accepts the name with or without `.md`.
+
+### The other PC sees a stale red light for up to an hour (found and fixed 2026-11-01)
+
+**What happened.** In the second two-PC test the home PC wrote NOT SAVED at 10:43, saved, and at 11:23 a new session
+start printed SAVED but wrote nothing, because a start report is held back for an hour by the file's age
+`[verified-live 2026-11-01, n=1]`. Harm: the other PC tells its person to check work that is already on GitHub.
+**Fixed** on `lanes-next`: a change of light is always written, and the hour is counted from the report's last commit
+(a checkout or rebase moves the file's modified time). `handover-fixture.sh` has two checks that fail on the old code.
+
+### Every warning sign at session start arrives as broken text on Windows (found and fixed 2026-11-01)
+
+**What happened.** The ⚠️ in the handover lines reached the session as `âš ...` on both PCs
+`[verified-live 2026-11-01, n=2]`: `hooks/emit_context.py` read stdin with the ANSI code page, while the tools write
+UTF-8. Harm: every hook that passes through it could garble any non-ASCII text, and the warning that marks a line as
+needing attention was the part lost. **Fixed** on `lanes-next`: it reads the bytes as UTF-8, falling back to the code
+page only for input that is not UTF-8.
+
+### On a PC with many repos, most session-start checks are cancelled (found 2026-11-01, not fixed)
+
+**What happened.** On the dev PC (314 repos) about 25 SessionStart hooks run at once, several walking every repo, and
+they hit their time limits: 9 of 15 were `hook_cancelled` at exactly their own limits this morning, and all 22 full
+starts in the last 25 session records lost 3 to 13 checks; the handover light was among them 6 times
+`[verified-numerically 2026-11-01, n=22 starts]`. Harm: the session starts without the board, the owed list or the
+save light, and the other PC is never told this PC's state (it showed "last seen 2 days ago, NOT SAVED" while every
+repo was pushed). **Fix to choose:** write the save report from a background hook so a cancelled light still reports,
+and walk the repos once for all the board checks instead of once per check.
+
+### A second `/pd` on the same PC was not stopped (found 2026-11-01, cause not proven)
+
+**What happened.** While one `/pd` session held `~/.claude/pd-session.lock` (2.5 h old, under the 6 h limit), Tefa
+typed a bare `/pd` in a second session on the same PC, on purpose, to test it. It ran: it committed the first
+session's unsaved work in the shared `-pd` root, taking it for abandoned `[verified-live 2026-11-01, n=1]`. The lock
+still names the first session, and the second session's record holds NO UserPromptSubmit hook entry at all, so
+`pd-guard.py` never ran on that prompt (had it run, it would have blocked or taken the lock). That prompt arrived
+1.5 s after the session's start hooks finished, 11 of them cancelled `[hypothesis]`: a prompt typed while start-up
+is still running skips the prompt hooks. **Next test:** start a session, wait until start-up is over, then type
+`/pd`; it should be blocked. If it is, the hole is the start-up window only.
+
+### The close-out box claims other sessions' pushes as this session's (2026-11-01, dev PC)
+
+Seen at the end of a long session (started 10:58) while a `/fullscan` ran in another window on the same PC: the
+box listed about 200 repos in the /gr, /sr, /gu and /gd roots as "pushed · N new commits" (claude-memory 341,
+TefMeister 114), and its 🪧 Front page row then asked this session to refresh about 50 profile rows it never
+touched. So it counts every commit landed since the session started, in every root, not the commits this session
+made. Fix idea: count only commits carrying this session's `Claude-Session:` trailer (or made from this session's
+lane root), and build the front-page row from those. `[measured 2026-11-01, n=1]`
+
+### No guard has ever stopped anything on Windows: the hook launcher threw the "stop" away (2026-11-01, dev PC)
+
+**Supersedes:** the hypothesis under "second /pd not stopped" (prompt hooks skipped during start-up). Disproved.
+
+The /pd lock test ran a second time on purpose (this session held the lock, 5.4 h old, still fresh): the second
+`/pd` ran again. Run by hand, `pd-guard.py` refuses (exit 2, "PD GUARD: another /pd session already holds the
+lock"), and so does `py-hook` and `bash run-hook.cmd`. Through `run-hook.cmd` run the way Claude Code runs it on
+Windows (cmd.exe), the exit code is **0** [measured 2026-11-01]. The cause: each branch ended with
+`exit /b %ERRORLEVEL%` inside `( )`, and cmd.exe fills `%ERRORLEVEL%` in when it reads the block, before bash
+runs, so it is always 0. A bare `exit /b` is 0 there too. Measured five shapes, CRLF and LF:
+`call exit /b %%ERRORLEVEL%%` (and a flat line, and goto) keep the 2; the old form and the bare one do not.
+
+**What it means:** on Windows every Lanes refusal reached Claude Code as "all fine": the /pd lock, the live-claim
+guard, the repo guard (no visibility flag), the update hold, the privacy hook, the reader guard, the BeG0nE
+raw-data guard. The refusal text was still printed, so a session may have read it as a note, which is why some
+looked like they worked. The privacy guard's git hooks are separate (git runs them, not this launcher) and did
+refuse (two-PC test B6). The same launcher shape is in the Superpowers plugin it came from, where only
+SessionStart hooks use it, so it does no harm there.
+
+**Fixed on lanes-next:** `call exit /b %%ERRORLEVEL%%` in all three branches; `hooks-test.sh` now sends a refusal
+and a pass through the real launcher on Windows (the old launcher gives 0 for both). Every start and end hook ends
+`exit 0`, so nothing that used to pass starts failing.
+
+### Releasing a claim on a quiet project was refused for a folder the release check had just made (2026-11-01, dev PC)
+
+Seen in the two-PC test (test 2, same-second claim race) right after the launcher fix made guards real: releasing
+the test claim on doom-2016-vr was held: "the notes in doom-2016-vr (dev-archive/inspector/) are answered but not
+committed". The project has no notes. The release check looks in every lane's copy, and for each it saved the notes
+record first, which CREATED an empty notes folder (README and empty lists), then refused because that folder was
+not committed. Measured: moved the folder aside, ran the check, the folder came back and the refusal with it. The
+2026-10-25 folder in the live root was most likely made the same way. **Fixed on lanes-next:** a copy with no notes
+folder and nothing noted is skipped; a real notes folder that is not committed still holds the release. Three checks
+in `inspector_faults_test.py` (two fail on the old code). Before the launcher fix this refusal never reached Claude
+Code, which is why it was never seen. `[measured 2026-11-01, n=1]`
+
+### Offline, three start-up checks say nothing about not reaching GitHub (2026-11-01, dev PC, minor)
+
+Two-PC test 3: with no network, the save line warns that GitHub could not be reached, but the board summary, the
+owed reminders and the ideas check quietly use the last downloaded copy. Harmless for one start, misleading after
+days offline. Wanted: one line "GitHub not reached; shown as of <last fetch>" from each. Not fixed yet.
+`[measured 2026-11-01, n=1]`
+
+### The lane guards only read typed commands; /ms was never checked at all (2026-11-02, dev PC)
+
+Two-PC test Run 4, real new windows (headless `claude -p` on the test build). When the prompt reached Claude as
+something other than a slash command (here Git Bash had turned "/pd" into a file path), Claude started the pd and lm
+skills with the Skill tool, and neither prompt guard ran. The same happens when the person writes "do a pd". And the
+claim guard matched only /pd and /lm, so a typed `/ms <game>` on a job another session holds went ahead.
+**Fixed on lanes-next:** new `hooks/skill-lane-guard.py` (PreToolUse on Skill) puts pd, lm and ms skills through
+the same two guards as a typed command, with the session's own id; `lane-claim-guard.py` now matches /ms too.
+13 checks in hooks-test (skill guard 12, typed /ms 1). `[measured 2026-11-02, n=1]`
+
+### Release audit for 0.99 (2026-11-02, dev PC): six holes in privacy and saving, all fixed
+
+Tefa asked for leaks and lost work to be ruled out before 1.0. Probed on the dev PC, each fixed on lanes-next with
+checks in the test suites:
+- **The gh guard never opened files.** A body in `--body-file`, `-F`, `--notes-file`, `--input`, `@file`, a gist
+  file, a release upload or `cat file | gh` went to GitHub unread (14 of 16 probe commands passed). Now every word
+  of the command that names a file is opened and checked, a zip member by member; `gh label` and `gh variable` are
+  covered too. `[measured 2026-11-02]`
+- **Nothing stopped a session from skipping git's checks** (`--no-verify`, `commit -n`, a one-off
+  `-c core.hooksPath=`), which skips the privacy guard's commit and push checks. Now refused, unless the privacy
+  guard is switched off. `[measured 2026-11-02]`
+- **A session summary naming the home folder** was refused by the privacy guard and then sat unsaved on the PC.
+  session-log.py now writes `~` for the home folder before saving. `[measured 2026-11-02]`
+- **A stash was invisible to the save light.** One from a 2026-10-23 tidy-up sat unseen for ten days in a lane root
+  (it was backed up in full and cleared). The save light now names stashes. `[measured 2026-11-02, n=1]`
+- **Uninstalling deleted the person's private word lists** (never-publish, private-words), so a reinstall's privacy
+  guard ran without them, and git's machine-wide hook setting was left pointing at the deleted folder. The lists now
+  stay; the hook setting is put back first. `[measured 2026-11-02]`
+- **Two unzips** (Hand Freeze, OpenXR Simulator) would let a zip entry named with a drive letter land outside the
+  folder. Refused now. `[inferred-static]`
+
+Also checked, nothing wrong: every public repo's whole history (52 repos) and every clone's current files carry no
+login, home path or private word (only made-up test names); conversation copies stay on the PC; the session-logs
+repo is private and clean; every place Lanes deletes files keeps a copy or acts only on its own temporary folders;
+lane-claim and builds only undo their own commit after a refused push; downloaded zips cannot escape their folder.
+
+**Not Lanes, found on the way (for Tefa):** commits made on the GitHub website carry Tefa's real e-mail address
+unless GitHub's "Keep my email addresses private" setting is on. One such commit (2026-10-27) is public on the profile
+repo; two on the private ideas repo are from 2026-10-28. Older private-repo history keeps the address by the
+2026-10-25 decision.

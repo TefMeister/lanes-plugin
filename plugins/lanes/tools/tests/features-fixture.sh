@@ -17,6 +17,8 @@ export LANES_STATE_DIR="$T/new" LANES_CONFIG="$T/new.conf"
 mkdir -p "$T/new"; touch "$T/new/theme-state.json"
 "$PY" "$FE" is-on talk_rule; check $? 1 "a new install starts with the talk rule off"
 "$PY" "$FE" pending >/dev/null; check $? 0 "a new install has extras to ask about"
+"$PY" "$FE" is-on straight_talk; check $? 1 "a new install starts with straight talk off (an extra, offered at setup)"
+out=$(bash "$HERE/../../hooks/straight-talk"); check "${#out}" 0 "the straight-talk hook is quiet while it is off"
 out=$(bash "$HERE/../../hooks/talk-rule"); check "${#out}" 0 "the talk-rule hook is quiet while it is off"
 "$PY" "$FE" on talk_rule >/dev/null
 "$PY" "$FE" is-on talk_rule; check $? 0 "on switches it on"

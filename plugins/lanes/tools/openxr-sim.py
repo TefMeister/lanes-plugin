@@ -220,7 +220,7 @@ def safe_extract(zpath, out_dir):
             parts = [p for p in name.split("/") if p]
             if strip:
                 parts = parts[1:]
-            if not parts or name.endswith("/") or ".." in parts:
+            if not parts or name.endswith("/") or ".." in parts or ":" in name:   # ":" = a drive letter escapes the folder
                 continue
             dest = os.path.join(out_dir, *parts)
             os.makedirs(os.path.dirname(dest), exist_ok=True)

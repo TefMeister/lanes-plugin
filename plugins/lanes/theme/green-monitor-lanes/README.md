@@ -1,7 +1,8 @@
 # The plugin's look: green-monitor-lanes
 
-An old green monitor: sharp letters with a soft glow, green glass, dark corners, a the Lanes banner
-behind the text in a dim, striped green and a light that slowly runs down the screen. This is the style the lanes
+An old green monitor: sharp letters with a soft glow, green glass, dark corners, and the Lanes banner
+behind the text in a dim, striped green. It is still by default (since 2026-11-01); the moving version adds a light
+that slowly runs down the screen, at the cost of a bit more of the PC. This is the style the lanes
 plugin puts on the terminal the first time it runs after being installed (`tools/theme.py`,
 `hooks/theme-apply`, `/lanes:theme`). It is a copy of the `green-monitor-lanes` style from the
 [terminal-themes](https://github.com/TefMeister/terminal-themes) repo, where it is tuned and where the
@@ -9,7 +10,8 @@ other styles live.
 
 | File | What it is |
 | --- | --- |
-| `lanes.hlsl` | the shader Windows Terminal runs over the window; every tuning number sits at its top with a comment |
+| `lanes-still.hlsl` | the default shader Windows Terminal runs over the window: nothing moves, so the window is drawn again only when the text changes |
+| `lanes.hlsl` | the moving version, with the rolling light; it never stops redrawing, so it uses a bit more of the processor and graphics card. Every tuning number sits at its top with a comment |
 | `lanes.png` | the Lanes banner behind the text (any picture works; the shader turns it dim green and striped) |
 | `profile-snippet.json` | the terminal profile and the RobCo colour scheme, for pasting by hand |
 | `claude-theme-robco.json` | Claude Code's own theme: your messages on a hidden marker colour the shader turns yellow-green |

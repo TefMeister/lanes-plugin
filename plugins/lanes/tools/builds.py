@@ -65,6 +65,7 @@ before copying the chosen build in - and it first saves the app folder as a buil
 """
 import argparse
 import hashlib
+import fnmatch
 import os
 import re
 import shutil
@@ -191,6 +192,13 @@ def is_local_only(rel, conf):
     return any(rel == p.rstrip("/") or rel.startswith(p.rstrip("/") + "/") for p in conf["local_only"])
 
 
+def skipped(name, rel, conf):
+    """A file the app writes for itself (logs, saved state) is not part of a build. `skip` takes a file name, or a
+    pattern matched against the name or the path inside the app folder: `*.log`, `reframework/data/*/gunreports/*`
+    (2026-11-02: Village's check called eight log and state files "a build nobody saved")."""
+    return any(name == pat or fnmatch.fnmatch(name, pat) or fnmatch.fnmatch(rel, pat) for pat in conf["skip"])
+
+
 def files_of_ours(folder, conf):
     """rel path -> abs path for every file of ours under folder (an app folder or a build folder)."""
     out = {}
@@ -201,10 +209,11 @@ def files_of_ours(folder, conf):
         elif os.path.isdir(p):
             for r, _, names in os.walk(p):
                 for n in names:
-                    if n in conf["skip"]:
-                        continue
                     full = os.path.join(r, n)
-                    out[os.path.relpath(full, folder).replace("\\", "/")] = full
+                    rel = os.path.relpath(full, folder).replace("\\", "/")
+                    if skipped(n, rel, conf):
+                        continue
+                    out[rel] = full
     return out
 
 
@@ -463,6 +472,7 @@ def closest(root, project, conf, state):
     best = None
     for num, name in reversed(builds(root, project, conf)):
         man = read_manifest(os.path.join(root, project, name))
+        man = {p: h for p, h in man.items() if not skipped(p.rsplit("/", 1)[-1], p, conf)}   # older builds kept them
         diff = sorted(p for p in set(man) | set(state) if man.get(p) != state.get(p))
         if best is None or len(diff) < len(best[2]):
             best = (num, name, diff)

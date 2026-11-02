@@ -94,6 +94,23 @@ def clock():
     return datetime.datetime.fromisoformat(pinned) if pinned else datetime.datetime.now()
 
 
+def home_to_tilde(text):
+    """This PC's home folder, in any spelling, becomes ~ (0.99.0): a summary naming it was refused by the privacy guard
+    and then sat unsaved on the PC. Logs are private, but no home-folder path goes to GitHub at all."""
+    home = os.path.expanduser("~")
+    if not home or home == "~":
+        return text
+    fwd = home.replace("\\", "/")
+    spellings = {home, fwd}
+    m = re.match(r"^([A-Za-z]):/(.*)$", fwd)
+    if m:
+        spellings.add("/" + m.group(1).lower() + "/" + m.group(2))
+        spellings.add(home.replace("\\", "\\\\"))
+    for s in sorted(spellings, key=len, reverse=True):
+        text = re.sub(re.escape(s), "~", text, flags=re.I)
+    return text
+
+
 def write(project, slug, body, important=False):
     root = logs_root()
     if not root:
@@ -110,6 +127,7 @@ def write(project, slug, body, important=False):
     while os.path.exists(path):                          # two in one minute: never overwrite
         path = os.path.join(folder, f"{stem}-{n}.md")
         n += 1
+    body = home_to_tilde(body)
     machine = read_conf().get("machine_name", "")
     head = f"<!-- {now:%Y-%m-%d %H:%M}{' on ' + machine if machine else ''} -->\n"
     with open(path, "w", encoding="utf-8", newline="\n") as f:

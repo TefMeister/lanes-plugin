@@ -1,4 +1,4 @@
-"""lane-claim-guard.py -- block a /pd or /lm prompt that names a job another
+"""lane-claim-guard.py -- block a /pd, /lm or /ms prompt that names a job another
 same-lane session has claimed LIVE.
 
 Wired as a UserPromptSubmit hook (see hooks/hooks.json).
@@ -89,13 +89,14 @@ def resolve(tokens, prefixes):
 
 def main():
     try:
-        data = json.load(sys.stdin)
+        data = json.loads(sys.stdin.buffer.read().decode("utf-8-sig", "replace"))  # a BOM (PowerShell pipe) must not open the guard
     except Exception:
         return 0
     prompt = (data.get("prompt") or "").strip()
     # "/lanes:pd" is the same command as "/pd" - the front page tells people to type it that way.
     # Until 0.25.1 only the short form was matched, so the long form skipped this guard.
-    m = re.match(r"^/(?:lanes:)?(pd|lm)\b(.*)$", prompt, re.S)
+    # /ms (the manual session) takes the same claim as /lm; it was left out until the two-PC test of 2026-11-02.
+    m = re.match(r"^/(?:lanes:)?(pd|lm|ms)\b(.*)$", prompt, re.S)
     if not m:
         return 0
     lane, rest = "/" + m.group(1), m.group(2).strip()

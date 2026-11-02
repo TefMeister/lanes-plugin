@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
 """theme.py - the look the plugin ships with: an old green monitor, the Lanes banner faint behind the
-text and a light that slowly runs down the screen (0.41.0, 2026-10-01; banner since 0.51.0, 2026-10-08,
-user-directed - it was a starburst before).
+text (0.41.0, 2026-10-01; banner since 0.51.0, 2026-10-08, user-directed - it was a starburst before).
+Still by default since 2026-11-01 (user-directed: "added to Lanes plugin as a default please, with the
+animated one as an alternitive but with a disclaimer that it uses a bit of recources"): the banner does
+not move, so Windows Terminal draws the window again only when the text changes. The moving version,
+with a light slowly running down the screen, is one command away.
 
-    python theme.py apply [--force] [--no-font]   put the look on the Windows Terminal profile Claude
+    python theme.py apply [--force] [--no-font] [--animated]
+                                                  put the look on the Windows Terminal profile Claude
                                                   Code is running in (or add a "Green Monitor Claude"
-                                                  profile when not run from Windows Terminal)
+                                                  profile when not run from Windows Terminal); still
+                                                  unless --animated
+    python theme.py motion still|animated         switch the look between the still banner (default)
+                                                  and the moving light, which uses a bit more of the PC
     python theme.py restore                       put back exactly what was there before
     python theme.py status                        what was done, and where the backup is
-    python theme.py upgrade                       move a profile still showing the old starburst look
-                                                  to the banner (the start-up hook runs this once)
+    python theme.py upgrade                       move a profile still showing an older shipped look
+                                                  to the current one (the start-up hook runs this once)
 
 Exit 0 = done or nothing to do, 1 = could not (the reason is printed), 2 = not applicable here.
 
@@ -52,7 +59,12 @@ STATE_DIR = os.environ.get("LANES_STATE_DIR") or os.path.join(HOME, ".claude", "
 STATE_FILE = os.path.join(STATE_DIR, "theme-state.json")
 CLAUDE_DIR = os.environ.get("LANES_CLAUDE_DIR") or os.path.join(HOME, ".claude")
 STYLE = "green-monitor-lanes"
-SHADER_FILE = "lanes.hlsl"
+SHADER_FILE = "lanes-still.hlsl"      # the default: nothing moves, so the terminal is not redrawn every frame
+ANIMATED_SHADER_FILE = "lanes.hlsl"   # the alternative: a light slowly runs down the screen
+MOTION_FILES = {"still": SHADER_FILE, "animated": ANIMATED_SHADER_FILE}
+ANIMATED_NOTE = ("the moving light makes Windows Terminal draw the window again about 60 times a second, even when "
+                 "nothing on it changes, so it uses a bit more of the processor and graphics card than the still "
+                 "banner.")
 IMAGE_FILE = "lanes.png"
 # looks the plugin shipped before; a profile still showing one of these is moved to the current look
 OLD_STYLES = {"green-monitor-starburst": "starburst.hlsl"}
@@ -181,7 +193,7 @@ def find_profile(data, guid):
     return None
 
 
-def apply(force=False, with_font=True):
+def apply(force=False, with_font=True, animated=False):
     state = read_state()
     if state and not force:
         say("nothing to do - " + ("the look is already on" if state.get("applied") else state.get("reason", "it was looked at before")))
@@ -228,7 +240,8 @@ def apply(force=False, with_font=True):
     profile["cursorShape"] = "filledBox"
     profile["padding"] = "16"
     profile["icon"] = fwd(os.path.join(style_home, "matrix-claude.png"))
-    profile[SHADER_KEY] = fwd(os.path.join(style_home, SHADER_FILE))
+    motion_name = "animated" if animated else "still"
+    profile[SHADER_KEY] = fwd(os.path.join(style_home, MOTION_FILES[motion_name]))
     profile[IMAGE_KEY] = fwd(os.path.join(style_home, IMAGE_FILE))
     schemes = data.setdefault("schemes", [])
     scheme_added = False
@@ -245,22 +258,29 @@ def apply(force=False, with_font=True):
     claude_prev, claude_note = set_claude_theme(style_home)
     write_state({"applied": True, "when": now(), "settings": path, "backup": backup,
                  "profile_guid": profile.get("guid"), "profile_created": created, "scheme_added": scheme_added,
-                 "previous": previous, "claude_theme_previous": claude_prev, "font": font, "style_home": style_home})
+                 "previous": previous, "claude_theme_previous": claude_prev, "font": font, "style_home": style_home,
+                 "motion": motion_name})
     if created:
         say("the plugin comes with one look, and it was added to Windows Terminal as a tab type called \"%s\" (this session is not running in Windows Terminal, so no open tab was changed). To see it: open Windows Terminal, click the small down arrow next to the + on the tab bar, and pick it. It opens on the Desktop." % PROFILE_NAME)
     else:
-        say("this terminal profile now has the plugin's look: green monitor, the Lanes banner, rolling light. Font: %s." % font)
+        say("this terminal profile now has the plugin's look: green monitor, the Lanes banner%s. Font: %s."
+            % (", rolling light" if animated else " (still)", font))
+    if animated:
+        say("note: " + ANIMATED_NOTE + " `python theme.py motion still` switches to the still banner.")
+    else:
+        say("the banner stays still, which is lighter on the PC; `python theme.py motion animated` adds a light that "
+            "slowly runs down the screen, at the cost of a bit more of the processor and graphics card.")
     say(claude_note)
     say("backup of the terminal's settings: %s. `python theme.py restore` puts everything back." % os.path.basename(backup))
     return 0
 
 
 def upgrade():
-    """0.51.0: the shipped look changed from the starburst to the Lanes banner. A profile still showing
-    the old shipped look gets the new one; a look the user picked since is left alone. Either way the
-    state is moved on, so this happens once."""
+    """Moves a PC on from an older shipped look, once each. 0.51.0: the starburst became the Lanes banner.
+    2026-11-01: the banner became still by default; a profile still showing the shipped moving banner gets the still
+    one (a look the user picked since is left alone, and `motion animated` brings the moving one back)."""
     state = read_state()
-    if not state or not state.get("applied") or STYLE in (state.get("style_home") or ""):
+    if not state or not state.get("applied"):
         return 0
     path = state.get("settings", "")
     try:
@@ -269,9 +289,11 @@ def upgrade():
         return 0
     profile = find_profile(data, state.get("profile_guid", ""))
     shader = ((profile or {}).get(SHADER_KEY) or "").replace("\\", "/")
-    old = any(shader.endswith("/%s/%s" % (name, f)) for name, f in OLD_STYLES.items())
     style_home = copy_style()
-    if old:
+    banner = STYLE not in (state.get("style_home") or "") and any(
+        shader.endswith("/%s/%s" % (name, f)) for name, f in OLD_STYLES.items())
+    still = "motion" not in state and (banner or shader.endswith("/%s/%s" % (STYLE, ANIMATED_SHADER_FILE)))
+    if banner or still:
         profile[SHADER_KEY] = fwd(os.path.join(style_home, SHADER_FILE))
         profile[IMAGE_KEY] = fwd(os.path.join(style_home, IMAGE_FILE))
         try:
@@ -280,9 +302,53 @@ def upgrade():
             say("could not write the terminal's settings file (%s); the old look stays." % e)
             return 1
     state["style_home"] = style_home
+    state.setdefault("motion", "still" if (banner or still) else "own")
     write_state(state)
-    if old:
+    if banner:
         say("the plugin's look has a new picture: the Lanes banner now sits behind the text instead of the starburst. Everything else is the same; `python theme.py restore` still puts your old settings back.")
+    if still:
+        say("the plugin's look is now still by default: the Lanes banner stays, the light running down the screen is "
+            "gone, so the terminal is no longer drawn again every frame and the PC does less work. "
+            "`python theme.py motion animated` brings the moving light back, at the cost of a bit more of the "
+            "processor and graphics card.")
+    return 0
+
+
+def motion(which):
+    """Switch the applied look between the still banner and the moving light."""
+    if which not in MOTION_FILES:
+        say("say `still` or `animated`.")
+        return 2
+    state = read_state()
+    if not state or not state.get("applied"):
+        say("the plugin's look is not on this PC (`python theme.py apply` first), so there is nothing to switch.")
+        return 1
+    path = state.get("settings", "")
+    try:
+        data = load_jsonc(path)
+    except (OSError, ValueError) as e:
+        say("could not read the terminal's settings file (%s); nothing was changed." % e)
+        return 1
+    profile = find_profile(data, state.get("profile_guid", ""))
+    if profile is None:
+        say("the terminal profile the look was put on is gone; nothing was changed.")
+        return 1
+    style_home = copy_style()
+    profile[SHADER_KEY] = fwd(os.path.join(style_home, MOTION_FILES[which]))
+    profile[IMAGE_KEY] = fwd(os.path.join(style_home, IMAGE_FILE))
+    try:
+        save_json(path, data)
+    except OSError as e:
+        say("could not write the terminal's settings file (%s); nothing was changed." % e)
+        return 1
+    state["motion"] = which
+    state["style_home"] = style_home
+    write_state(state)
+    if which == "animated":
+        say("the light runs down the screen again. Note: " + ANIMATED_NOTE
+            + " `python theme.py motion still` switches back.")
+    else:
+        say("the banner is still now: the terminal is drawn again only when the text changes, which is lighter on the PC.")
     return 0
 
 
@@ -383,7 +449,9 @@ def status():
         say("not applied on this PC (the first session after installing does it; `python theme.py apply` does it now).")
         return 0
     if state.get("applied"):
-        say("on since %s; backup %s; `python theme.py restore` puts it back." % (state.get("when"), state.get("backup")))
+        say("on since %s (%s); backup %s; `python theme.py restore` puts it back." % (
+            state.get("when"), {"animated": "moving light", "own": "a look of your own"}.get(state.get("motion"), "still"),
+            state.get("backup")))
     else:
         say("not applied: %s (%s)." % (state.get("reason"), state.get("when")))
     return 0
@@ -400,7 +468,9 @@ def main(argv):
         pass
     cmd = argv[0] if argv else "status"
     if cmd == "apply":
-        return apply(force="--force" in argv, with_font="--no-font" not in argv)
+        return apply(force="--force" in argv, with_font="--no-font" not in argv, animated="--animated" in argv)
+    if cmd == "motion":
+        return motion(argv[1] if len(argv) > 1 else "")
     if cmd == "restore":
         return restore()
     if cmd == "status":

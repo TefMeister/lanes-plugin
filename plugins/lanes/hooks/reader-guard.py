@@ -143,7 +143,7 @@ def record(agent_id, agent_type, tool, hit, sid):
 
 def main():
     try:
-        data = json.load(sys.stdin)
+        data = json.loads(sys.stdin.buffer.read().decode("utf-8-sig", "replace"))  # a BOM (PowerShell pipe) must not open the guard
     except Exception:
         return 0
     if data.get("hook_event_name", "") != "PreToolUse":
