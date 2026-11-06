@@ -100,6 +100,9 @@ FEATURES = {
     "git_queue": {"label": "Git queue", "set": "everyday",
                   "what": "sessions on one PC save to GitHub one after another: a git command that writes waits while another session's runs, so several /pd sessions (pd_parallel) never commit into each other's work",
                   "link": GH + "hooks/git-queue.py"},
+    "project_guard": {"label": "Project guard", "set": "everyday",
+                      "what": "one session at a time writes into a game's files on a PC, whatever kind of session it is: the first one to edit a project holds it, a second one is stopped with one line until the first ends (or three hours after its last edit); typing \"take over <project>\" hands it over",
+                      "link": GH + "hooks/project-guard.py"},
     "rest_reminder": {"label": "Rest reminder", "set": "everyday",
                       "what": "once a session, past the rest time you set (midnight by default), Claude says so in "
                               "one line at the top of its reply",

@@ -709,6 +709,14 @@ else
   fail "session_name_test.py failed"
 fi
 
+echo "project-guard - one session writes into a game's files at a time (0.106.1)"
+if out=$("$PY" "$HERE/project_guard_test.py" 2>&1); then
+  ok "project_guard_test.py: all passed"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "project_guard_test.py failed"
+fi
+
 echo "vrbench - VR Bench's driver (0.74.0)"
 if out=$("$PY" "$HERE/vrbench_test.py" 2>&1); then
   ok "vrbench_test.py: $(printf '%s\n' "$out" | grep -E '^Ran ' | head -n 1)"

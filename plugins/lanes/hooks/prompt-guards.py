@@ -7,7 +7,8 @@ import sys
 
 import guard_runner as G
 
-GUARDS = [("pd-guard.py", []), ("lane-claim-guard.py", []), ("clash-guard.py", []), ("rest-reminder.py", [])]
+GUARDS = [("pd-guard.py", []), ("lane-claim-guard.py", []), ("clash-guard.py", []), ("project-guard.py", []),
+          ("rest-reminder.py", [])]   # project-guard: "take over <project>" (0.106.1)
 
 
 def main():
