@@ -701,6 +701,14 @@ else
   fail "inspector_summary_test.py failed"
 fi
 
+echo "session-name - desk windows: the plain name goes back to a new window, any desk window gets the messages (0.105.1)"
+if out=$("$PY" "$HERE/session_name_test.py" 2>&1); then
+  ok "session_name_test.py: all passed"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "session_name_test.py failed"
+fi
+
 echo "vrbench - VR Bench's driver (0.74.0)"
 if out=$("$PY" "$HERE/vrbench_test.py" 2>&1); then
   ok "vrbench_test.py: $(printf '%s\n' "$out" | grep -E '^Ran ' | head -n 1)"

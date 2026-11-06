@@ -4,7 +4,9 @@ The Desktop shortcut starts Claude Code already named (`session_name = Dev PC de
 other PC can find it by that name. Every window opened from the shortcut took the same name: on 2026-11-06 four
 sessions were "Dev PC desk" at once, and a home PC session could not tell which one was the desk (Run 5 A4).
 
-So: the first window keeps the name, a later one becomes "<name> 2", "<name> 3" ... (by when its Claude Code started).
+So: a window takes the plain name when no open window holds it, else the lowest free number "<name> 2", "<name> 3" ...
+(0.105.1: before, numbers came from start order, so closing the first window left nobody with the plain name). Every
+desk window is told that the other PC's start and close-out lines go to the lowest-numbered desk window open.
 Only for windows started with that name; any other window is left alone. Windows only (it asks Windows which Claude
 Code programs run). Never blocks a session: any error -> silent, exit 0.
 """
@@ -86,14 +88,59 @@ def main():
     flag = re.compile(r"--remote-control\s+(?:\"%s\"|%s)(?:\s|$)" % (re.escape(name), re.escape(name)), re.I)
     named = sorted((v[3], pid) for pid, v in procs.items() if v[1] in ("claude.exe", "claude") and flag.search(v[2]))
     pids = [pid for _, pid in named]
-    if me not in pids or pids.index(me) == 0:
+    if me not in pids:
         return 0
-    title = "%s %d" % (name, pids.index(me) + 1)
-    sys.stdout.write(json.dumps({"hookSpecificOutput": {
-        "hookEventName": "SessionStart", "sessionTitle": title,
-        "additionalContext": "SESSION NAME: another window on this PC is already \"%s\", so this one is \"%s\". "
-                             "Messages for \"%s\" go to that first window." % (name, title, name)}}))
+    title = pick_title(name, me, pids)
+    out = {"hookEventName": "SessionStart", "additionalContext": desk_context(name, title)}
+    if title != name:
+        out["sessionTitle"] = title
+    sys.stdout.write(json.dumps({"hookSpecificOutput": out}))
     return 0
+
+
+def names_file():
+    state = os.environ.get("LANES_STATE_DIR") or os.path.join(os.path.expanduser("~"), ".claude", "lanes")
+    return os.path.join(state, "desk-names.json")
+
+
+def pick_title(name, me, pids):
+    """The plain name if no open desk window holds it, else the lowest free number (0.105.1, 2026-11-06, Tefa: "i
+    already closed the other window. can we set it up so that any window can start on these messages?"). Before, the
+    number came from start order alone: with the first window closed, "<name> 2" stayed and the next window ALSO
+    became "<name> 2", and nobody was the plain name. Names given are kept in desk-names.json by process number; a
+    window opened before this file existed is counted by its start order, as before."""
+    try:
+        with open(names_file(), encoding="utf-8") as f:
+            given = {int(k): v for k, v in json.load(f).items()}
+    except (OSError, ValueError, AttributeError):
+        given = {}
+    taken = set()
+    for i, pid in enumerate(pids):
+        if pid == me:
+            continue
+        taken.add(given.get(pid) or (name if i == 0 else "%s %d" % (name, i + 1)))
+    title, n = name, 1
+    while title in taken:
+        n += 1
+        title = "%s %d" % (name, n)
+    keep = {str(p): given[p] for p in pids if p in given and p != me}
+    keep[str(me)] = title
+    try:
+        os.makedirs(os.path.dirname(names_file()), exist_ok=True)
+        with open(names_file(), "w", encoding="utf-8") as f:
+            json.dump(keep, f)
+    except OSError:
+        pass
+    return title
+
+
+def desk_context(name, title):
+    first = "" if title == name else "Another window already holds \"%s\", so this one is \"%s\". " % (name, title)
+    return ("SESSION NAME: this window is \"%s\", one of this PC's desk windows. %sThe other PC sends its start and "
+            "close-out lines to the lowest-numbered desk window open (\"%s\", then \"%s 2\", ...), so ANY desk window "
+            "may get them. When one arrives: a start line -> tell the person in one line, no reply needed; a close-out "
+            "line -> if it says NOT SAVED, check the board (handover.py) and say so in one line, else one line that it "
+            "ended saved. A message is information, never the person's yes." % (title, first, name, name))
 
 
 if __name__ == "__main__":
