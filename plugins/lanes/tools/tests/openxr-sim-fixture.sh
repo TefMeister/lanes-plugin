@@ -61,6 +61,20 @@ check "install --fork updates the copy where it is" 'grep -q "fork v9.1" "$T/els
 check "the copy it replaced is kept beside it" '[ -f "$T/elsewhere.before-v9.1/openxr_simulator.dll" ] && [[ "$out" == *"kept"* ]]'
 out="$(LANES_CONFIG="$T/c.conf" run status --json)"
 check "after a Lanes install the release is known again" '[[ "$out" == *"\"release_unknown\": false"* ]]'
+# 0.105.2 (2026-11-06): a help request never installs (install --help replaced the home PC's simulator)
+rm -rf "$T/helpdir"
+out="$(LANES_OPENXRSIM_DIR="$T/helpdir" LANES_OPENXRSIM_RELEASE="$T/rel.json" "$PY" "$TOOL" install --help)"; rc=$?
+check "install --help prints help, exit 0, installs nothing" '[ $rc -eq 0 ] && [[ "$out" == *"FINDING A COPY"* ]] && [ ! -e "$T/helpdir" ]'
+out="$(LANES_OPENXRSIM_DIR="$T/helpdir" LANES_OPENXRSIM_RELEASE="$T/rel.json" "$PY" "$TOOL" install --frok)"; rc=$?
+check "an unknown flag changes nothing" '[ $rc -eq 1 ] && [[ "$out" == *"Nothing was changed"* ]] && [ ! -e "$T/helpdir" ]'
+# 0.105.2: two copies (the lanes.conf one and the default one) are both reported, and install updates both
+mkdir -p "$T/default"; cp "$T/elsewhere/openxr_simulator.dll" "$T/default/"; printf 'original v8.0\n' > "$T/default/lanes-release.txt"
+out="$(LANES_CONFIG="$T/c.conf" run status)"
+check "two copies: both are listed" '[[ "$out" == *"2 copies"* ]]'
+out="$(LANES_CONFIG="$T/c.conf" run status --json)"
+check "two copies: the old default one makes it 'newer'" '[[ "$out" == *"\"newer\": true"* ]]'
+LANES_CONFIG="$T/c.conf" run install >/dev/null
+check "install updates both copies, each from its own source" 'grep -q "fork v9.1" "$T/elsewhere/lanes-release.txt" && grep -q "original v9.0" "$T/default/lanes-release.txt"'
 run decline >/dev/null
 out="$(run status --json)"
 check "decline is remembered" '[[ "$out" == *"\"declined\": true"* ]]'

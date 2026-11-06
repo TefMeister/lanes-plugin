@@ -32,7 +32,9 @@ WHAT INSTALL DOES, AND DOES NOT
   headset. It refuses to update while a game has the simulator loaded, because Windows will not replace it then.
 
 FINDING A COPY: the folder named by `openxr_sim =` in lanes.conf, the default folder, and any OpenXR runtime registered
-in Windows whose file name is openxr_simulator*.json. The release is read from lanes-release.txt beside it (written by
+in Windows whose file name is openxr_simulator*.json. EVERY copy found is reported, and `install` without --to updates
+every one, each from its own source (0.105.2): name the copy your games use in `openxr_sim =`, or it may go unseen.
+`-h` / `--help` anywhere prints this and changes nothing. The release is read from lanes-release.txt beside it (written by
 install); a copy installed by hand has no release on record and is reported as "release unknown".
 
 Tests set LANES_OPENXRSIM_DIR (the default folder), LANES_OPENXRSIM_OFFLINE=1 (status without asking GitHub), LANES_OPENXRSIM_RELEASE (a JSON file standing in for GitHub's
@@ -102,12 +104,30 @@ def registered_folders():
     return out
 
 
-def find_copy():
-    """the folder holding the simulator on this PC, or None"""
+def find_copies():
+    """every folder holding the simulator on this PC, the lanes.conf one first (0.105.2, 2026-11-06: the home PC had
+    two copies, the one its games use and the default one; only the default one was reported and updated, so the copy
+    in use stayed old without a word)"""
+    out = []
     for d in [conf_folder(), DEFAULT_DIR] + registered_folders():
         if d and os.path.isfile(os.path.join(d, DLL64)):
-            return os.path.normpath(d)
-    return None
+            d = os.path.normpath(d)
+            if os.path.normcase(d) not in [os.path.normcase(x) for x in out]:
+                out.append(d)
+    return out
+
+
+def find_copy():
+    """the main folder holding the simulator on this PC, or None"""
+    copies = find_copies()
+    return copies[0] if copies else None
+
+
+def source_of(folder):
+    """where a copy came from: its release note, else the original (both now ship a 32-bit runtime, so it cannot be
+    told from the files)"""
+    src, _ = marker(folder)
+    return src or "original"
 
 
 def marker(folder):
@@ -146,24 +166,32 @@ def save_state(st):
 
 
 def status(as_json):
-    folder = find_copy()
+    copies = find_copies()
+    folder = copies[0] if copies else None
     src, have = marker(folder) if folder else (None, "")
-    check_src = src or "original"
-    latest, err = "", None
+    latest, err, tags = "", None, {}
     if not os.environ.get("LANES_OPENXRSIM_OFFLINE"):     # the setup scan only asks whether it is there
-        try:
-            latest = latest_release(check_src).get("tag_name", "")
-        except Exception as e:      # network down, rate limit: say so, never guess
-            err = str(e)
+        for s in {source_of(c) for c in copies} | {source_of(folder) if folder else "original"}:
+            try:
+                tags[s] = latest_release(s).get("tag_name", "")
+            except Exception as e:      # network down, rate limit: say so, never guess
+                err = str(e)
+        latest = tags.get(source_of(folder) if folder else "original", "")
+    rows = []
+    for c in copies:
+        c_src, c_have = marker(c)
+        c_latest = tags.get(source_of(c), "")
+        rows.append({"folder": c, "source": c_src, "release": c_have or None,
+                     "newer": bool(c_latest) and c_have != c_latest, "latest_release": c_latest or None})
     # A copy put in by hand has no release note, so its age cannot be read. It used to count as up to date, and the dev
     # PC sat on 1.5.x for months while 1.6.0 added the frame checks a real headset makes (2026-11-06: Silent Hill 2's
     # "Early" frames were black in the headset and fine in the simulator). Unknown now counts as maybe out of date: a
     # Lanes install of the newest release is harmless if it was current, and notes the release from then on.
     unknown = bool(folder) and not have
-    newer = bool(folder) and bool(latest) and (unknown or have != latest)
+    newer = any(r["newer"] for r in rows)
     st = load_state()
     info = {"installed": folder is not None, "folder": folder, "source": src, "release": have or None,
-            "release_unknown": unknown,
+            "release_unknown": unknown, "copies": rows,
             "has_32bit": bool(folder) and os.path.isfile(os.path.join(folder, DLL32)),
             "latest_release": latest or None, "newer": newer, "declined": bool(st.get("declined")), "error": err,
             "bench": bench_status() if as_json else None}
@@ -176,7 +204,12 @@ def status(as_json):
         bits = "64-bit and 32-bit games" if info["has_32bit"] else "64-bit games only"
         rel = f"{src} {have}" if have else "release unknown (installed by hand)"
         print(f"OpenXR Simulator: on this PC ({rel}; for {bits}).")
-        if newer and unknown:
+        if len(rows) > 1:
+            print(f"{len(rows)} copies on this PC; 'openxr-sim.py install' updates every one:")
+            for r in rows:
+                print("  %s: %s%s" % (r["folder"], r["release"] or "release unknown",
+                                      ", newer out: %s" % r["latest_release"] if r["newer"] else ""))
+        elif newer and unknown:
             print(f"Its release cannot be read, so it may be old. The newest is {latest}: "
                   "'openxr-sim.py install' puts it in and keeps this copy beside it.")
         elif newer:
@@ -323,9 +356,23 @@ def decline():
     return 0
 
 
+KNOWN_FLAGS = {"status": {"--json"}, "install": {"--fork", "--bench", "--to"}, "decline": set()}
+
+
 def main():
     args = sys.argv[1:]
-    if not args or args[0] not in ("status", "install", "decline"):
+    if any(a in ("-h", "--help", "help", "/?") for a in args):
+        # 0.105.2 (2026-11-06): `install --help` used to RUN the install (it replaced the home PC's simulator). A help
+        # request prints help and changes nothing.
+        print(__doc__)
+        return 0
+    if not args or args[0] not in KNOWN_FLAGS:
+        print(__doc__)
+        return 1
+    flags = [a for a in args[1:] if a.startswith("-")]
+    unknown = [a for a in flags if a not in KNOWN_FLAGS[args[0]]]
+    if unknown:
+        print("Not a choice of '%s': %s. Nothing was changed.\n" % (args[0], " ".join(unknown)))
         print(__doc__)
         return 1
     if args[0] == "status":
@@ -333,7 +380,15 @@ def main():
     if args[0] == "decline":
         return decline()
     to = args[args.index("--to") + 1] if "--to" in args and args.index("--to") + 1 < len(args) else None
-    rc = install("fork" if "--fork" in args else "original", to)
+    if to:
+        rc = install("fork" if "--fork" in args else "original", to)
+    else:
+        # every copy on the PC, each from its own source unless --fork names one (0.105.2)
+        copies = find_copies() or [None]
+        rc = 0
+        for c in copies:
+            src = "fork" if "--fork" in args else (source_of(c) if c else "original")
+            rc = max(rc, install(src, c))
     if rc == 0 and "--bench" in args:
         rc = bench_install()
     return rc
