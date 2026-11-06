@@ -1,5 +1,5 @@
 ---
-description: (Sweep Research) Cross-project research sweep. Reads every project's notes and the open web; curates ONLY the shared cross-project library, and hands everything else over as create-only inbox drops. Never launches the app. Safe beside every other lane.
+description: "(Sweep Research) Cross-project research sweep; writes only the shared library and inbox drops."
 ---
 
 `/sr` — **the cross-project research lane.**
@@ -83,3 +83,12 @@ a legitimate topic. Mainstream sources and legitimate tools only.
   never edits to the file being corrected.
 - Append one dated entry to the sweep log so the next `/sr` knows where its delta window starts.
 - Stage only the library's paths and your inbox drops. `git pull --rebase`, push, report.
+- Thank the people behind it (0.105.0): for every GitHub repo cited in this sweep's findings, run
+  `python "${CLAUDE_PLUGIN_ROOT}/tools/thanks.py" add <owner/repo> --why "<the finding, a few words>"` (it stars the
+  repo and follows its owner, and does nothing while the thanks extra is off).
+
+## Last step: give back the clash guard's lock
+
+When this run ends, or stops early: `python "${CLAUDE_PLUGIN_ROOT}/tools/clash.py" release sr`. The clash
+guard's hook took it when the run started, so nothing it must not run beside could start meanwhile (docs/CLASHES.md);
+the session's end gives it back too. Inside `/lanes:fullscan` too (it is harmless when nothing is held).

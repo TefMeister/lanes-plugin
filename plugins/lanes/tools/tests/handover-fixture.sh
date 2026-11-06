@@ -69,7 +69,7 @@ assert_contains "NOT SAVED" "$out" "start is red while something is unsaved"
 [ -f "$T/A/lanes-sessions/handover-fixture-s1.json" ] && ok "the session's snapshot is written beside lanes.conf" || fail "no snapshot written"
 
 echo "close: the close-out box while something is unsaved"
-out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" close --session=fixture-s1 2>&1); rc=$?
+out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" close --no-write --session=fixture-s1 2>&1); rc=$?
 assert_contains "| 🔦 **NOT SAVED** | **DEMO-DIRTY: 1 FILE NEVER ADDED, 1 COMMIT NOT PUSHED** |" "$out" "the headline names the repo and what is wrong"
 assert_contains "| 📦 demo-dirty | ⚠️ 1 file never added, 1 commit not pushed |" "$out" "the dirty repo gets a warning row"
 assert_contains "| 📦 the other 3 repos | nothing to push |" "$out" "the clean repos are one row"
@@ -114,7 +114,7 @@ assert_not_contains "has not reported a session end" "$out" "a PC new to the boa
 
 echo "close: green, names what this session pushed, the claim released, the other PC's last save"
 ( cd "$T/seed-board" && q git pull -q --rebase && printf 'OPEN (2026-10-01):\n' > status/demo.md && q git commit -q -am "release" && q git push -q )
-out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" close --session=fixture-s1 2>&1); rc=$?
+out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" close --no-write --session=fixture-s1 2>&1); rc=$?
 assert_contains "| 🔦 **SAVED** | **EVERYTHING ON THIS PC IS ON GITHUB** |" "$out" "the green headline"
 assert_contains "| 📦 demo-dirty | pushed · 1 new commit |" "$out" "the repo this session pushed is a row, with how much"
 assert_not_contains "| 📦 demo-clean |" "$out" "a repo that did not move has no row of its own"
@@ -125,19 +125,65 @@ assert_contains "| 🖥️ PCB (HOME) | last seen starting a session " "$out" "t
 assert_contains " min ago, SAVED at that point |" "$out" "the other PC's last report: how long ago, and how it stood"
 [ "$rc" = "0" ] && ok "exit 0 when green" || fail "exit 0 when green (got $rc)"
 assert_not_contains "🪧" "$out" "no front-page row when no front page is set up"
-out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" close --session=never-started 2>&1)
+echo "close: work PULLED during the session is not this session's (0.99.2: the box had listed ~70 such repos)"
+( cd "$T/seed-clean" && echo c > c.txt && q git add c.txt && q git commit -q -m "another PC's work" && q git push -q )
+( cd "$T/A/clones/demo-clean" && q git pull -q --rebase )
+out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" close --no-write --session=fixture-s1 2>&1)
+assert_not_contains "| 📦 demo-clean |" "$out" "a repo that only pulled has no row"
+assert_contains "| 📦 demo-dirty | pushed · 1 new commit |" "$out" "the repo this session committed in still has its row"
+out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" close --no-write --session=never-started 2>&1)
 assert_contains "| 📦 all 4 repos | nothing to push |" "$out" "with no snapshot, nothing is claimed as pushed"
+
+echo "close: another session's commit in the same clone is not this session's (2026-11-05)"
+mine=$(git -C "$T/A/clones/demo-dirty" log -1 --format=%H --grep='^notes$')
+( cd "$T/A/clones/demo-dirty" && echo s2 > s2.cpp && q git add s2.cpp && q git commit -q -m "the other session" && q git push -q )
+theirs=$(git -C "$T/A/clones/demo-dirty" rev-parse HEAD)
+printf 'fixture-s1\t%s\nfixture-s2\t%s\n' "$mine" "$theirs" > "$T/session-commits.txt"
+out=$(LANES_SESSION_COMMITS="$TP/session-commits.txt" LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" close --no-write --session=fixture-s1 2>&1)
+assert_contains "| 📦 demo-dirty | pushed · 1 new commit |" "$out" "only the commit git noted for this session counts"
+out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" close --no-write --session=fixture-s1 2>&1)
+assert_contains "| 📦 demo-dirty | pushed · 2 new commits |" "$out" "with no notes from git, every commit made here since the start still counts"
+cell=$(cd "$HERE/.." && PYTHONIOENCODING=utf-8 "$PY" -c "import sys, handover; print(handover.inspector_check('on, no code was written', [{'repo': sys.argv[1], 'made': [sys.argv[2]]}]))" "$TP/A/clones/demo-dirty" "$theirs")
+assert_contains "this session committed 1 code file" "$cell" "an Inspector that saw no edits is not believed over a committed code file"
 
 echo "close: the front-page row of a repo this session pushed work to (0.94.2)"
 mkdir -p "$T/A/profile"; echo "# log" > "$T/A/profile/ACTIVITY.md"
 printf '| Project | Where it stands | Updated |\n| --- | --- | --- |\n| **Demo dirty** | [demo](https://github.com/someone/demo-dirty) worked on | 01-01 |\n' > "$T/A/profile/README.md"
 cp "$T/A/lanes.conf" "$T/A/lanes-fp.conf"; printf 'frontpage = %s\n' "$TP/A/profile/ACTIVITY.md" >> "$T/A/lanes-fp.conf"
 cp "$T/A/lanes-sessions/handover-fixture-s1.json" "$T/A/lanes-sessions/handover-fixture-fp.json"
-out=$(LANES_CONFIG="$TP/A/lanes-fp.conf" "$PY" "$TOOL" close --session=fixture-fp 2>&1)
+out=$(LANES_CONFIG="$TP/A/lanes-fp.conf" "$PY" "$TOOL" close --no-write --session=fixture-fp 2>&1)
 assert_contains "| 🪧 Front page | ⚠️ this session's work is not on its row yet: \"Demo dirty\" (01-01)." "$out" "a row older than today is named"
 sed -i "s/| 01-01 |/| $(date +%m-%d) |/" "$T/A/profile/README.md"
-out=$(LANES_CONFIG="$TP/A/lanes-fp.conf" "$PY" "$TOOL" close --session=fixture-fp 2>&1)
+out=$(LANES_CONFIG="$TP/A/lanes-fp.conf" "$PY" "$TOOL" close --no-write --session=fixture-fp 2>&1)
 assert_contains "| 🪧 Front page | 1 row refreshed today |" "$out" "a row dated today is fine"
+
+echo "close: writes this session's END on the board (2026-11-05: the end hook was always cut off, on both PCs)"
+out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" close --session=fixture-close 2>&1)
+assert_contains "on the board" "$out" "the close-out pushes its end report"
+case "$out" in *"on the board"*) ;; *) printf '%s\n' "$out" | grep -v '^|' | sed 's/^/        /' ;; esac
+git -C "$T/A/clones/board" fetch -q 2>/dev/null
+hb=$(git -C "$T/A/clones/board" show origin/main:handover/PCA.txt 2>&1)
+assert_contains "event = end" "$hb" "GitHub's record for this PC is an END"
+grep -q "^done fixture-close " "$T/A/lanes-sessions/end-log.txt" && ok "the end log says the end report finished" \
+  || fail "the end log says the end report finished"
+
+echo "the Lanes version: each report carries it, and a PC on another version is warned about (2026-11-05)"
+MINE=$("$PY" "$(dirname "$TOOL")/lanes_version.py")
+assert_contains "lanes = $MINE" "$hb" "the report says which Lanes this PC runs"
+out=$(LANES_CONFIG="$TP/B/lanes.conf" "$PY" "$TOOL" check 2>&1; LANES_CONFIG="$TP/B/lanes.conf" "$PY" "$TOOL" start --session=fixture-v1 2>&1)
+assert_not_contains "runs Lanes" "$out" "the same version on both PCs: no warning"
+# a third, pretend PC (each PC writes only its own file, so PCA's is never touched here)
+pcv() { ( cd "$T/seed-board" && q git pull -q --rebase && mkdir -p handover \
+  && printf 'machine = PCV\nrole = LAB\nlast_saved = %s\nevent = end\nstate = SAVED\n%s' "$(date '+%Y-%m-%d %H:%M %z')" "$1" > handover/PCV.txt \
+  && q git add handover && q git commit -q -m "handover: PCV (LAB) end, SAVED" && q git push -q ); }
+pcv "lanes = 0.0.1
+"
+out=$(LANES_CONFIG="$TP/B/lanes.conf" "$PY" "$TOOL" start --session=fixture-v2 2>&1)
+assert_contains "PCV runs Lanes 0.0.1, this PC runs $MINE: PCV is behind, update it" "$out" "a PC on an older Lanes is named"
+pcv ""
+out=$(LANES_CONFIG="$TP/B/lanes.conf" "$PY" "$TOOL" start --session=fixture-v3 2>&1)
+assert_contains "PCV runs a Lanes older than 0.100.0" "$out" "a report with no version is named as an older Lanes"
+( cd "$T/seed-board" && q git rm -q handover/PCV.txt && q git commit -q -m "drop the pretend PC" && q git push -q )
 
 echo "start: says when this PC's previous session stopped without its end report (0.94.2)"
 touch -d "2 hours ago" "$T/A/lanes-sessions/"handover-*.json
@@ -155,7 +201,7 @@ echo "a PC that keeps starting sessions with no end is warned about (0.94.2)"
 ( cd "$T/seed-board" && q git pull -q --rebase && mkdir -p handover \
   && printf 'machine = PCC\nrole = LAB\nlast_saved = %s\nevent = start\nstate = SAVED\n' "$(date '+%Y-%m-%d %H:%M %z')" > handover/PCC.txt \
   && q git add handover && GIT_COMMITTER_DATE="$(date -d "10 days ago" "+%Y-%m-%dT%H:%M:%S%z")" q git commit -q -m "handover: PCC (LAB) start, SAVED" && q git push -q )
-out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" close --session=fixture-s4 2>&1)
+out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" close --no-write --session=fixture-s4 2>&1)
 assert_contains "| 🖥️ PCC | ⚠️ PCC has not reported a session end on the board yet" "$out" "ten days of starts with no end is a warning row"
 assert_not_contains "PCB has not reported" "$out" "a PC new to the board still is not"
 [ -n "${HANDOVER_DEBUG:-}" ] && { echo "$out"; git -C "$T/seed-board" log --format="%cI %s" -3; }

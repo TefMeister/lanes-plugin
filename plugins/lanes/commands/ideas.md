@@ -1,5 +1,5 @@
 ---
-description: (Ideas) Files every idea waiting in the ideas repo - lines typed into DUMP.md and open issues - word for word into the permanent record, sorted onto each project's page, then copies them to the project so its next session shows them as a numbered list. The session-start check runs this for you whenever something is waiting. Never launches anything; safe beside every other lane.
+description: "(Ideas) Files every waiting idea from DUMP.md and open issues, word for word, onto each project's page."
 ---
 
 `/lanes:ideas` — **file the waiting ideas.** Ideas arrive whenever the person has them, often from a
@@ -80,3 +80,9 @@ The tool is `python "${CLAUDE_PLUGIN_ROOT}/tools/ideas.py"` (or `py` / `python3`
 `repos.tsv` decides where ideas go: one line per page, a tab, then the project repos it feeds. `*` means
 every project with a board file, a clone in the root and no `PAUSED` line on its board. `-` means none
 yet. `ideas_skip = repo-a repo-b` in `lanes.conf` keeps frozen projects out of `*`.
+
+## Last step: give back the clash guard's lock
+
+When this run ends, or stops early: `python "${CLAUDE_PLUGIN_ROOT}/tools/clash.py" release ideas`. The clash
+guard's hook took it when the run started, so nothing it must not run beside could start meanwhile (docs/CLASHES.md);
+the session's end gives it back too. Inside `/lanes:fullscan` too (it is harmless when nothing is held).

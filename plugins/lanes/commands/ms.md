@@ -1,5 +1,5 @@
 ---
-description: (Manual Session) Hands-on work on ONE project with the person at the keyboard (and in the headset, if there is one). The assistant prints a short numbered set of steps, the person does them and says "done" (or describes what they see, or pastes a screenshot), the assistant reads the result, writes code in between, and prints the next set. The assistant NEVER launches, drives, captures or closes the app in this lane. Same claim, pre-flight and write-up as /lm; only the hands differ.
+description: "(Manual Session) Hands-on work on ONE game with you at the keyboard or headset; Claude gives steps and never drives the game."
 ---
 
 `/ms` — **Manual Session.** The person does the hands-on work; you give the steps and write the code.
@@ -77,7 +77,7 @@ TELL ME: <the one or two things you need back: a number, yes/no, a screenshot, h
   anything is read or explained (0.50.0). They cannot tell when "enough" has arrived; the tick is the
   only signal. If the capture failed and they must keep holding, say that in one line instead.
 - **✅ The same for the app:** while you still need it open (to read its log), say "keep it running"; the moment
-  you do not, or a change needs a restart, the reply opens with `✅ **You can quit the game now.**` (0.56.0).
+  you do not, or a change needs a restart, the reply opens with `✅ **You can quit the game now.**` (0.56.0; since 0.105.0 the reply check hands a reply back when the tick is missing).
 - **After "done":** read the log, say in one or two plain lines what it means, do the code or data
   work that follows without narrating it, then print the next `NEXT` block.
 - **When a build must be swapped:** step 1 is "close the app", the swap happens in your turn, and the

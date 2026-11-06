@@ -93,6 +93,19 @@ def main():
     except Exception:
         return 0
     prompt = (data.get("prompt") or "").strip()
+    # A PC set up to run no apps (`runs_games = no`, e.g. a desk PC for tools and research) stops the lanes that
+    # launch one. Before 0.103.0 only the session's own reading of the rules stopped them (Run 5 A7, 2026-11-06).
+    g = re.match(r"^/(?:lanes:)?(lm|ms|bench|menu)\b(.*)$", prompt, re.S)
+    runs = os.environ.get("LANES_RUNS_GAMES")   # tests set this, so the PC's own setting never leaks into them
+    if runs is None:
+        runs = read_conf("runs_games") or ""
+    if g and runs.split("#")[0].strip().lower() in ("no", "off", "false", "0"):
+        if not any(t.lower() == "force" for t in g.group(2).split()):
+            sys.stderr.write(
+                "BLOCKED by lane-claim-guard: this PC is set up to run no apps (runs_games = no in lanes.conf), and /"
+                + g.group(1) + " launches or drives one. Run it on the PC that runs them; if you really mean it here, "
+                "type exactly:  /" + g.group(1) + " force " + g.group(2).strip() + "\n")
+            return 2
     # "/lanes:pd" is the same command as "/pd" - the front page tells people to type it that way.
     # Until 0.25.1 only the short form was matched, so the long form skipped this guard.
     # /ms (the manual session) takes the same claim as /lm; it was left out until the two-PC test of 2026-11-02.

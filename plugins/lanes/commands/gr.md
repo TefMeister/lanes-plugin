@@ -1,5 +1,5 @@
 ---
-description: (Guided Research) Public-research sweep across every project. Reads each project's own notes first, then the open web; curates ONLY that project's external-research/ folder, and hands everything else over as create-only inbox drops. Never launches the app. Safe beside every other lane.
+description: "(Guided Research) Public-research sweep across every project; writes only its own research folders and inbox drops."
 ---
 
 `/gr` — **the per-project research lane.**
@@ -107,5 +107,15 @@ check-in, and which were not reached at all.
 Stage only `external-research/` paths and your inbox drops. `git pull --rebase`, then push. Report
 what was swept, what was found, and what is now worth someone else's time.
 
+Then thank the people behind it (0.105.0): for every GitHub repo cited in this sweep's findings, run
+`python "${CLAUDE_PLUGIN_ROOT}/tools/thanks.py" add <owner/repo> --why "<the finding, a few words>"`. It stars the
+repo and follows its owner, and does nothing while the thanks extra is off.
+
 ⚠️ **Never cite or link a source that distributes material illegitimately**, even when researching
 a legitimate topic. Mainstream sources and legitimate tools only.
+
+## Last step: give back the clash guard's lock
+
+When this run ends, or stops early: `python "${CLAUDE_PLUGIN_ROOT}/tools/clash.py" release gr <project>` (`<project>` = the one project named when it started; leave it out for the whole sweep). The clash
+guard's hook took it when the run started, so nothing it must not run beside could start meanwhile (docs/CLASHES.md);
+the session's end gives it back too. Inside `/lanes:fullscan` too (it is harmless when nothing is held).

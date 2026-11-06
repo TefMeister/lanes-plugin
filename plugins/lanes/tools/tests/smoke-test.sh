@@ -350,17 +350,17 @@ assert_contains "Sam K" "$out" "and fills in the chosen name"
 LANES_CONFIG="$NR/lanes.conf" "$PY" "$TOOLS/display-name.py" clear >/dev/null
 out=$(LANES_CONFIG="$NR/lanes.conf" CLAUDE_PLUGIN_ROOT="$HERE/../.." bash "$HERE/../../hooks/name-rule")
 assert_contains '\"User\"' "$out" "and after clearing it, the person is User again"
-grep -q '"name-rule"\|name-rule' "$HERE/../../hooks/hooks.json" && ok "the naming hook is registered for session start" || fail "hooks.json does not run name-rule"
+grep -q 'name-rule' "$HERE/../../hooks/hooks.json" "$HERE/../../hooks/start-bundle.py" && ok "the naming hook is registered for session start" || fail "hooks.json does not run name-rule"
 
 # The talk rule (0.71.0): no "you are right"; check, then say what was found.
 out=$(CLAUDE_PLUGIN_ROOT="$HERE/../.." bash "$HERE/../../hooks/talk-rule")
 assert_contains "TALK RULE" "$out" "the session-start hook emits the talk rule"
 assert_contains "I checked" "$out" "and it says to check and report what was found"
-grep -q 'talk-rule' "$HERE/../../hooks/hooks.json" && ok "the talk hook is registered for session start" || fail "hooks.json does not run talk-rule"
+grep -q 'talk-rule' "$HERE/../../hooks/hooks.json" "$HERE/../../hooks/start-bundle.py" && ok "the talk hook is registered for session start" || fail "hooks.json does not run talk-rule"
 
 echo "the BeG0nE tools ship in the plugin, file, read and lock (0.62.0)"
 grep -q "begone-ride" "$HERE/../../hooks/hooks.json" && ok "hooks.json runs begone-ride" || fail "hooks.json does not run begone-ride"
-grep -q "begone-raw-guard.py" "$HERE/../../hooks/hooks.json" && ok "hooks.json runs the raw-number lock" || fail "hooks.json does not run begone-raw-guard.py"
+grep -q "begone-raw-guard.py" "$HERE/../../hooks/hooks.json" "$HERE/../../hooks/tool-guards.py" && ok "hooks.json runs the raw-number lock" || fail "hooks.json does not run begone-raw-guard.py"
 out=$(LANES_BEGONE_RIDE=0 bash "$HERE/../../hooks/begone-ride" 2>&1); rc=$?
 [ "$rc" = "0" ] && [ -z "$out" ] && ok "begone-ride is silent when switched off" || fail "begone-ride switched off: rc=$rc out=$out"
 n=$(ls "$HERE"/../../begone/*/tool.json 2>/dev/null | wc -l)
@@ -950,6 +950,58 @@ else
   fail "privacy-guard refused a clean line"
 fi
 rm -rf "$PGD"
+
+echo "collector.py - every launch of a project game is collected while it runs and shelved when it closes (lanes-next)"
+if out=$("$PY" "$HERE/collector_test.py" 2>&1); then
+  ok "$(printf '%s
+' "$out" | tail -n 1)"
+else
+  printf '%s
+' "$out" | grep FAIL
+  fail "collector_test.py failed"
+fi
+
+echo "rider.py - the BeG0nE rider lives through a held file, a broken filer and a failed pass; game=? is never a folder"
+if out=$("$PY" "$HERE/rider_test.py" 2>&1); then
+  ok "$(printf '%s
+' "$out" | tail -n 1)"
+else
+  printf '%s
+' "$out" | grep FAIL
+  fail "rider_test.py failed"
+fi
+
+echo
+echo "autosave.py - the rider saves its own reports and nothing else; busy git or a dirty clone is left alone"
+if out=$("$PY" "$HERE/autosave_test.py" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "autosave_test.py failed"
+fi
+
+echo
+echo "fullscan_lock.py - one full scan at a time, held on GitHub; a left-over claim expires"
+if out=$("$PY" "$HERE/fullscan_lock_test.py" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "fullscan_lock_test.py failed"
+fi
+
+echo
+echo "clash.py - what must not run at the same time is kept apart, on one PC and across both (lanes-next)"
+if out=$("$PY" "$HERE/clash_test.py" 2>&1); then
+  ok "$(printf '%s
+' "$out" | tail -n 1)"
+else
+  printf '%s
+' "$out" | grep FAIL
+  fail "clash_test.py failed"
+fi
+if out=$("$PY" "$TOOLS/clash.py" audit 2>&1); then ok "$out"; else printf '%s
+' "$out"; fail "clash.py audit"; fi
+if out=$("$PY" "$TOOLS/clash.py" doc --check 2>&1); then ok "$out"; else fail "$out"; fi
 
 echo
 if [ "$FAILED" -eq 0 ]; then

@@ -7,7 +7,7 @@
 
 WHAT IT TAKES AWAY, in this order (each one only if it is there):
   1. BeG0nE's background rider is stopped (BeG0nE itself, a separate project, stays where it is)
-  2. the automatic OBS recorder is taken out of Windows' Startup folder and stopped (obs-autorec.py uninstall)
+  2. the old automatic OBS recorder's Startup shortcut, if an older Lanes left one (the recorder was retired in 0.105.0)
   3. the "Lanes" Desktop shortcut (shortcut.py remove)
   4. the terminal look: the terminal profile and Claude Code's theme go back as they were (theme.py restore)
   5. Lanes' own state folder (~/.claude/lanes: theme files, setup answers, update checks) and the reader log
@@ -123,8 +123,8 @@ def items():
     return [
         ("rider", os.path.isfile(RIDER_PID),
          "the BeG0nE rider (started by Lanes each session)", "stopped and out of Startup; its reports stay"),
-        ("autorec", os.path.isfile(STARTUP_LNK), "the automatic OBS recorder in Windows' Startup folder",
-         "taken out of Startup and stopped"),
+        ("autorec", os.path.isfile(STARTUP_LNK), "an older Lanes' automatic OBS recorder shortcut in Windows' Startup folder",
+         "taken out of Startup"),
         ("shortcut", bool(shortcut) and os.path.isfile(shortcut), "the 'Lanes' Desktop shortcut", "deleted"),
         ("theme", bool(theme.get("applied")), "the green-monitor terminal look",
          "the terminal and Claude Code's theme go back to how they were"),
@@ -176,7 +176,13 @@ def do(keep_settings, keep_plugin):
     if present["rider"]:
         step("BeG0nE rider stopped", *run_tool([RIDER, "uninstall"]))
     if present["autorec"]:
-        step("OBS auto-recorder out of Startup", *run_tool([os.path.join(HERE, "obs-autorec.py"), "uninstall"]))
+        # 0.105.0: obs-autorec.py is retired, so its Startup shortcut is removed here directly
+        try:
+            if not DRY_TOOLS:
+                os.remove(STARTUP_LNK)
+            step("old OBS auto-recorder shortcut out of Startup", True, "(test: not removed)" if DRY_TOOLS else "")
+        except OSError as e:
+            step("old OBS auto-recorder shortcut out of Startup", False, str(e))
     if present["shortcut"]:
         step("Desktop shortcut removed", *run_tool([os.path.join(HERE, "shortcut.py"), "remove"]))
     if present["theme"]:

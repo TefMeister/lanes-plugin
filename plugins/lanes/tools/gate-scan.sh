@@ -126,8 +126,8 @@ git -C "$MEM" rev-parse --verify -q "$REF" >/dev/null 2>&1 || REF=HEAD
 
 TODAY=$(date +%F)
 
-ITEMS=$(mktemp); VIOL=$(mktemp); IDLE=$(mktemp); CUR=$(mktemp); CLAIMS=$(mktemp)
-trap 'rm -f "$ITEMS" "$VIOL" "$IDLE" "$CUR" "$CLAIMS"' EXIT
+ITEMS=$(mktemp); VIOL=$(mktemp); IDLE=$(mktemp); CUR=$(mktemp); CLAIMS=$(mktemp); PINS=$(mktemp)
+trap 'rm -f "$ITEMS" "$VIOL" "$IDLE" "$CUR" "$CLAIMS" "$PINS"' EXIT
 
 # ---- which machine am I, and what is mine? --------------------------------
 # Roles are labels you choose; machine-assignments.tsv maps each project to the
@@ -171,11 +171,37 @@ owner_of() {
   echo "$fallback"
 }
 
-# Is this row mine? BOTH hardware tags are ALWAYS the hardware machine's - only
-# matter who owns the project.
+# conf_value <key> -> the value of `key = value` in lanes.conf (comment cut off), or nothing
+conf_value() {
+  local conf="${LANES_CONFIG:-$HOME/.claude/lanes.conf}"
+  [ -f "$conf" ] || return 0
+  sed -n "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*//p" "$conf" | head -1 | sed 's/[[:space:]]*#.*//; s/[[:space:]]*$//' | tr -d '\r'
+}
+# Which PC runs the apps (0.103.0, Run 5): `runs_games = no` on a PC keeps every [FLAT] and headset row off it, and
+# `games_role = <role>` gives every [FLAT] row to the PC with that role, whoever owns the project (the two-PC split of
+# 2026-11-04: one PC runs every game). Neither set: as before (a [FLAT] row is its project owner's).
+RUNS_APPS="$(conf_value runs_games | tr '[:upper:]' '[:lower:]')"
+APPS_ROLE="$(conf_value games_role | tr '[:lower:]' '[:upper:]')"
+case "$RUNS_APPS" in no|off|false|0) RUNS_APPS=no ;; *) RUNS_APPS=yes ;; esac
+[ -n "${GATE_RUNS_GAMES:-}" ] && RUNS_APPS="$GATE_RUNS_GAMES"     # test fixture override
+[ -n "${GATE_GAMES_ROLE:-}" ] && APPS_ROLE="$GATE_GAMES_ROLE"
+
+# Is this row mine? BOTH hardware tags are ALWAYS the hardware machine's - no
+# matter who owns the project. A row may pin itself to one machine inside its tag
+# ([PD @home], [FLAT @dev]); that overrides machine-assignments.tsv for that row only.
 row_is_mine() {
-  local tag="$1" proj="$2"
+  local tag="$1" proj="$2" text="${3:-}" pin
+  # PAUSED in machine-assignments.tsv: nobody's, on either PC, pins and hardware rows included.
+  [ "$(owner_of "$proj")" = "PAUSED" ] && return 1
+  case "$tag" in FLAT|VR-CLAUDE|VR-USER) [ "$RUNS_APPS" = no ] && return 1 ;; esac
   case "$tag" in VR-CLAUDE|VR-USER) [ "$ROLE" = "HOME" ]; return ;; esac
+  # Only projects that have a pin pay for the lookup; ENVIRON, not -v, because -v eats backslashes.
+  pin=""
+  if grep -qF "$proj"$'\t' "$PINS"; then
+    pin=$(GS_P="$proj" GS_T="$text" awk -F'\t' '$1==ENVIRON["GS_P"] && $2==ENVIRON["GS_T"] {print $3; exit}' "$PINS")
+  fi
+  if [ -n "$pin" ]; then [ "$pin" = "$ROLE" ]; return; fi
+  if [ "$tag" = FLAT ] && [ -n "$APPS_ROLE" ]; then [ "$APPS_ROLE" = "$ROLE" ]; return; fi
   [ "$(owner_of "$proj")" = "$ROLE" ]
 }
 
@@ -238,12 +264,19 @@ while IFS= read -r f; do
   odate=$(printf '%s' "$hit" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1)
 
   rows=0
+  used=0      # lines the block takes up, rows and their wrapped lines (the staleness check skips them)
   if printf '%s' "$hit" | grep -qE ':[[:space:]]*none[[:space:]]*$'; then
     printf '%s\n' "$proj" >> "$IDLE"
   else
     while IFS= read -r row; do
+      # 2026-11-05 (dev PC, after the home PC hid SH2's rows): a row wrapped onto indented
+      # lines, or a done line ("  ✅ ...") inside the block, used to END the block, and every
+      # row below it silently dropped off the board (28 boards, up to 123 rows each). Now
+      # an indented line that is not a new row belongs to the block and is skipped; only a
+      # blank line or a line at the left edge ends it.
       case "$row" in
-        "  ["*) ;;
+        "  ["*) used=$((used+1)) ;;
+        " "*)   used=$((used+1)); continue ;;
         *) break ;;
       esac
       raw=${row#"  ["}
@@ -278,10 +311,27 @@ while IFS= read -r f; do
         printf '  %-28s a [%s] row has no text\n' "$proj" "$base" >> "$VIOL"
       fi
       printf '%s\t%s\t%s\n' "$base" "$proj" "$item" >> "$ITEMS"
+      # A row pinned to one machine inside its tag: [PD @home], [FLAT @dev] (carried over from the original board
+      # tool, where it arrived 2026-10-04; the Lanes copy never had it, Run 5 2026-11-06).
+      case "$upper" in
+        *@HOME*) printf '%s\t%s\tHOME\n' "$proj" "$item" >> "$PINS" ;;
+        *@DEV*)  printf '%s\t%s\tDEV\n'  "$proj" "$item" >> "$PINS" ;;
+      esac
       rows=$((rows+1))
     done < <(printf '%s\n' "$body" | tail -n +$((ln+1)))
     if [ "$rows" -eq 0 ]; then
       printf '  %-28s OPEN block has no rows (write ": none" if idle)\n' "$proj" >> "$VIOL"
+    fi
+    # 2026-11-05: done lines put INSIDE the OPEN block ended it early, and every row below
+    # them silently dropped off the board. Same for a row wrapped onto a second line.
+    # A blank line is the proper end (paused boards keep "Parked rows" after one). A line at the
+    # left edge is not: any tag rows right after it are rows the board is not counting.
+    stop=$((ln + 1 + used))
+    lost=$(printf '%s\n' "$body" | tail -n +"$stop" |
+      awk 'NR==1{if ($0 ~ /^[[:space:]]*$/) exit; next} /^[[:space:]]*$/ || /^[^ ]/{exit} /^  \[/{n++} END{print n+0}')
+    if [ "$lost" -gt 0 ]; then
+      printf '  %-28s OPEN block ends early at line %s (a line at the left edge): %s row(s) below it are not counted; indent everything inside the block\n' \
+        "$proj" "$stop" "$lost" >> "$VIOL"
     fi
   fi
 
@@ -297,7 +347,7 @@ while IFS= read -r f; do
   #     check is one nobody reads.
   #  3. Take the max of what remains, not the first, since a status file may be ordered
   #     oldest-first while every other status file is newest-first.
-  newest=$(printf '%s\n' "$body" | tail -n +$((ln+1+rows)) |
+  newest=$(printf '%s\n' "$body" | tail -n +$((ln+1+used)) |
            grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | sort -r |
            awk -v t="$TODAY" '$0<=t { print; exit }')
   if [ -n "$newest" ] && [[ "$newest" > "$odate" ]]; then
@@ -428,12 +478,12 @@ mine_rows() {
   local tag proj text
   while IFS=$'	' read -r tag proj text; do
     [ -n "${tag:-}" ] || continue
-    row_is_mine "$tag" "$proj" && printf '%s\t%s\t%s\n' "$tag" "$proj" "$text"
+    row_is_mine "$tag" "$proj" "$text" && printf '%s\t%s\t%s\n' "$tag" "$proj" "$text"
   done < "$ITEMS"
 }
 
 if [ "$MODE" = mine ] || [ "$MODE" = next ]; then
-  MINE=$(mktemp); trap 'rm -f "$ITEMS" "$VIOL" "$IDLE" "$CUR" "$CLAIMS" "$MINE"' EXIT
+  MINE=$(mktemp); trap 'rm -f "$ITEMS" "$VIOL" "$IDLE" "$CUR" "$CLAIMS" "$PINS" "$MINE"' EXIT
   mine_rows > "$MINE"
 
   if [ "$MODE" = next ]; then

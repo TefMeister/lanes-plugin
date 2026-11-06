@@ -1,5 +1,5 @@
 ---
-description: (Setup) First-run walk-through - first asks what name sessions should call you in notes and on GitHub (default "User") and what to call this PC (default PC1, PC2 ...), then the optional tools the lanes use - Git, Python, build tools, debuggers and decompilers with their MCP servers, Blender + Blender MCP, gamepad and VR runtimes, and our Hand Freeze app. For each missing tool it offers to install it for you, or gives you the official link to do it yourself, or skips it. Safe to re-run any time; it only ever adds what you say yes to.
+description: "(Setup) First-run walk-through: your name and this PC's name, then each optional tool, installed only on your yes."
 ---
 
 `/lanes:setup` walks the user through **optional** tools, one group at a time. The catalog, with
@@ -411,3 +411,9 @@ repeating every session. Then report:
 Re-running `/lanes:setup` later is always safe: it only asks about what is still missing. To change
 the display name later: `display-name.py set "<name>"`, or `display-name.py clear` to go back to "User".
 To rename this PC: `machine-name.py set "<name>"`.
+
+## Last step: give back the clash guard's lock
+
+When this run ends, or stops early: `python "${CLAUDE_PLUGIN_ROOT}/tools/clash.py" release setup`. The clash
+guard's hook took it when the run started, so nothing it must not run beside could start meanwhile (docs/CLASHES.md);
+the session's end gives it back too. Inside `/lanes:fullscan` too (it is harmless when nothing is held).

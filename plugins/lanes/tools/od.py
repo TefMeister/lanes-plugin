@@ -155,9 +155,20 @@ def scan(as_json):
     return 0
 
 
+def _clash_step(job, project="all"):
+    """hold this tool's job against a clash (clash.step, 0.103.0)"""
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import clash
+    except Exception:  # noqa: BLE001
+        return
+    clash.step(job, project)
+
+
 def main(argv):
     lanes_common.utf8_console()
     if argv and argv[0] == "scan":
+        _clash_step("od")
         return scan("--json" in argv)
     print(__doc__)
     return 0 if not argv or argv[0] in ("-h", "--help") else 2

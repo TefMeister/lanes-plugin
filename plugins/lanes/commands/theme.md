@@ -1,5 +1,5 @@
 ---
-description: (Theme) The look the plugin ships with - an old green monitor and the Lanes banner faint behind the text, still by default (a moving light is one switch away), in Windows Terminal. The first session after installing puts it on by itself; this command puts it on again, replaces a look you had before, or puts everything back the way it was. Safe beside every other lane.
+description: "(Theme) Puts the Lanes terminal look on, swaps it, or puts everything back the way it was."
 ---
 
 `/lanes:theme` is the plugin's look: the `green-monitor-lanes` style from the
@@ -48,3 +48,9 @@ The tool is `python "${CLAUDE_PLUGIN_ROOT}/tools/theme.py"`; read its `--help` o
   how to get the moving light back; a look the user picked since, or a moving light they chose, is never touched.
 - The style, the shader's tuning numbers and the other styles live in the terminal-themes repo; a
   different picture goes in through `experimental.pixelShaderImagePath`, as its README says.
+
+## Last step: give back the clash guard's lock
+
+When this run ends, or stops early: `python "${CLAUDE_PLUGIN_ROOT}/tools/clash.py" release theme`. The clash
+guard's hook took it when the run started, so nothing it must not run beside could start meanwhile (docs/CLASHES.md);
+the session's end gives it back too. Inside `/lanes:fullscan` too (it is harmless when nothing is held).

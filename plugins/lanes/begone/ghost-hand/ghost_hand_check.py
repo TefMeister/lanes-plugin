@@ -40,6 +40,13 @@ LAG_MIN_TRAVEL_M = 0.5        # a hand must have travelled this much in all befo
 GUN_MOVED_M = 0.03            # the gun hand moving more than this during a gesture is worth saying
 WANDER_HIGH_M = 0.03          # the gap wandering more than this (95th percentile) from its usual size is worth saying
 MIN_FRAMES = 60               # fewer frames than this: no verdict
+# ⚠️ 2026-11-05 (dev PC, Gold Digger test): 97 of 252 Village reports said a hand "wanders up to 15629.5 cm" and were
+# all marked quality GOOD. A drawn hand cannot sit metres from its controller: the two were logged in different spaces
+# (the game's hand in the world, the controller in the room), so the gap grew with every step the player walked.
+# And Hard Reset's reports gave a gap of exactly 0.0 cm all session: the same point logged twice. Both are now
+# quality "suspect", and the report says why, instead of reading as a clean bill of health.
+SPACES_DIFFER_M = 2.0         # a usual gap or a 95% wander beyond this: the two positions are not in one space
+SAME_POINT_M = 0.0005         # gaps never above this (the whole session): the game's hand IS the controller value
 MAX_LIST = 40                 # an answer never lists more than this
 MAX_SAMPLES = 25              # frames shown for one attempt
 REPORT_MISSES = 15            # misses listed in report.md
@@ -263,7 +270,24 @@ def judge(head, frames, events):
     s["attempts"] = attempts(frames, events, j, t)
     s["quality"] = "good"
     s["verdict"] = verdict(s)
+    why = suspect(s["hands"])
+    if why:
+        s["quality"] = "suspect"
+        s["verdict"] = "Numbers not to be trusted: " + why + " " + s["verdict"]
     return s
+
+
+def suspect(hands):
+    """Why the hand numbers cannot be real, or '' when they can be."""
+    far = [("left" if side == "L" else "right") for side, h in hands.items()
+           if h["usual_m"] > SPACES_DIFFER_M or h["wander_p95_m"] > SPACES_DIFFER_M]
+    if far:
+        return (f"the game's {' and '.join(far)} hand sits metres from its controller, so the two were logged in "
+                f"different spaces (world and room); every gap, wander and jump below is off by the player's walking.")
+    if hands and all(h["usual_m"] <= SAME_POINT_M and h["wander_max_m"] <= SAME_POINT_M for h in hands.values()):
+        return ("the game's hand and the controller were the same point all session, so the mod logged one value "
+                "twice; nothing here says where the game drew the hand.")
+    return ""
 
 
 def verdict(s):
@@ -473,6 +497,23 @@ def _synth(path, case, hz=90.0, racks=6):
             lines += [f"{us} R L 1 0.0 0.0 0.30\n", f"{us} R R 1 0.0 0.0 0.0\n", f"{us} G L 0.02 0.0 0.30\n", f"{us} F\n"]
             t += dt
     lines.append("#end\n")
+    if case in ("spaces", "same"):
+        # spaces: the game's hand logged in the world while the player walks 1.5 m/s (the 2026-11-05 Village fault);
+        # same: the game's hand logged as the controller's own value (the Hard Reset fault).
+        last_real, out = {}, []
+        for ln in lines:
+            p = ln.split()
+            if len(p) >= 7 and p[1] == "R" and p[2] == "L":
+                last_real[p[0]] = p[4:7]
+            if len(p) >= 6 and p[1] == "G":
+                x, y, z = (float(v) for v in p[3:6])
+                if case == "spaces":
+                    x += 1.5 * int(p[0]) / 1e6
+                else:
+                    x, y, z = (float(v) for v in last_real.get(p[0], p[3:6]))
+                ln = f"{p[0]} G {p[2]} {x:.4f} {y:.4f} {z:.4f}\n"
+            out.append(ln)
+        lines = out
     with open(path, "w", encoding="utf-8") as f:
         f.writelines(lines)
 
@@ -487,7 +528,7 @@ def selftest():
         failed += not cond
         print(("ok   " if cond else "FAIL ") + name + ("" if cond else "   verdict: " + s["verdict"]))
 
-    for case in ("clean", "gun", "lost", "lag", "jump"):
+    for case in ("clean", "gun", "lost", "lag", "jump", "spaces", "same"):
         p = os.path.join(tmp, case + ".ghl")
         _synth(p, case)
         s = check(p)
@@ -506,6 +547,14 @@ def selftest():
         elif case == "jump":
             ok("jump: the game's hand jump is found and blamed", any(x["who"] == "game" for x in s["jumps"])
                and any(x["why"].startswith("a hand jumped") for x in a), s)
+        elif case == "spaces":
+            ok("spaces: a hand metres from its controller is quality suspect, not good",
+               s["quality"] == "suspect" and "different spaces" in s["verdict"], s)
+        elif case == "same":
+            ok("same: the hand logged as the controller's own value is quality suspect",
+               s["quality"] == "suspect" and "same point" in s["verdict"], s)
+        if case in ("clean", "gun", "lost", "lag", "jump"):
+            ok(case + ": an honest log stays quality good", s["quality"] == "good", s)
     # filing and asking go through the same path a real session uses
     home = os.path.join(tmp, "home")
     p = os.path.join(tmp, "gun.ghl")

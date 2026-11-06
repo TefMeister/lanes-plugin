@@ -210,7 +210,6 @@ is used by the commands. Full rules: `docs/PROTOCOL.md`.
 | `/lanes:setup` | This walk-through: your name for notes, this PC's name, and every optional tool above |
 | `/lanes:update` | Checks for a newer Lanes, says in plain words what it adds, and updates it on your yes; also checks Hand Freeze, the simulator, VR Bench, our other apps and the other makers' tools for newer versions |
 | `/lanes:theme` | Puts on the plugin's look in Windows Terminal (an old green monitor with the Lanes banner faint behind the text), or puts your old look back |
-| `/lanes:pt` | Tests the plugin itself against real work, from the installed copy, and writes only to the plugin's own repo |
 | `/lanes:uninstall` | Takes Lanes off this PC in one go after showing what it will do, leaving your own work and the tools setup installed alone |
 | the `lanes` skill | The short rulebook a session reads when it needs it: which session may edit which file, how to hand a finding to another lane, what a board tag means |
 

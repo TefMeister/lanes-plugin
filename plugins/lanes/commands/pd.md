@@ -1,5 +1,5 @@
 ---
-description: (Parallel Development) Advances a project as far as it can WITHOUT the app running - static analysis, code that can be written and compile-verified now, and unblocking work recorded as blocked. Never launches anything. Shares a lane with /lm, so it must not run against a job another session holds.
+description: "(Parallel Development) Moves a project on with no game running: static analysis and code that can be compile-checked now."
 ---
 
 `/pd` — **Parallel Development**. Do everything that does **not** need the app running, so that the

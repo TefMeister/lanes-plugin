@@ -179,13 +179,45 @@ def open_issues(ideas):
         return []
 
 
+STALE_GIT_LOCK_S = 3600
+PULL_TIMEOUT_S = 20             # the start-up hook that runs this gets 30 s
+
+
 def cmd_check(a, ctx):
     """Silent unless something waits. Never fails: a hook that errors gets switched off."""
     ideas = ctx["ideas"]
     if not ideas or not (ideas / ".git").exists():
         return
-    subprocess.run(["git", "-C", str(ideas), "pull", "--ff-only", "--quiet"],
-                   capture_output=True, timeout=30)
+    # 0.103.0 (Run 5 A5): a pull cut off half-way left a lock file, every later pull failed, and this check stayed
+    # silent for 21 h, so phone ideas sat unseen. A lock file over an hour old is left over (no git step takes that
+    # long): it goes. A pull that still fails is said, never silent.
+    import time
+    for lock in list((ideas / ".git").glob("*.lock")) + list((ideas / ".git" / "refs").rglob("*.lock")):
+        try:
+            if time.time() - lock.stat().st_mtime > STALE_GIT_LOCK_S:
+                lock.unlink()
+                print(f"IDEAS CHECK: removed a left-over git lock file ({lock.name}) from the ideas repo copy; "
+                      "a download had been cut off half-way.")
+        except OSError:
+            pass
+    # an ideas repo kept on this PC only (no branch on GitHub to follow) has nothing to download: no warning
+    up = subprocess.run(["git", "-C", str(ideas), "rev-parse", "--abbrev-ref", "@{u}"], capture_output=True, text=True)
+    try:
+        if up.returncode != 0:
+            raise FileNotFoundError
+        r = subprocess.run(["git", "-C", str(ideas), "pull", "--ff-only", "--quiet"],
+                           capture_output=True, text=True, timeout=PULL_TIMEOUT_S)
+        failed = r.returncode != 0
+        errs = (r.stderr or "").strip().splitlines()
+        why = (next((l for l in errs if l.lower().startswith(("fatal", "error"))), errs[0] if errs else "no reason given")
+               .replace("fatal: ", "").replace("error: ", ""))[:160]
+    except subprocess.TimeoutExpired:
+        failed, why = True, "it took longer than %d s" % PULL_TIMEOUT_S
+    except FileNotFoundError:
+        failed, why = False, ""
+    if failed:
+        print("IDEAS CHECK: could NOT download the ideas repo (%s), so ideas typed on the phone since the last "
+              "download may be waiting unseen. Say so in one line; run /lanes:ideas when it downloads again." % why)
     n_dump, n_iss = len(waiting_lines(ideas)), (0 if a.no_issues else len(open_issues(ideas)))
     if not n_dump and not n_iss:
         return
@@ -487,6 +519,13 @@ def main():
     if not ctx["ideas"] or not ctx["ideas"].is_dir():
         sys.exit("ideas.py: no ideas repo configured. Add `ideas = /path/to/your-ideas-repo` to "
                  "~/.claude/lanes.conf (template-ideas/ in the plugin is a ready-made one).")
+    if a.cmd in ("clear", "sync", "pick", "done"):     # filing: two at once would file twice (0.103.0)
+        try:
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+            import clash
+            clash.step("ideas")
+        except ImportError:
+            pass
     {"waiting": cmd_waiting, "issues": cmd_issues, "clear": cmd_clear, "sync": cmd_sync,
      "list": cmd_list, "pick": cmd_pick, "done": cmd_done}[a.cmd](a, ctx)
 

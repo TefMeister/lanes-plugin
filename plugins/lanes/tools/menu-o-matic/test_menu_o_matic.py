@@ -153,7 +153,12 @@ check("judge: moving and answering a key = gameplay", S.judge(dict(base, poke_an
 check("judge: moving but not answering = cutscene", S.judge(dict(base, poke_answer=0.0))[0] == "cutscene")
 # 2026-11-02, RE2: frozen at its loading text: every pixel still, no disk, 2.0 cores busy, Windows still "responding"
 still = dict(base, motion=0.0, motion_anywhere=0.0, disk_mb_s=0.0)
-check("judge: still, no disk, cores burning = frozen", S.judge(dict(still, cpu_cores=2.0, in_front=True, hung=False))[0] == "frozen")
+# 2026-11-04, Village: an idle player in gameplay reads exactly the same (still, no disk, 3.8 cores) and the window answers;
+# so without a poke it is "still" (idle or frozen), and a poke that changes nothing makes it "frozen"
+check("judge: still, no disk, cores burning, no poke = still (idle or frozen)",
+      S.judge(dict(still, cpu_cores=2.0, in_front=True, hung=False))[0] == "still")
+check("judge: still, no disk, cores burning, a poke changes nothing = frozen",
+      S.judge(dict(still, cpu_cores=2.0, in_front=True, hung=False, poke_answer=0.0))[0] == "frozen")
 check("judge: Windows says not answering = frozen", S.judge(dict(still, hung=True))[0] == "frozen")
 check("judge: still and not in front = paused", S.judge(dict(still, cpu_cores=0.1, in_front=False, hung=False))[0] == "paused")
 check("judge: still, in front, quiet = still", S.judge(dict(still, cpu_cores=0.4, in_front=True, hung=False))[0] == "still")

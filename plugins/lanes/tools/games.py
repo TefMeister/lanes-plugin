@@ -79,23 +79,52 @@ def pc_name(c):
     return c.get("machine_name") or "this-pc"
 
 
-def live_root(c):
-    # 2026-10-29: the conf's own `root` first. The board's parent was the whole rule before, and on a PC whose board
-    # clone sits in the home folder (not inside the clone root) every project read as GONE (38 warnings a session).
+def root_candidates(c):
+    """Folders that may hold the project clones, in order of preference: the conf's `root`, the board's parent, the
+    parent of the clone the record folder sits in."""
+    out = []
     root = c.get("root", "")
     if root and os.path.isdir(root):
-        return os.path.abspath(root)
+        out.append(os.path.abspath(root))
     board = c.get("board", "")
     if board and os.path.isdir(board):
-        return os.path.dirname(os.path.abspath(board))
+        out.append(os.path.dirname(os.path.abspath(board)))
     rec = c.get("games_record", "")
     # the record folder sits inside a clone; that clone's parent is a root of clones
     d = os.path.abspath(rec) if rec else ""
     while d and os.path.dirname(d) != d:
         if os.path.isdir(os.path.join(d, ".git")):
-            return os.path.dirname(d)
+            out.append(os.path.dirname(d))
+            break
         d = os.path.dirname(d)
-    return ""
+    seen, uniq = set(), []
+    for r in out:
+        k = os.path.normcase(r)
+        if k not in seen:
+            seen.add(k)
+            uniq.append(r)
+    return uniq
+
+
+def live_root(c, mapping=None):
+    # 2026-11-05: the candidate root that holds MOST of the listed projects wins (ties: the earlier one). One fixed
+    # order cannot fit both PCs: the home PC's board sits in the home folder, so the board's parent called all 38
+    # projects GONE (until 10-29); the dev PC's `root =` is its sweep root, so `root` first called every project
+    # cloned since the last sweep GONE (visceral-re4-vr, 11-05).
+    cands = root_candidates(c)
+    if not cands:
+        return ""
+    if mapping is None:
+        mapping = read_map(c.get("games_record", "")) if c.get("games_record") else {}
+    names = [p for p in mapping if mapping[p][0] != "none"] or list(mapping)
+    if not names:
+        return cands[0]
+    best, best_n = cands[0], -1
+    for r in cands:
+        n = sum(1 for p in names if os.path.isdir(os.path.join(r, p)))
+        if n > best_n:
+            best, best_n = r, n
+    return best
 
 
 def read_tsv(path):

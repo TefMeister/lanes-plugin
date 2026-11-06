@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# SessionStart hook: which Lanes this session runs, as the first line of the first reply (0.101.0, 2026-11-05).
+# The maintainer: "can you, in the beginning of the session show which Lanes version the session is running?"
+# Two PCs ran different versions for days (0.95.0 and 0.99.1) and nobody could tell from the session itself.
+# A copy loaded from a git clone on a test branch (lanes-next) says so. Silent on every failure path.
+set -uo pipefail
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+PY=""
+for cand in python3 python py; do
+  command -v "$cand" >/dev/null 2>&1 || continue
+  "$cand" -c "" >/dev/null 2>&1 || continue
+  PY="$cand"; break
+done
+[ -n "$PY" ] || exit 0
+# 0.103.0: where this Lanes runs from, for tools outside it (a game's test runner, the /sp command) that need its tools.
+# Before this they guessed the newest folder in the plugin cache, which is often an older version (2026-11-05/06).
+ACTIVE="${LANES_STATE_DIR:-$HOME/.claude/lanes}/active-root.txt"
+mkdir -p "$(dirname "$ACTIVE")" 2>/dev/null
+if command -v cygpath >/dev/null 2>&1; then cygpath -w "$PLUGIN_ROOT" > "$ACTIVE" 2>/dev/null; else printf '%s
+' "$PLUGIN_ROOT" > "$ACTIVE" 2>/dev/null; fi
+"$PY" "${PLUGIN_ROOT}/tools/features.py" is-on version_line >/dev/null 2>&1 || exit 0
+
+line="$(PYTHONIOENCODING=utf-8 "$PY" "${PLUGIN_ROOT}/tools/lanes_version.py" line 2>/dev/null)"
+[ -n "$line" ] || exit 0
+printf 'LANES VERSION: this session runs %s. Put exactly this as the FIRST line of your first reply, on its own line, before anything else: %s' \
+  "${line#🏷️ }" "$line" | "$PY" "${SCRIPT_DIR}/emit_context.py"
+exit 0

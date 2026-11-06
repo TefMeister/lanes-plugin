@@ -1,5 +1,5 @@
 ---
-description: (Gold Digger) Reads what earlier runs left on the shelves - game logs, mod logs, BeG0nE reports - one shelf at a time, folds the repeats away, and hands every new fact to the notes, boards and tools it belongs to. Never launches anything, never deletes anything. Safe beside every other lane.
+description: "(Gold Digger) Reads the logs and reports earlier runs left on the shelves and hands each new fact to the notes."
 ---
 
 `/gd` — **Gold Digger: find the few useful lines in a mountain of logs.** Asked for by the maintainer, 2026-10-24
@@ -14,10 +14,11 @@ only that shelf. Empty reads every game with something waiting.
 
 Every run's leftovers are **shelved** without a model: `tools/gd.py shelve` copies a game's logs and new BeG0nE
 reports onto shelves (camera, jitter, hands, guns, first-person, enemies, menus, hud, sound, crashes, performance,
-logs, other) in the Gold Digger folder (`gd.py where`; the synced transfer folder, so both PCs see everything). The
+runs, logs, other) in the Gold Digger folder (`gd.py where`; the synced transfer folder, so both PCs see everything). The
 session hooks do it at the start and end of every session, and `/lm` and `/ms` do it right after closing a game. A
 game's places are set once per PC with `gd.py sources <game> add <glob> [<shelf>]`; a session that finds a log the
-list does not have adds it.
+list does not have adds it. The always-on collector (PROTOCOL section 44) shelves every launch of a project game by
+itself, run card on the `runs` shelf, samples on `performance`.
 
 ## 1. Rules
 
@@ -45,9 +46,12 @@ notes do not already say.
 
 ## 3. Read one shelf at a time
 
-For each waiting item on the shelf, oldest first:
+Start with the digest: every unread copy against every earlier copy of the same kind, so the copies that are only
+repeats are counted and skipped and only lines nothing before had are shown (warnings first; tables as their bad
+minutes). Then open single items with `fold` where the digest points:
 
 ```bash
+python "${CLAUDE_PLUGIN_ROOT}/tools/gd.py" digest <game> <shelf>             # start here: only what is new
 python "${CLAUDE_PLUGIN_ROOT}/tools/gd.py" fold <item>                       # repeats folded, warnings marked W
 python "${CLAUDE_PLUGIN_ROOT}/tools/gd.py" fold <item> --against <older item from the same place>   # only what is new
 ```
@@ -78,3 +82,9 @@ Commit only the files you wrote, `git pull --rebase`, push.
 ## 5. Report
 
 Short and plain: per game, which shelves were read, and the few things found (or "nothing new"). Then the close-out box.
+
+## Last step: give back the clash guard's lock
+
+When this run ends, or stops early: `python "${CLAUDE_PLUGIN_ROOT}/tools/clash.py" release gd`. The clash
+guard's hook took it when the run started, so nothing it must not run beside could start meanwhile (docs/CLASHES.md);
+the session's end gives it back too. Inside `/lanes:fullscan` too (it is harmless when nothing is held).

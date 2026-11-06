@@ -1,5 +1,5 @@
 ---
-description: (Full scan) The weekly check-up in one go - shelve and sift the collected data (Gold Digger), research every project and the shared library, bring everything on GitHub up to date (Out of Date), check the tools, re-read and tidy our own code (code health), a tidiness pass, then save everything - in that order, with every install question gathered at the very end. Each part still runs on its own. Never launches anything.
+description: "(Full scan) The weekly check-up in one go: Gold Digger, research, Out of Date, tool check, code health, tidiness, save."
 ---
 
 `/fullscan` — **everything checked and brought up to date, in one go.** Asked for by the maintainer, 2026-10-26:
@@ -7,8 +7,8 @@ description: (Full scan) The weekly check-up in one go - shelve and sift the col
 go through everything in one go ... these slash commands still have to be available separately as well of course"*;
 the name chosen the same day. PROTOCOL §36.
 
-**The habit: once a week**, on either PC. A session-start line says when it has been 7 days on this PC. Never run it
-unasked. It costs a lot (research is the biggest part), and it needs no game and no person: a good one to start
+**The habit: once a week**, on either PC, but never two runs at once anywhere (step 0b). A session-start line says when
+it has been 7 days on this PC. Never run it unasked. It costs a lot (research is the biggest part), and it needs no game and no person: a good one to start
 before leaving the PC.
 
 Argument: `$ARGUMENTS` — optional. `skip:<part>` leaves a part out (`skip:gr`); a project name narrows the research
@@ -26,6 +26,20 @@ and Gold Digger parts to that project.
   is asked last (step 7), so the person can leave the PC for the whole run.
 - **A part that fails is reported and the run carries on** with the next part. It never retries in a loop.
 - Between parts, one plain line saying which part is starting, so a person glancing at the screen knows where it is.
+
+## 0b. Which PC, and only one run at a time (0.101.0)
+
+When `python "${CLAUDE_PLUGIN_ROOT}/tools/features.py" is-on clash_guard` says on (exit 0), before anything else
+(the clash guard, `tools/clash.py`; its hook has usually taken the lock already when the command was typed):
+
+1. `python "${CLAUDE_PLUGIN_ROOT}/tools/fullscan_lock.py" here`. Exit 1 (only when `fullscan_here = no` on this PC): print
+   its one line to the person and **stop the whole run**. Nothing else is done.
+2. `python "${CLAUDE_PLUGIN_ROOT}/tools/clash.py" take fullscan`. Exit 1: another full scan, or one of its parts, is
+   running on this PC or the other (or GitHub could not be reached to check): print its line and **stop**. Exit 0: the
+   run is claimed on GitHub. The parts below run inside this session, so the guard lets them through.
+3. **Give it back at the very end** (after step 8), and also whenever the run stops early for any reason:
+   `python "${CLAUDE_PLUGIN_ROOT}/tools/clash.py" release fullscan`. The session's end gives it back too, and a claim
+   that is never given back counts as left over after 12 hours, so a cut-off run blocks the next one for at most that long.
 
 ## 1. Save check first
 

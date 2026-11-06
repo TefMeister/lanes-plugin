@@ -7,6 +7,7 @@
     python handover.py end   [--write]  the same check at the end of a session; --write reports it on
                                         the board every time, so the other PC is told how this one ended
     python handover.py fresh [ROOT]     fetch every repo in one clone root and say which are behind GitHub
+    python handover.py refresh          fetch every copy that has not looked at GitHub for a day (the end helper runs it)
                                         (--pull brings them up to date; fast-forward only)
     python handover.py close            the close-out box that ends every lane's write-up (0.40.0): one
                                         table - SAVED / NOT SAVED as its headline, a row per repo this
@@ -62,12 +63,14 @@ import json
 import os
 import re
 import subprocess
+import time
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from git_leftovers import leftovers  # noqa: E402
+import lanes_version  # noqa: E402
 
 STATUS_WORKERS = 8                                  # clones read at once; git status is disk-bound
 SECONDS_PER_MINUTE, SECONDS_PER_HOUR, SECONDS_PER_DAY = 60, 3600, 86400
@@ -80,6 +83,7 @@ ROOT_SUFFIXES = ("-pd", "-gr", "-sr", "-gs", "-gu", "-gd")
 IGNORED_PATH_PARTS = ("inspector/", "__pycache__/")  # kept on one PC on purpose
 IGNORED_SUFFIXES = (".pyc",)
 HEARTBEAT_DIR = "handover"
+STARTED_KEY = "_started"           # the snapshot's note of when the session began (0.99.2)
 SNAPSHOT_DIR = "lanes-sessions"                     # beside lanes.conf: where each session's HEADs are kept
 LIVE_RE = re.compile(r"^[^:]+:status/([^:]+)\.md:LIVE:\s+(/\w+)\s+\S+\s+\S+\s+(\S+)")
 START_WRITE_MIN_AGE_S = 3600                        # a start report at most once an hour (fewer commits)
@@ -140,6 +144,11 @@ def roots_from(conf):
         for s in ROOT_SUFFIXES:
             if os.path.isdir(live + s):
                 found.append(live + s)
+    # The builds repo lives outside every clone root (`builds =`), so a session that saved builds there never had it
+    # in the box (Run 5 C6, Run 6 F15: the home PC pushed builds and the box did not list it).
+    b = conf.get("builds", "").strip().strip('"')
+    if b and os.path.isdir(b) and os.path.exists(os.path.join(b, ".git")):
+        found.append(b)
     for key in ("root", "lane_roots", "gd_root"):
         for p in re.split(r"[,\s]+", conf.get(key, "")):
             if p and os.path.isdir(p):
@@ -168,6 +177,8 @@ def root_label(root):
 
 
 def repos_in(root):
+    if os.path.exists(os.path.join(root, ".git")):   # a single repo named on its own (the builds repo, `builds =`)
+        return [root]
     try:
         names = sorted(os.listdir(root))
     except OSError:
@@ -209,6 +220,37 @@ def side_branch_commits(repo):
     return total
 
 
+OLD_HISTORY_MARK = "on the old history from before a GitHub clean-up"
+OLD_HISTORY_NOTE = OLD_HISTORY_MARK + " (%d commits, every one on GitHub under a new id): move it with the clean-up move tool"
+
+
+def old_count(note):
+    m = re.search(r"\((\d+) commits, every one on GitHub", note or "")
+    return int(m.group(1)) if m else 0
+
+
+def all_on_upstream(repo, up):
+    """True when every commit only this copy has is on GitHub under a new id: the same change (git cherry), or, for a
+    commit the clean-up edited (home paths taken out of its files, so the change is no longer equal), one with the same
+    author time and title. Home PC, Run 6 (2026-11-06): the Alice Gold Digger copy, 40 commits, was not recognised by
+    git cherry alone. Weak spot, accepted: a pushed commit amended later keeps its author time and title too."""
+    ok, cherry = git(["cherry", up, "HEAD"], repo)
+    if not ok or not cherry.strip():
+        return False
+    left = [l[2:].strip() for l in cherry.splitlines() if l.startswith("+")]
+    if not left:
+        return True
+    ok, theirs = git(["log", "--format=%at %s", up], repo)
+    if not ok:
+        return False
+    known = set(theirs.splitlines())
+    for sha in left:
+        ok, mine = git(["log", "-1", "--format=%at %s", sha], repo)
+        if not ok or mine.strip() not in known:
+            return False
+    return True
+
+
 def repo_state(repo):
     """(untracked, changed, unpushed, note, head) for one clone; note is a reason it could not be read."""
     ok, head = git(["rev-parse", "HEAD"], repo)
@@ -232,10 +274,22 @@ def repo_state(repo):
     # commits on no remote branch at all: catches a branch that was never pushed, not only a stale upstream
     ok, n = git(["rev-list", "--count", "HEAD", "--not", "--remotes"], repo)
     unpushed = int(n) if ok and n.isdigit() else 0
+    old_history = 0
+    if unpushed:
+        # Run 6 (2026-11-06): a copy still on the history from before a GitHub clean-up shows its old commits as "not
+        # pushed", yet GitHub holds every one of them as an equal change under a new id. Nothing to save there; it is
+        # named in the box instead (move it with the clean-up move tool), and never turns the light red.
+        cok, cur = git(["rev-parse", "--abbrev-ref", "HEAD@{upstream}"], repo)
+        up = cur if cok and cur else "origin/HEAD"
+        if git(["rev-parse", "-q", "--verify", up], repo)[0] and all_on_upstream(repo, up):
+            old_history, unpushed = unpushed, 0
     if ok:
         unpushed += side_branch_commits(repo)
     if ok:
         note = leftovers(repo)  # a save cut off half-way: a lock file or a pull left open (two-PC test 4)
+        if old_history:
+            hist = OLD_HISTORY_NOTE % old_history
+            note = (note + "; " + hist) if note else hist
         # 0.99.0 (release audit): a stash lives on this PC only and was invisible here. One from a 2026-10-23 tidy-up
         # sat unseen for ten days. A failed `pull --autostash` leaves one too.
         sok, stashes = git(["stash", "list"], repo)
@@ -252,6 +306,51 @@ def repo_state(repo):
     return untracked, changed, unpushed, note, head
 
 
+HOURS_PER_DAY = 24
+PUSH_ATTEMPTS = 3   # the end report is retried this often when the other PC pushed first
+STALE_VIEW_H = 24   # a copy that last looked at GitHub longer ago than this is named in the box (Run 5 D7)
+
+
+def view_age_h(repo):
+    """hours since this copy last fetched from GitHub (its FETCH_HEAD), or None when it never did / cannot tell"""
+    path = os.path.join(repo, ".git", "FETCH_HEAD")
+    try:
+        return (time.time() - os.path.getmtime(path)) / 3600.0
+    except OSError:
+        return None
+
+
+def stale_view_cell(rows):
+    """'' or the box's warning that SAVED was measured against an old view of GitHub. Run 5 D7 (2026-11-06): a copy
+    that had not fetched since the history clean-up looked SAVED while 134 commits apart from GitHub."""
+    old = []
+    for r in rows:
+        age = view_age_h(r["repo"])
+        if age is not None and age > STALE_VIEW_H:
+            label = root_label(r["root"])
+            old.append((age, r["name"] if label == "live root" else "%s in the %s" % (r["name"], label)))
+    if not old:
+        return ""
+    old.sort(reverse=True)
+    age, name = old[0]
+    return ("⚠️ %s last looked at GitHub over a day ago (oldest: %s, %d days), so SAVED is measured against what they "
+            "last saw; `handover.py fresh` looks again" % (plural(len(old), "copy", "copies"), name, int(age // HOURS_PER_DAY)))
+
+
+def refresh_views(roots):
+    """fetch (never pull) every copy whose view of GitHub is older than STALE_VIEW_H, in parallel. Run by the end
+    helper after the window has closed, so the next box measures SAVED against GitHub as it is (Run 5 D7). A fetch
+    only moves this copy's record of GitHub; it never touches the files or a branch, so it is safe beside any lane."""
+    old = [repo for root in roots for repo in repos_in(root)
+           if (view_age_h(repo) or STALE_VIEW_H + 1) > STALE_VIEW_H]
+
+    def one(repo):
+        return git(["fetch", "-q", "origin"], repo, timeout=FETCH_TIMEOUT_S)[0]
+    with ThreadPoolExecutor(max_workers=STATUS_WORKERS) as pool:
+        done = list(pool.map(one, old))
+    return len(old), sum(1 for d in done if d)
+
+
 def scan_roots(roots):
     """One dict per clone in every root. The clones are read in parallel: 60 clones one after another
     took 63 s on 2026-10-01, far past a session-start hook's patience."""
@@ -262,7 +361,8 @@ def scan_roots(roots):
     for (root, repo), (u, c, p, note, head) in zip(jobs, states):
         rows.append({"root": root, "repo": repo, "name": os.path.basename(repo), "untracked": u,
                      "changed": c, "unpushed": p, "note": note, "head": head,
-                     "problem": bool(u or c or p or note)})
+                     "problem": bool(u or c or p or (note and note != OLD_HISTORY_NOTE % old_count(note))),
+                     "old_history": bool(note and OLD_HISTORY_MARK in note)})
     return rows
 
 
@@ -311,7 +411,13 @@ def snapshot_write(session, rows):
     """Where every repo stood when the session started, so `close` can say what it pushed."""
     if not session:
         return
+    old = snapshot_read(session)
+    if old and isinstance(old.get(STARTED_KEY), int):
+        # 0.103.0: the same session starting again (a resume, or the start hooks after an early summary) keeps its first
+        # snapshot: re-writing it made the box forget every commit before the summary (Run 5 day, 2026-11-06)
+        return
     heads = {norm(r["repo"]): r["head"] for r in rows if r["head"]}
+    heads[STARTED_KEY] = int(time.time())   # 0.99.2: only commits made on this PC after this count as this session's
     try:
         p = snapshot_path(session)
         os.makedirs(os.path.dirname(p), exist_ok=True)
@@ -329,6 +435,75 @@ def snapshot_read(session):
             return json.load(f)
     except (OSError, ValueError):
         return None
+
+
+def session_started(session, snap):
+    """When the session began: kept in the snapshot since 0.99.2, else the snapshot file's own time."""
+    if snap and isinstance(snap.get(STARTED_KEY), int):
+        return snap[STARTED_KEY]
+    try:
+        return int(os.path.getmtime(snapshot_path(session)))
+    except OSError:
+        return None
+
+
+def session_commits(session):
+    """The commits git's post-commit hook noted for this session (privacy-guard.py's hooks, 2026-11-05), or None
+    when it noted none: then every commit made on this PC since the session began counts, as before. Two sessions
+    on one PC committing in the same clone were each shown the other's commits (home PC, 2026-11-05)."""
+    path = os.environ.get("LANES_SESSION_COMMITS") or os.path.join(
+        os.path.expanduser("~"), ".claude", "lanes", "githooks", "session-commits.txt")
+    if not session:
+        return None
+    try:
+        with open(path, encoding="utf-8") as f:
+            mine = {p[1] for p in (l.rstrip("\r\n").split("\t") for l in f) if len(p) == 2 and p[0] == session}
+    except OSError:
+        return None
+    return mine or None
+
+
+def notes_commits(repo):
+    """Whether git's post-commit hook that notes a session's commits runs in this clone. A clone with its own hook folder
+    (core.hooksPath) hides the machine-wide one unless its post-commit calls it: the board repo's does not, so its
+    commits were never noted and the box left them out (Run 5 C6, n=3, 2026-11-06)."""
+    ok, hp = git(["config", "core.hooksPath"], repo)
+    if not ok or not hp.strip():
+        return False
+    hp = hp.strip()
+    ok, top = git(["rev-parse", "--show-toplevel"], repo)
+    full = os.path.normpath(os.path.join(top.strip() if ok else repo, os.path.expanduser(hp)))
+    lanes_hooks = os.path.normpath(os.path.join(os.path.expanduser("~"), ".claude", "lanes", "githooks"))
+    if os.path.normcase(full) == os.path.normcase(lanes_hooks):
+        return True
+    try:
+        with open(os.path.join(full, "post-commit"), encoding="utf-8", errors="replace") as f:
+            return "lanes/githooks" in f.read()
+    except OSError:
+        return False
+
+
+def made_here(repo, since):
+    """Commits made in this clone since `since` (unix time), newest first, from its HEAD reflog: a commit, an amend or a
+    merge made here, never what a pull or a rebase brought in. The handover light's own board reports are left out.
+    Counting the range between the start snapshot and HEAD (before 0.99.2) also counted every commit PULLED during a
+    long session, so the box listed dozens of repos as "pushed" that this session never touched (2026-11-02: about 70
+    rows, the /gs and /gu copies with hundreds of "new commits" each)."""
+    ok, out = git(["reflog", "show", "--date=unix", "--format=%H%x09%gd%x09%gs", "HEAD"], repo)
+    found = []
+    if not ok:
+        return found
+    for line in out.splitlines():
+        parts = line.split("\t", 2)
+        m = re.search(r"\{(\d+)\}", parts[1]) if len(parts) == 3 else None
+        if not m:
+            continue
+        if int(m.group(1)) < since:
+            break
+        action, _, subject = parts[2].partition(": ")
+        if action.startswith("commit") and not subject.startswith("handover: ") and parts[0] not in found:
+            found.append(parts[0])
+    return found
 
 
 def end_log_path():
@@ -373,6 +548,12 @@ def last_session_end(current):
         return ""    # no end has been logged on this PC yet (the first session after 0.94.2): nothing to compare
     if "done" in words:
         return ""
+    try:   # since 0.103.0 the end steps run in a helper after the window has gone: still running is not cut off
+        import endwork
+        if endwork.running_pid():
+            return ""
+    except Exception:  # noqa: BLE001
+        pass
     if "began" in words:
         return ("HANDOVER: the last session on this PC began its end report but was closed before it finished, so the "
                 "other PC was not told how it ended.")
@@ -474,7 +655,7 @@ def others(board, me, fetched=None):
             last_end = first = None
         out.append({"machine": machine, "who": "%s (%s)" % (machine, role) if role else machine,
                     "when": when, "state": hb.get("state", "unknown"), "event": hb.get("event", ""),
-                    "last_end": last_end, "first": first})
+                    "last_end": last_end, "first": first, "lanes": hb.get("lanes", "")})
     return fetched, out
 
 
@@ -515,6 +696,8 @@ def others_report(board, me):
             lines.append("HANDOVER: %s %s (%s)." % (pc["who"], pc_text(pc), pc["when"].strftime("%Y-%m-%d %H:%M")))
             if ends_missing(pc):
                 lines.append("HANDOVER: ⚠️ " + ends_missing(pc) + ".")
+            if lanes_version.mismatch(pc["machine"], pc["lanes"]):
+                lines.append("HANDOVER: ⚠️ " + lanes_version.mismatch(pc["machine"], pc["lanes"]) + ".")
     if not lines:
         lines.append("HANDOVER: no other PC has reported on the board yet.")
     if not fetched:
@@ -532,13 +715,62 @@ def inspector_cell(session):
         return "not available on this PC"
 
 
+def inspector_check(cell, pushed):
+    """The Inspector sees code written with the edit tools only. When it saw none but this session committed code
+    files (written by a shell command or a script, or in a project it does not watch), say so instead of "no code
+    was written" (home PC, 2026-11-05: the Silent Hill 2 launcher's C++ was written and built, the box said none)."""
+    if not cell.startswith("on, no code was written"):
+        return cell
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import inspector_checks
+        n = 0
+        for r in pushed:
+            for h in r.get("made", []):
+                ok, out = git(["show", "--name-only", "--format=", h], r["repo"])
+                n += sum(1 for f in out.splitlines() if f and inspector_checks.is_source(f)) if ok else 0
+    except Exception:  # noqa: BLE001 - the box must print whatever happens here
+        return cell
+    if not n:
+        return cell
+    return ("⚠️ saw no code edits, but this session committed %s (written another way, or outside the projects "
+            "it watches): not looked over" % plural(n, "code file", "code files"))
+
+
+CLOSE_SAVED_LINES = []     # set by close_box: the saved report the close-out writes to the board as the END
+
+
+def games_running():
+    """project games running on this PC now, from the collector's open run cards (each checked to be still running)"""
+    try:
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "begone"))
+        import collector
+        import psutil
+    except Exception:  # noqa: BLE001 - no collector, or no psutil: say nothing rather than guess
+        return []
+    out = []
+    for _folder, r in collector.pending():
+        if r.get("end") or not r.get("pid"):
+            continue
+        try:
+            if psutil.Process(int(r["pid"])).name().lower() == str(r.get("exe", "")).lower():
+                name = r.get("title") or r.get("game") or r.get("exe")
+                if name not in out:
+                    out.append(name)
+        except Exception:  # noqa: BLE001 - gone, or a different program has the number now
+            continue
+    return out
+
+
 def close_box(conf, session):
     """The close-out box: one markdown table that ends every lane's write-up. Returns (green, lines)."""
     roots = roots_from(conf)
     board = conf.get("board", "")
     me = conf.get("machine_name") or conf.get("role") or "PC"
     rows = scan_roots(roots)
-    green, _, count = saved_report(roots, rows)
+    green, saved_lines, count = saved_report(roots, rows)
+    global CLOSE_SAVED_LINES
+    CLOSE_SAVED_LINES = saved_lines     # the end report main() writes after the box (2026-11-05)
     problems = [r for r in rows if r["problem"]]
     if not roots:
         head = "| 🔦 **UNKNOWN** | **NO CLONE ROOT FOUND (IS `board = ...` SET IN lanes.conf?)** |"
@@ -549,33 +781,53 @@ def close_box(conf, session):
     else:
         head = "| 🔦 **NOT SAVED** | **%d REPOS HOLD WORK THAT IS NOT ON GITHUB** |" % len(problems)
     lines = [head, "| --- | --- |"]
+    unanswered = 0       # filled in below from the Inspector's cell; a green box with notes waiting turns red
 
     def shown(r):
         return r["name"] if root_label(r["root"]) == "live root" else "%s (%s)" % (r["name"], root_label(r["root"]))
 
     snap = snapshot_read(session)
+    since = session_started(session, snap) if snap else None
     pushed = []
+    own = session_commits(session)
     for r in rows:
-        before = (snap or {}).get(norm(r["repo"]))
-        if r["problem"] or not before or before == r["head"]:
+        if r["problem"] or since is None:
             continue
-        # the handover light's own board reports are not this session's work, so they are not counted
-        ok, n = git(["rev-list", "--count", "--invert-grep", "--grep=^handover: ", before + ".." + r["head"]], r["repo"])
-        n = int(n) if ok and n.isdigit() else 0
-        if ok and n == 0:
+        noted = own is not None and notes_commits(r["repo"])   # else every commit made here since the start counts
+        r["made"] = [h for h in made_here(r["repo"], since) if not noted or h in own]
+        if not r["made"]:
             continue
         pushed.append(r)
-        lines.append("| 📦 %s | pushed%s |" % (shown(r), " · " + plural(n, "new commit", "new commits") if n else ""))
+        n = len(r["made"])
+        lines.append("| 📦 %s | pushed · %s |" % (shown(r), plural(n, "new commit", "new commits")))
     for r in problems:
         lines.append("| 📦 %s | ⚠️ %s |" % (shown(r), problem_text(r, short=True)))
-    rest = count - len(pushed) - len(problems)
+    old_hist = [r for r in rows if r.get("old_history") and not r["problem"] and r not in pushed]
+    for r in old_hist:
+        lines.append("| 📦 %s | ⚠️ %s |" % (shown(r), r["note"]))
+    rest = count - len(pushed) - len(problems) - len(old_hist)
     if roots and rest > 0:
         word = "the other" if (pushed or problems) else "all"
         lines.append("| 📦 %s %s | nothing to push |" % (word, plural(rest, "repo", "repos")))
     profile = profile_cell(conf, pushed, snap)
     if profile:
         lines.append("| 🪧 Front page | %s |" % profile)
-    lines.append("| 🔍 Inspector | %s |" % inspector_cell(session))
+    for g in games_running():
+        # 0.103.0 (Run 5 D9): the rule is to close the game when a run ends; the box said nothing when one was open
+        lines.append("| 🎮 Game | ⚠️ %s is still running: close it with its own quit if this session's run is done |" % g)
+    view = stale_view_cell(rows) if roots else ""
+    if view:
+        lines.append("| 🌐 GitHub view | %s |" % view)
+    cell = inspector_check(inspector_cell(session), pushed)
+    lines.append("| 🔍 Inspector | %s |" % cell)
+    m = re.search(r"(\d+) unanswered", cell)
+    unanswered = int(m.group(1)) if m else 0
+    if green and roots and unanswered:
+        # 0.105.0 (audit P8, 2026-11-06): the Inspector's hold sits on `git push`, and with inspector_notes_local the
+        # notes never go to GitHub, so nothing held; verdicts were given in 3 of 96 home sessions. The work is on
+        # GitHub (the board still says SAVED), but the headline is the signal Tefa reads, so it says what is left.
+        lines[0] = "| 🔦 **NOT SAVED** | **%s UNANSWERED: ANSWER THEM, THEN END** |" % plural(
+            unanswered, "INSPECTOR NOTE", "INSPECTOR NOTES")
     has_board = bool(board) and os.path.isdir(board)
     fetched = fetch_board(board)[0] if has_board else False
     held = claims_held(board, me) if has_board else []
@@ -589,6 +841,8 @@ def close_box(conf, session):
                 lines.append("| 🖥️ %s | %s |" % (pc["who"], pc_text(pc)))
                 if ends_missing(pc):
                     lines.append("| 🖥️ %s | ⚠️ %s |" % (pc["machine"], ends_missing(pc)))
+                if lanes_version.mismatch(pc["machine"], pc["lanes"]):
+                    lines.append("| 🖥️ %s | ⚠️ %s |" % (pc["machine"], lanes_version.mismatch(pc["machine"], pc["lanes"])))
         if not pcs:
             lines.append("| 🖥️ Other PC | has not reported yet |")
         if not fetched:
@@ -598,7 +852,7 @@ def close_box(conf, session):
                 lines.append("| 🖥️ GitHub | could not be reached just now, the row above may be old |")
     else:
         lines.append("| 🖥️ Other PC | no board to read it from |")
-    if green and roots and not early_summary_on():
+    if green and roots and not unanswered and not early_summary_on():
         # 0.63.0: without the early summary nothing keeps the conversation short, so say when it is safe
         lines.append("| 🧹 Clear | SAVED - safe to /clear |")
     return green, lines
@@ -643,17 +897,17 @@ def profile_cell(conf, pushed, snap):
     except ImportError:
         NOT_WORK = ()
     today = datetime.now().strftime("%m-%d")
-    behind, fine = [], 0
+    behind, fine, seen = [], 0, set()
     for r in pushed:
-        before = (snap or {}).get(norm(r["repo"]))
         for repo, sub, mmdd, title in rows:
-            if repo != r["name"].lower():
+            if repo != r["name"].lower() or title in seen:
                 continue
             spec = ["--", sub or "."] + [":(exclude,glob)%s" % p for p in NOT_WORK]
-            ok, n = git(["rev-list", "--count", "--invert-grep", "--grep=^handover: ", before + ".." + r["head"]]
-                        + spec, r["repo"])
-            if not (ok and n.isdigit() and int(n)):
+            # only commits this session made here (0.99.2): a row is not "behind" because of work pulled from elsewhere
+            if not any(git(["diff-tree", "--no-commit-id", "--name-only", "-r", "--root", h] + spec, r["repo"])[1]
+                       for h in r.get("made", [])):
                 continue
+            seen.add(title)
             if mmdd == today:
                 fine += 1
             else:
@@ -681,10 +935,11 @@ def start_report_changes_light(path, green):
     """
     try:
         with open(path, encoding="utf-8") as f:
-            for line in f:
-                if line.startswith("state = "):
-                    was_green = line[len("state = "):].strip() == "SAVED"
-                    return was_green != bool(green)
+            hb = dict(l.split(" = ", 1) for l in f.read().splitlines() if " = " in l)
+        if hb.get("lanes", "").strip() != lanes_version.mine():
+            return True             # a new Lanes is always told at once (2026-11-05)
+        if "state" in hb:
+            return (hb["state"].strip() == "SAVED") != bool(green)
     except OSError:
         pass
     return True   # unreadable or no state line: write a fresh one
@@ -718,21 +973,37 @@ def write_heartbeat(board, me, role, event, green, problem_lines):
     state = "SAVED" if green else "NOT SAVED: " + "; ".join(l.strip() for l in problem_lines[1:])[:STATE_MAX_CHARS]
     now = datetime.now().astimezone().strftime(TIME_FMT)
     body = ("# Written by the lanes plugin (tools/handover.py), one file per PC. Never edited by hand.\n"
-            "machine = %s\nrole = %s\nlast_saved = %s\nevent = %s\nstate = %s\n" % (me, role, now, event, state))
-    try:
-        with open(path, "w", encoding="utf-8", newline="\n") as f:
-            f.write(body)
-    except OSError:
-        return "HANDOVER: not reported - could not write the board file."
+            "machine = %s\nrole = %s\nlast_saved = %s\nevent = %s\nstate = %s\nlanes = %s\n"
+            % (me, role, now, event, state, lanes_version.mine()))
+    # Saved straight onto GitHub's copy of the board, without touching this PC's board folder (Run 6, 2026-11-06): the
+    # old way added, committed and pulled with --autostash inside the board folder, and when the end helper did that
+    # while a live session was saving there, the live session's next pull was refused and a file it had just deleted
+    # came back in its staging area. The clash guard's locks are saved the same way (fullscan_lock.push_change).
+    import fullscan_lock as FL
     rel = HEARTBEAT_DIR + "/" + me + ".txt"
-    git(["add", "--", rel], board)
-    ok, _ = git(["commit", "-q", "-m", "handover: %s (%s) %s, %s" % (me, role, event, "SAVED" if green else "NOT SAVED"), "--", rel], board)
-    if not ok:
-        return ""   # nothing changed since the last report
-    git(["pull", "-q", "--rebase", "--autostash"], board, timeout=FETCH_TIMEOUT_S)
-    ok, _ = git(["push", "-q"], board, timeout=PUSH_TIMEOUT_S)
+    msg = "handover: %s (%s) %s, %s" % (me, role, event, "SAVED" if green else "NOT SAVED")
+    ok = False
+    for _attempt in range(PUSH_ATTEMPTS):
+        git(["fetch", "-q", "origin"], board, timeout=FETCH_TIMEOUT_S)
+        if FL.push_change(board, body, msg, rel=rel):
+            ok = True
+            break
+    if ok:
+        catch_up_board(board)
     return "HANDOVER: this PC (%s) reported %s on the board." % (me, "SAVED" if green else "NOT SAVED") if ok \
         else "HANDOVER: this PC's report could NOT be pushed to the board (GitHub unreachable?)."
+
+
+def catch_up_board(board):
+    """bring the board folder up to GitHub's copy, but only when nothing is in progress there: no git step running, no
+    file changed or staged, and nothing of its own to rebase. Otherwise the folder's own next pull does it."""
+    if any(os.path.exists(os.path.join(board, ".git", n)) for n in ("index.lock", "MERGE_HEAD", "rebase-merge",
+                                                                       "rebase-apply")):
+        return
+    ok, st = git(["status", "--porcelain", "--untracked-files=no"], board)
+    if not ok or st.strip():
+        return
+    git(["merge", "-q", "--ff-only", "origin/main"], board, timeout=FETCH_TIMEOUT_S)
 
 
 def fresh_report(root, pull):
@@ -781,8 +1052,20 @@ def main(argv):
     me = conf.get("machine_name") or conf.get("role") or "PC"
     role = conf.get("role", "")
     if mode == "close":
+        # The close-out is where a session really reports how it ended, so it writes the END to the board too
+        # (2026-11-05). The SessionEnd hook alone never managed it: on both PCs every end report since 11-02 began
+        # and was cut off before it finished (the save scan of ~300 repos takes half a minute, and Claude Code ends
+        # first), so neither PC ever saw the other's session end. --no-write leaves the board and the end log alone.
+        writing = bool(roots_from(conf)) and "--no-write" not in flags
+        if writing:
+            end_log("began", session)
         green, lines = close_box(conf, session)
         print("\n".join(lines))
+        if writing:
+            r = write_heartbeat(board, me, role, "end", green, CLOSE_SAVED_LINES)
+            if r:
+                print(r)
+            end_log("done", session)
         return 0 if green else (1 if roots_from(conf) else 2)
     if mode == "fresh":
         root = args[0] if args else (os.path.dirname(os.path.abspath(board)) if board else "")
@@ -790,6 +1073,10 @@ def main(argv):
             print("HANDOVER: could not run - give a clone root, or set `board = ...` in lanes.conf"); return 2
         green, lines = fresh_report(root, "--pull" in flags)
         print("\n".join(lines)); return 0 if green else 1
+    if mode == "refresh":
+        n, ok = refresh_views(roots_from(conf))
+        print("HANDOVER: looked at GitHub again for %d cop%s (%d fetched)" % (n, "y" if n == 1 else "ies", ok))
+        return 0
     if mode not in ("check", "start", "end"):
         print(__doc__); return 2
     if mode == "end":

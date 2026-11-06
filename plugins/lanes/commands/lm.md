@@ -1,5 +1,5 @@
 ---
-description: (Live Modding) A hands-on session on ONE project - the only lane allowed to launch the app, attach a debugger, or drive special hardware. Typing /lm hands the whole session over: the assistant launches the app itself, drives it, relaunches it after build swaps and closes it, without pausing to ask. Takes a project name (fuzzy-matched), runs the pre-flight, then works as autonomously as that project's automation profile allows. Must not run against a job another same-lane session has claimed.
+description: "(Live Modding) Hands ONE game over to Claude while you are away: it launches, drives, rebuilds and closes the game itself."
 ---
 
 `/lm` — **the live lane.** The only one allowed to run the thing.
@@ -304,7 +304,7 @@ or registry key before changing it.
   `✅ **You can stop**` (0.50.0, PROTOCOL §5). Then the reading, then the questions for their eyes.
 - **✅ Say when the app may be closed.** When the person is running it for you, end a request with "keep it
   running" while you still need it, and open the reply with `✅ **You can quit the game now.**` the moment you do not
-  (0.56.0, PROTOCOL §5).
+  (0.56.0, PROTOCOL §5; since 0.105.0 the reply check, §46, hands a reply back when the tick is missing).
 - **🔎 Look inside the running game instead of guessing** (0.82.0, `docs/PROTOCOL.md` §29). An RE Engine game with
   REFramework, or an Unreal Engine game with UEVR, can be read live by MCP: `python "${CLAUDE_PLUGIN_ROOT}/tools/engine-mcp.py"
   status` says whether this PC has the server (`reframework` or `uevr` in `claude mcp list`), and `engine-mcp.py game re

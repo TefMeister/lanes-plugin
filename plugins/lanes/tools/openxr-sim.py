@@ -155,9 +155,15 @@ def status(as_json):
             latest = latest_release(check_src).get("tag_name", "")
         except Exception as e:      # network down, rate limit: say so, never guess
             err = str(e)
-    newer = bool(folder) and bool(have) and bool(latest) and have != latest
+    # A copy put in by hand has no release note, so its age cannot be read. It used to count as up to date, and the dev
+    # PC sat on 1.5.x for months while 1.6.0 added the frame checks a real headset makes (2026-11-06: Silent Hill 2's
+    # "Early" frames were black in the headset and fine in the simulator). Unknown now counts as maybe out of date: a
+    # Lanes install of the newest release is harmless if it was current, and notes the release from then on.
+    unknown = bool(folder) and not have
+    newer = bool(folder) and bool(latest) and (unknown or have != latest)
     st = load_state()
     info = {"installed": folder is not None, "folder": folder, "source": src, "release": have or None,
+            "release_unknown": unknown,
             "has_32bit": bool(folder) and os.path.isfile(os.path.join(folder, DLL32)),
             "latest_release": latest or None, "newer": newer, "declined": bool(st.get("declined")), "error": err,
             "bench": bench_status() if as_json else None}
@@ -170,7 +176,10 @@ def status(as_json):
         bits = "64-bit and 32-bit games" if info["has_32bit"] else "64-bit games only"
         rel = f"{src} {have}" if have else "release unknown (installed by hand)"
         print(f"OpenXR Simulator: on this PC ({rel}; for {bits}).")
-        if newer:
+        if newer and unknown:
+            print(f"Its release cannot be read, so it may be old. The newest is {latest}: "
+                  "'openxr-sim.py install' puts it in and keeps this copy beside it.")
+        elif newer:
             print(f"A newer release is out: {latest}.")
     if err:
         print(f"Could not reach GitHub: {err}")
@@ -275,6 +284,12 @@ def install(source, to):
         if not glob.glob(os.path.join(out_dir, "**", DLL64), recursive=True):
             print(f"The release zip has no {DLL64}; nothing was installed.")
             return 1
+        kept = None
+        if os.path.isfile(os.path.join(folder, DLL64)):
+            # keep the copy being replaced (2026-11-06): a new release that breaks a game can be put back by hand
+            kept = f"{folder}.before-{tag or 'update'}"
+            shutil.rmtree(kept, ignore_errors=True)
+            shutil.copytree(folder, kept)
         os.makedirs(folder, exist_ok=True)
         for d, _, fs in os.walk(out_dir):
             rel_d = os.path.relpath(d, out_dir)
@@ -291,6 +306,8 @@ def install(source, to):
     save_state(st)
     bits = "64-bit and 32-bit games" if os.path.isfile(os.path.join(folder, DLL32)) else "64-bit games only"
     print(f"OpenXR Simulator {tag} ({SOURCES[source]}, for {bits}) is in {folder}.")
+    if kept:
+        print(f"The copy it replaced is kept in {kept}.")
     print("It is NOT switched on. For one game: point that game's mod at its json. For every game: run "
           "'Activate Simulator' in that folder (and 'Deactivate Simulator' to go back to the headset).")
     if bits.endswith("only"):

@@ -38,6 +38,14 @@ done
 stop() { echo; echo "STOP: $*"; echo "Nothing was tagged or published."; exit 1; }
 ok() { echo "  ok    $*"; }
 
+# The clash guard (tools/clash.py): one release at a time on either PC, and none while /ch tidies or /od publishes.
+if "$PY" "$REL/tools/features.py" is-on clash_guard; then
+  line=$("$PY" "$REL/tools/clash.py" take release) || stop "$line"
+  trap '"$PY" "$REL/tools/clash.py" release release >/dev/null 2>&1' EXIT
+fi
+# every command, hook, tool and extra says whether it clashes with anything
+"$PY" "$REL/tools/clash.py" audit >/dev/null || stop "$("$PY" "$REL/tools/clash.py" audit)"
+
 echo "Checking lanes $VERSION before any release"
 
 # 1. the version in all four places

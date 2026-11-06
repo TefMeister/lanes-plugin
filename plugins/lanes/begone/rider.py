@@ -26,6 +26,10 @@ frames and reports stay). Only with `begone_video_tidy` on.
 
 HOW IT KNOWS A VR SESSION IS ON, three ways (the 'never one method' rule): a recording growing in a tool's log
 folder (the only one that produces data); SteamVR running; a windowed process with an OpenXR/OpenVR dll loaded.
+lanes-next (2026-11-04): the ALWAYS-ON COLLECTOR rides here too (collector.py): every launch of a project game, flat
+or VR, with or without a session, is collected while it runs and shelved for Gold Digger when it closes. With
+`collector` on (features.py). `start` also restarts a running rider whose code is older than the files on disk, so
+a plugin update reaches the rider without anyone remembering to.
 """
 import ctypes
 import json
@@ -38,8 +42,10 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import begone_common as bc  # noqa: E402
+import collector  # noqa: E402
+import autosave  # noqa: E402
 
-STATE = os.path.join(bc.LOCAL, "ride-state.json")
+STATE =os.path.join(bc.LOCAL, "ride-state.json")
 PID_FILE = os.path.join(bc.LOCAL, "ride.pid")          # the same file the old ride.py used, so one stops the other
 RIDE_LOG = os.path.join(bc.LOCAL, "ride.log")
 POLL_S = 5                      # how often the rider looks
@@ -47,6 +53,9 @@ SETTLE_S = 10                   # a recording that has not grown for this long i
 PROCESS_LOOK_EVERY_S = 15       # how often the (dearer) process check runs
 FILE_TIMEOUT_S = 600            # one filing may take this long (a two-hour session is a big log)
 MIN_LOG_BYTES = 200             # a recording smaller than this never got past its header
+MOVE_TRIES = 3                  # a recording the game still holds is tried this often per pass ...
+MOVE_WAIT_S = 2                 # ... this far apart, then left for the next pass (2026-11-04: it killed the rider twice)
+UNKNOWN_GAME = "unknown-game"   # the folder name when no game can be told: never "?" (not allowed in a Windows name)
 STARTUP_CMD = os.path.join(os.path.expandvars("%APPDATA%"), r"Microsoft\Windows\Start Menu\Programs\Startup",
                            "BeG0nE-rider.cmd")
 OLD_STARTUP_CMD = os.path.join(os.path.dirname(STARTUP_CMD), "BeG0nE-jitter-rider.cmd")
@@ -60,6 +69,7 @@ REC_STATE = os.path.join(os.path.expandvars("%LOCALAPPDATA%"), "obs-rec-state.js
 TIDY_EVERY_S = 3600             # how often the videos nothing needs are taken off (video_tidy.py, 0.90.0)
 TIDY_FIRST_S = 300              # the first tidy this long after the rider starts
 FEATURES = os.path.join(os.path.dirname(HERE), "tools", "features.py")
+SAVE_RETRY_S = 600              # reports left unsaved (git busy, offline) are tried again this often (autosave.py)
 
 
 def say(msg):
@@ -217,12 +227,40 @@ def stop_recording():
         say(f"could not stop the recording: {e}")
 
 
+_feature_cache = {}
+
+
+def feature_on(name, every_s=60):
+    """features.py is-on <name>, asked at most once a minute (the rider runs for days; lanes.conf can change)"""
+    now = time.time()
+    at, val = _feature_cache.get(name, (0, True))
+    if now - at < every_s:
+        return val
+    try:
+        r = subprocess.run([sys.executable, FEATURES, "is-on", name], capture_output=True, timeout=REC_TIMEOUT_S,
+                           creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        val = r.returncode == 0
+    except Exception:
+        val = True   # never switch a feature off because the check itself failed
+    _feature_cache[name] = (now, val)
+    return val
+
+
+def collect(now, loaded):
+    """the always-on collector's turn, when `collector` is on; its errors never stop the rider"""
+    if not feature_on("collector"):
+        return []
+    try:
+        return collector.tick(now, loaded)
+    except Exception as e:
+        say(f"collector: {e}")
+        return []
+
+
 def tidy_videos():
     """take off the recordings nothing needs any more, when `begone_video_tidy` is on (0.90.0)"""
     try:
-        on = subprocess.run([sys.executable, FEATURES, "is-on", "begone_video_tidy"], capture_output=True,
-                            timeout=REC_TIMEOUT_S, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-        if on.returncode != 0:
+        if not feature_on("begone_video_tidy"):
             return
         import video_tidy
         for g, name, size, why in video_tidy.tidy():
@@ -239,49 +277,132 @@ def write_state(**kw):
         json.dump(kw, f, indent=1)
 
 
+def put_away(p, tries=MOVE_TRIES, wait_s=MOVE_WAIT_S):
+    """move a filed recording into done\\; True when moved. A file the game still holds open (Windows refuses the move)
+    is tried a few times, then left where it is for the next pass: it never stops the rider."""
+    done = os.path.join(os.path.dirname(p), "done")
+    for i in range(tries):
+        try:
+            os.makedirs(done, exist_ok=True)
+            shutil.move(p, os.path.join(done, os.path.basename(p)))
+            return True
+        except FileNotFoundError:
+            return True                 # already gone: nothing left to put away
+        except OSError:
+            if i + 1 < tries:
+                time.sleep(wait_s)
+    return False
+
+
+def file_ended(ended, announced, filed):
+    """file each finished recording once, then put it away. `filed` holds the ones filed but not yet moved (the game
+    held them), so a later pass only retries the move and never files the same recording twice."""
+    for t, p, game in ended:
+        if p not in filed:
+            try:
+                say(f"FILED {t['name']}: {file_one(t, p, game)}")
+            except Exception as e:  # one bad recording must not stop the rider
+                say(f"could not file {os.path.basename(p)}: {e}")
+            filed.add(p)
+        if put_away(p):
+            filed.discard(p)
+            announced.discard(p)
+        else:
+            say(f"{os.path.basename(p)} is still held open (the game may still have it): moved on a later pass")
+
+
+_last_save = [0.0]
+
+
+def save_reports(now, filed_now):
+    """put the filed reports on GitHub, when `begone_autosave` is on (0.101.0): right after a filing, and every
+    SAVE_RETRY_S in case an earlier try found git busy or no network. Silent when there is nothing new."""
+    if not filed_now and now - _last_save[0] < SAVE_RETRY_S:
+        return
+    _last_save[0] = now
+    if not feature_on("begone_autosave"):
+        return
+    try:
+        line = autosave.save(bc.home(), [t["folder"] for t in bc.tools()])
+    except Exception as e:
+        line = f"autosave: {e}"
+    if line:
+        say(line)
+
+
+def game_of(head, loaded=(), runs=None):
+    """the game a recording belongs to: its header's game=, else the collector's one open run whose program has the
+    VR dll loaded (the Lua recorders on the simulator write game=?), else UNKNOWN_GAME. Never "?" (2026-11-04)."""
+    g = (head.get("game") or "").strip()
+    if g and g != "?":
+        return g
+    if runs is None:
+        try:
+            runs = list(collector._runs.values())
+        except Exception:
+            runs = []
+    names = {n.lower() for n in loaded}
+    hits = {r.get("game") for r in runs if r.get("game") and (not names or (r.get("exe") or "").lower() in names)}
+    return hits.pop() if len(hits) == 1 else UNKNOWN_GAME
+
+
 def run():
     os.makedirs(bc.LOCAL, exist_ok=True)
     with open(PID_FILE, "w") as f:
         f.write(str(os.getpid()))
     say("rider up: " + ", ".join(t["name"] for t in bc.tools() if t.get("log_dir")))
+    if feature_on("collector"):
+        try:
+            collector.recover()     # runs a stopped rider left open: adopted if the game still runs, else 'lost'
+        except Exception as e:
+            say(f"collector: could not recover earlier runs: {e}")
     last_proc_look, steam, loaded, announced = 0, False, [], set()
     last_tidy = time.time() - TIDY_EVERY_S + TIDY_FIRST_S
     rec_on = False                  # the rider started the recording that is running now (one per session)
+    filed = set()                   # filed, but the game still held the file: only the move is retried
     while True:
-        now = time.time()
-        if now - last_proc_look >= PROCESS_LOOK_EVERY_S:
-            steam, loaded = vr_processes()
-            last_proc_look = now
-        live, ended = [], []
-        for t, p, size, mtime in recordings():
-            head = log_head(p)
-            game = head.get("game", "?")
-            if p not in announced and size >= MIN_LOG_BYTES:
-                say(f"VR SESSION: {game} is recording for {t['name']}"); announced.add(p)
-                if not rec_on and start_recording(head, game, loaded):   # 0.80.0: any tool's log starts it
-                    rec_on = True
-            if size < MIN_LOG_BYTES and now - mtime > SETTLE_S:
-                os.remove(p); continue          # never got going
-            if log_ended(p) or now - mtime > SETTLE_S:
-                ended.append((t, p, game))
-            else:
-                live.append(f"{game} ({t['short']})")
-        if rec_on and not live:
-            stop_recording(); rec_on = False    # the session is over: stopped first, so the filing can cut it
-        if not rec_on and not live and not ended and now - last_tidy >= TIDY_EVERY_S:
-            tidy_videos(); last_tidy = now
-        for t, p, game in ended:
-            try:
-                say(f"FILED {t['name']}: {file_one(t, p, game)}")
-            except Exception as e:  # one bad recording must not stop the rider
-                say(f"could not file {os.path.basename(p)}: {e}")
-            done = os.path.join(os.path.dirname(p), "done")
-            os.makedirs(done, exist_ok=True)
-            shutil.move(p, os.path.join(done, os.path.basename(p)))
-            announced.discard(p)
-        write_state(vr=bool(live or steam or loaded), recording=live, steamvr=steam, vr_dll_in=loaded,
-                    code=HERE)
+        try:
+            last_proc_look, steam, loaded, rec_on, last_tidy = one_pass(
+                last_proc_look, steam, loaded, rec_on, last_tidy, announced, filed)
+        except Exception as e:      # whatever goes wrong in one pass, the rider lives on to the next (2026-11-04)
+            say(f"rider: one pass failed, carrying on: {type(e).__name__}: {e}")
         time.sleep(POLL_S)
+
+
+def one_pass(last_proc_look, steam, loaded, rec_on, last_tidy, announced, filed):
+    """one look: find recordings, start/stop the video, collect, file what ended, write the state"""
+    now = time.time()
+    if now - last_proc_look >= PROCESS_LOOK_EVERY_S:
+        steam, loaded = vr_processes()
+        last_proc_look = now
+    live, ended = [], []
+    for t, p, size, mtime in recordings():
+        head = log_head(p)
+        game = game_of(head, loaded)
+        if p not in announced and size >= MIN_LOG_BYTES:
+            say(f"VR SESSION: {game} is recording for {t['name']}"); announced.add(p)
+            if not rec_on and start_recording(head, game, loaded):   # 0.80.0: any tool's log starts it
+                rec_on = True
+        if size < MIN_LOG_BYTES and now - mtime > SETTLE_S:
+            try:
+                os.remove(p)                # never got going
+            except OSError:
+                pass                        # still held: gone on a later pass
+            continue
+        if log_ended(p) or now - mtime > SETTLE_S:
+            ended.append((t, p, game))
+        else:
+            live.append(f"{game} ({t['short']})")
+    if rec_on and not live:
+        stop_recording(); rec_on = False    # the session is over: stopped first, so the filing can cut it
+    collecting = collect(now, loaded)
+    if not rec_on and not live and not ended and not collecting and now - last_tidy >= TIDY_EVERY_S:
+        tidy_videos(); last_tidy = now
+    file_ended(ended, announced, filed)
+    save_reports(now, bool(ended))
+    write_state(vr=bool(live or steam or loaded), recording=live, steamvr=steam, vr_dll_in=loaded,
+                collecting=collecting, code=HERE)
+    return last_proc_look, steam, loaded, rec_on, last_tidy
 
 
 # ----- start / stop -----
@@ -304,12 +425,26 @@ def is_this(cmd):
     return os.path.normcase(os.path.abspath(__file__)) in os.path.normcase(cmd)
 
 
+def code_newer_than(pid):
+    """True when a rider file on disk changed after the running rider started (a plugin update landed)"""
+    try:
+        import psutil
+        started = psutil.Process(pid).create_time()
+    except Exception:
+        return False
+    newest = 0
+    for name in os.listdir(HERE):
+        if name.endswith(".py"):
+            newest = max(newest, os.path.getmtime(os.path.join(HERE, name)))
+    return newest > started + 2
+
+
 def start():
     pid, cmd = running()
-    if pid and is_this(cmd):
+    if pid and is_this(cmd) and not code_newer_than(pid):
         print("already running"); return True
     if pid:
-        stop()                          # an older rider (another plugin version, or BeG0nE's ride.py): replace it
+        stop()                          # an older rider (another plugin version, newer code on disk, or ride.py)
     os.makedirs(bc.LOCAL, exist_ok=True)
     pyw = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
     exe = pyw if os.path.exists(pyw) else sys.executable
@@ -344,6 +479,7 @@ def status():
             st = json.load(f)
         print("VR now:", "YES" if st.get("vr") else "no", "| recording:", st.get("recording") or "none",
               "| SteamVR:", "up" if st.get("steamvr") else "down", "| at", st.get("at"))
+        print("collecting:", ", ".join(st.get("collecting") or []) or "nothing")
     except (OSError, ValueError):
         print("no state yet")
     print("starts with Windows:", "yes" if os.path.exists(STARTUP_CMD) else "no")

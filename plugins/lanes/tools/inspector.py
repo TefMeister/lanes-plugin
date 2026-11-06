@@ -448,10 +448,15 @@ def hold_message(rec, repo, stop, final=False):
     when = "this session cannot close yet" if final else "this commit is held"
     lines = [f"INSPECTOR: {when}. {len(stop)} note(s) need an answer in {rel_rec}/:"]
     lines.extend(describe(i) for i in stop)
+    # Run 6 (2026-11-06): in a repo that ignores its notes folder (the board repo), "commit the notes folder" could not
+    # be done; the answer is read from the file on this PC, so writing it is enough there.
+    local = git(repo, "check-ignore", "-q", "--", rel_rec + "/x") is not None   # "" when ignored, None when not
+    save = ("then try again (this repo keeps its notes on this PC only, so there is nothing to commit)" if local
+            else "commit the notes folder, then try again")
     lines.append("Read each against the code. Write `fix now` (only LOOSE-NUMS, LOOSE-ADDRESS, DEAD-CODE, and fix "
-                 "it), `fix later: <board row>`, or `keep: <why it has to stay>` on its Verdict line, commit the "
-                 "notes folder, then try again. Out of time? `inspector: carry over` in the commit message (or "
-                 "the command) lets it through; the notes wait for the next session.")
+                 "it), `fix later: <board row>`, or `keep: <why it has to stay>` on its Verdict line, " + save + ". "
+                 "Out of time? `inspector: carry over` in the commit message (or the command) lets it through; the "
+                 "notes wait for the next session.")
     return "\n".join(lines)
 
 
@@ -553,15 +558,38 @@ def backup_held(repo, prefix):
     return path if git(repo, "bundle", "create", path, span) is not None else None
 
 
+def pushed_paths(repo, commits_first=False):
+    """Files the push would carry: commits not yet on the upstream, plus what is staged when the same command
+    commits first. None when there is no upstream to compare with (then every project counts)."""
+    upstream = (git(repo, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}") or "").strip()
+    if not upstream:
+        return None
+    out = set((git(repo, "diff", "--name-only", f"{upstream}...HEAD") or "").splitlines())
+    if commits_first:
+        out |= set((git(repo, "diff", "--name-only", "--cached") or "").splitlines())
+    return {p for p in out if p}
+
+
 def push_gate(repo, carry=False, commits_first=False):
     """`inspector_mode = end`: saves stay on this PC until the notes are answered (user-directed, 2026-09-26).
     A `git push` is held while any note in this repo waits, or the notes folder is not committed.
     (refusal message or None)"""
     if mode() != "end":
         return None
+    touched = None
     for r, prefix in units_in(repo):
         if not repo_allowed(r, prefix):
             continue
+        if prefix:
+            # 2026-11-05: in a repo with one folder per project (staging), only the projects this push carries are
+            # held. An upload of the Silent Hill 2 helper was held over a Bulletstorm note, then over three empty
+            # notes folders an earlier session never committed: nothing in either was part of the upload.
+            if touched is None:
+                touched = pushed_paths(r, commits_first)
+                if touched is None:
+                    touched = False  # no upstream: every project counts
+            if touched is not False and not any(p.startswith(prefix) for p in touched):
+                continue
         rec = Record(r, prefix)
         rec.save()  # file what was answered before looking
         stop = blocking(rec)

@@ -26,5 +26,8 @@ for cand in python3 python py; do
 done
 [ -n "$PY" ] || exit 0
 
-bash "$SCAN" --brief 2>/dev/null | "$PY" "$EMIT"
+# 0.103.0: the board summary takes over a minute and this hook gets 20 s (Run 5: cut off in 3 of 3 windows), so the
+# summary shown is the last one kept, and a fresh one is made in the background for the next session.
+BASH_EXE="$BASH"; command -v cygpath >/dev/null 2>&1 && BASH_EXE="$(cygpath -w "$BASH")"
+"$PY" "${PLUGIN_ROOT}/tools/briefcache.py" show board -- "$BASH_EXE" "$SCAN" --brief 2>/dev/null | "$PY" "$EMIT"
 exit 0

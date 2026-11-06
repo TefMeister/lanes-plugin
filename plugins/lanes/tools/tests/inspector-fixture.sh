@@ -287,6 +287,25 @@ out=$(post_s s3 "$(native "$E/dev-archive/src/e.cpp")")
 [ -z "$out" ] && ok "with no setting at all, the Inspector stays off (installing it is optional)" || fail "it ran unasked ($out)"
 MODE=each; setconf
 
+echo "in a one-folder-per-project repo, an upload is held only for the projects it carries (2026-11-05)"
+MODE=end; setconf
+SN="$(native "$S")"
+git -C "$S" add -A; git -C "$S" commit -qm "alpha work, its note waiting"
+git init -q --bare "$T/staging.git"; git -C "$S" remote add origin "$(native "$T/staging.git")"
+git -C "$S" push -q -u origin HEAD 2>/dev/null
+mkdir -p "$S/gamma/inspector"; printf '# Inspector notes\n' > "$S/gamma/inspector/README.md"   # never committed
+printf 'beta notes\n' > "$S/beta/notes.txt"; git -C "$S" add beta/notes.txt; git -C "$S" commit -qm "beta only"
+commit_hook Bash "$SN" "git push"
+[ "$RC" = "0" ] && ok "a push carrying only beta is not held by alpha's note or gamma's loose folder" \
+  || fail "an unrelated project's notes held the push (rc=$RC $OUT)"
+git -C "$S" push -q 2>/dev/null
+printf '// more\n' >> "$S/alpha/a.cpp"; git -C "$S" add alpha/a.cpp; git -C "$S" commit -qm "alpha again"
+commit_hook Bash "$SN" "git push"
+[ "$RC" = "2" ] && case "$OUT" in *"upload to GitHub is held"*) true ;; *) false ;; esac \
+  && ok "a push carrying alpha is still held while alpha's note waits" || fail "alpha's note did not hold its own push (rc=$RC $OUT)"
+rm -rf "$S/gamma"
+MODE=each; setconf
+
 echo "notes stay on this PC while the Inspector is in-house (public repos, 2026-09-26)"
 P="$T/root/publicgame"; mkdir -p "$P/dev-archive/src"
 git -C "$P" init -q; git -C "$P" config user.email t@t; git -C "$P" config user.name t

@@ -275,9 +275,15 @@ and the text, so the next step is read together with the instructions):
   in every lane root is on GitHub; red `NOT SAVED` names the repo in the headline and means "save first,
   then end". A box that could not look says `UNKNOWN`, never `SAVED`.
 - **Pushed rows come from a snapshot, not from memory.** `handover.py start` (the session-start hook)
-  writes every repo's HEAD per session to `lanes-sessions/` beside `lanes.conf`; `close` lists each clean
-  repo whose HEAD moved since, with how many new commits. The handover light's own board reports are
-  not counted. With no snapshot nothing is claimed as pushed.
+  writes every repo's HEAD and the start time per session to `lanes-sessions/` beside `lanes.conf`;
+  `close` lists each clean repo with commits MADE in it since then (its HEAD reflog: a commit, amend or
+  merge, never a pull or a rebase), with how many. The handover light's own board reports are not
+  counted. With no snapshot nothing is claimed as pushed.
+- **Compact: only what this session did gets a row** (lanes-next, 2026-11-02, the maintainer: *"i like the
+  compact way ... instead of a bunch of things saying nothing, please keep doing that"*). Every other repo is
+  the one "nothing to push" row; work pulled from other sessions or the other PC never gets a row; the
+  🪧 Front page row names each profile row once, and only for this session's own commits. Until 0.99.2 a
+  long session listed every repo that had merely been pulled (about 70 rows on 2026-11-02).
 - **A problem repo gets a ⚠️ row**, a held claim gets a ⚠️ row, an unanswered Inspector note puts ⚠️ in
   its row: everything that still wants something from the person carries the same mark.
 - **The Inspector's row prints even when it says "off"**: its absence would hide whether the Inspector is
@@ -348,12 +354,11 @@ _Asked for by the maintainer on 2026-09-20, marking the headings that still had 
 **Two more fixed icons (0.48.0, 2026-10-07):**
 
 ```
-🎬 **Recorded**   - what was recorded this session, how long, and where the file went
 🎮 <project>      - in front of each project's name whenever a reply lists more than one project
 ```
 
-A recording is something the person will want to find and use (progress videos), so it gets its own
-heading instead of hiding under 🔧. And when a reply covers several projects, 🎮 in front of each name
+(A 🎬 **Recorded** heading stood here from 2026-10-07; it was retired on 2026-10-16 with automatic game recording,
+and is no longer printed.) When a reply covers several projects, 🎮 in front of each name
 lets the eye jump from one project to the next. Use 🎮 for any project, game or not; the icon marks "a
 project starts here", not "this is a game".
 
@@ -361,7 +366,8 @@ _Asked for by the maintainer on 2026-10-07._
 
 **The recorders (0.55.0, 2026-10-10):** `tools/obs-rec.py start <exe> <label> --game <project>` records only that window
 and its sound (Windows Graphics Capture + the program's own audio, never a screen capture), `stop` and `done` end it and
-put your OBS profile back. `tools/obs-autorec.py install` records any fullscreen game by itself. Both check the picture
+put your OBS profile back. (An automatic recorder for any fullscreen game, `obs-autorec.py`, stood beside it until it was
+retired in 0.105.0; automatic recording ended on 2026-10-16.) It checks the picture
 every 10 s while recording and reconnect to the window after 30 s of black, so a capture that missed the window at start-up
 does not run on black for the whole session. Since 0.72.0 `start` also records the OpenXR Simulator's preview window as a second file (`<label>_second_...`), adding it by itself when it opens later; `sim <exe>` says whether it is up.
 
@@ -997,7 +1003,7 @@ rather than disappearing.
 Checked by `tools/tests/inspector-fixture.sh`, `tools/tests/inspector_faults_test.py` and
 `tools/tests/inspector_summary_test.py`, all run by the smoke test. Design: `docs/specs/inspector-idea.md`.
 
-## 10. The handover light — is it safe to carry on from the other PC? (0.39.0, 2026-10-01)
+## 10b. The handover light — is it safe to carry on from the other PC? (0.39.0, 2026-10-01; numbered 10b in 0.105.0, it had a second "10")
 
 Two PCs share one GitHub account and hand work back and forth. GitHub is the only meeting point, and git
 never overwrites anything quietly: a push either lands or is refused. What is NOT guarded by git is what
@@ -1744,3 +1750,107 @@ something else"*. A rule that has to be remembered gets forgotten; a lock does n
 - Only the person lifts a hold early. Never fails closed on its own errors.
 - On or off: `update_hold` (only an explicit `update_hold = off` switches the guard off, since a hold exists only
   because someone put it on).
+
+## 44. The always-on collector (lanes-next, 2026-11-04)
+
+The maintainer, 2026-11-03: *"all these tools we are making, please have it an universal rule to have them run
+alongside any game, any launch, collecting data, when a game closes - categorizing all that collecting data for gold
+digger to go through it and find the useful parts we didn't have before"*. Until then a game log was kept only when a
+session remembered to, and the next launch wrote over it; a run nobody was watching left nothing behind.
+
+- **It rides inside the BeG0nE rider** (`begone/collector.py`, called from `rider.py` every few seconds), so it
+  runs on every PC the rider runs on, from Windows start, whether or not a session is open. No model reads anything
+  while it collects; collecting costs no tokens.
+- **A game is found by its program's folder.** Every 15 s the processes on the PC are read; one whose program sits
+  under a project game's folder (`tools/games.py`: the store's folder, or `game_dir.<project>` in lanes.conf) is
+  that game's run. A windowed program with an OpenXR / OpenVR dll loaded that belongs to no project is collected
+  too, under its program's name, so an unplanned VR run is not lost. The VR runtime's own programs, our helper
+  apps and anything in `collect_skip = <project or exe>, ...` (a game with anti-cheat, say) are never touched.
+  Reading a process's numbers touches nothing inside it.
+- **While it runs, every 4 s a row:** the program's CPU and memory, the whole PC's CPU, the graphics card's load,
+  memory, temperature, clock and power (nvidia-smi, when there is one), disk read rate, threads, in front or not,
+  answering or hung, window size (`samples.tsv`); and the moments (`events.tsv`): started, window up, VR on, hung /
+  answering again, focus lost / back, ended.
+- **When it closes, the run card** (`run.json`): game, program, start, end, how long, how it ended (`closed`;
+  `crashed` when a crash dump of the program appeared; `lost` when the rider itself was down at the time), VR or
+  flat, peaks and means, hangs, time not in front, what was copied and what could not be (and why). Text files
+  under the game's folder and the game's Gold Digger places that changed during the run are copied (each at most
+  `collect_log_cap_mb`, 50), crash dumps too.
+- **Then it is shelved for Gold Digger** through `tools/gd.py`: the card on the new `runs` shelf, samples and
+  events on `performance`, dumps on `crashes`, each log on the shelf its name says; the run's BeG0nE reports
+  through gd.py's own BeG0nE step. The local copy (`%LOCALAPPDATA%\BeG0nE\collector\`) is removed once it is on
+  the shelves; one line per run stays in the ledger there (`collector.py runs`). When the transfer folder is away
+  the run waits locally and is tried again (`collector.py pending`, `shelve`); the local folder stays under
+  `collect_keep_gb` (3), oldest unshelved runs dropped first, each noted in the ledger.
+- **A run shorter than 20 s** (a launcher bouncing) is noted in the ledger and not shelved. A rider that restarts
+  while a game runs adopts the open run; one that finds a run left open by a stopped rider ends it as `lost`.
+- **`rider.py start` restarts a running rider whose code is older than the files on disk**, so a plugin update
+  reaches the rider at the next session start without anyone remembering to.
+- **Not collected yet, said out loud:** CPU temperature (no free reader is on by default); the game's own frame
+  times and the headset's head and hand poses (those still need the mod's recorders, or the OpenXR recorder layer
+  that is the next row); Menu-o-matiC routes.
+- **The session-start BeG0nE line** names the collector's runs since the last look. The weekly `/lanes:gd` reads the
+  `runs` shelf like any other.
+- On or off: `collector` (set "The weekly check-up", beside Gold Digger).
+
+## 45. The clash guard: what must not run at the same time (lanes-next, 2026-11-05)
+
+The maintainer, 2026-11-05: *"we would ideally need something built into lanes that knows what cannot run at the same
+time on either different PCs or at the same time on the same PC, or both, so it looks for things that are already
+installed and checks newly added features for it too"*. The full scan's lock (0.101.0) was its first piece.
+
+- **One table, in `tools/clash.py`.** Each job that can clash says whether two of it at once clash *on one PC* or
+  *on either PC*, what else it must not run beside and where, whether two runs on different projects are fine (`/gr`),
+  and which jobs run inside it (the full scan's parts). `docs/CLASHES.md` is the table in plain words
+  (`clash.py doc`). The live claims of `/pd`, `/lm` and `/ms` stay as they are; the table names them.
+- **How it is held.** A typed `/fullscan`, `/gr`, `/gu` ... (or Claude starting that skill) passes the hook
+  `hooks/clash-guard.py`: something it clashes with running -> refused with one line saying what runs where and why;
+  otherwise its lock is taken for that session. A job that clashes across PCs is also held on the board on GitHub
+  (`handover/locks/`, the full scan keeps `handover/fullscan.lock`), pushed through a throwaway index so the board
+  clone is never touched; a push is all-or-nothing, so two PCs cannot both win. The command gives it back at its end
+  (`clash.py release <job>`), the session's end gives back whatever it still held, and a lock over 12 h old counts
+  as left over. The session's own locks never stop it, so the full scan runs its parts. "force" right after the
+  command name starts it anyway: the person's word, never the model's.
+- **Tools that press keys or run long hold their own job while they run:** Menu-o-matiC and Move-o-matiC (every
+  command that presses, clicks or turns), VR Bench (`learn`, `start`), `release.sh`. Their lock carries the
+  program's id, so one that crashed holds nothing. `obs-rec.py start` refuses while OBS is already recording (a
+  clip asked for by hand used to take over the BeG0nE recording).
+- **Everything has a row.** `clash.py audit` goes through every command, hook, tool and extra in the plugin: each
+  is a job, a part of one, or says why it needs no guard; a job nothing enforces, or a tool row whose code never
+  asks the guard, fails it too. `features.py lint`, the smoke test and `release.sh` run it, so a new command, tool or
+  extra cannot ship without saying whether it clashes.
+- On or off: `clash_guard` (set "Everyday helpers"; it replaces `fullscan_guard`, and a PC that switched that off keeps
+  the guard off).
+
+## 46. The reply check, the rest reminder, and one program per hook event (0.105.0, 2026-11-06)
+
+The maintainer, 2026-11-06: *"go over EVERYTHING that Lanes is and provides ... hardwired things that cannot be
+forgotten or ignored"*. The audit (in the maintainer's notes) listed 131 promises and found 38 that lived only in
+words; twelve had faded. This version turns the ones that matter most into checks the plugin makes itself.
+
+- **The reply check** (`hooks/reply-check.py`, a Stop hook). When a reply ends it reads that reply and, if a promised
+  line is missing, hands it back with one line saying what to add, so the line is added in the same turn: a close-out
+  box (🔦) with no 🐚 line; "you're right" or "good catch" outside quotes (the talk rule, now three lines); the person
+  is running the app for the session (an earlier reply said "keep it running") and this reply means they may close or
+  restart it without ✅ **You can quit the game now.**; the person was asked to hold something and this reply neither
+  frees them with ✅ **You can stop** nor says the hold goes on. It never hands back twice in a row (Claude Code's
+  "stop hook active" flag), and any error is silent. State: `<state>/reply-state/<session>.json`.
+- **The rest reminder** (`hooks/rest-reminder.py`). The first prompt inside the rest window (`rest_from` /
+  `rest_until` in lanes.conf, 00:00 to 06:00 by default) gets one line asking the session to say so at the top of its
+  reply, once per session. Measured before: said in 4 of 33 late-night sessions.
+- **One program per hook event.** Every shell command started six guard programs (plus any of the PC's own), about
+  2.5 s on the low-powered dev PC, roughly eight hours over four weeks. `hooks/tool-guards.py` (PreToolUse) and
+  `hooks/prompt-guards.py` (UserPromptSubmit) now run the same guard files one after another inside one process
+  (`hooks/guard_runner.py`): an exit 2 or a "deny" stops at once, an "ask" is passed on unless a later guard refuses,
+  context lines are joined. Measured: 0.2 s instead of 2.9 s. The reader guard runs only for a background agent.
+- **The slow start-up queue.** The checks that read GitHub or the board (the other PC's reminders, the privacy check,
+  waiting ideas, the update check) were cut off by their own time limits in the crowd of start-up hooks (the
+  reminders in 16 of 16 recent starts on the dev PC). They now run one after another in `start-bundle.py slow`, with
+  every `start_part = <command>` line from lanes.conf after them, so a PC's own start-up scripts can join the queue.
+- **The Inspector in the headline.** When every repo is on GitHub but this session left Inspector notes unanswered, the
+  close-out box says **NOT SAVED · N INSPECTOR NOTES UNANSWERED** (the board still records SAVED: the work is there).
+- **Code health runs the two forgotten checkers** (`rule-reach-scan.py`, `inbox-correction-scan.py`), when lanes.conf
+  has `rules_always =` (the always-loaded rules file) and `rules_file =` (the full rules).
+- Retired: `/pt` (the two-PC test replaced it) and `tools/obs-autorec.py` (automatic recording ended 2026-10-16; the
+  uninstaller still takes an old Startup shortcut away).
+- On or off: `reply_check`, `rest_reminder` (set "Everyday helpers").

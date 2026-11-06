@@ -1,5 +1,5 @@
 ---
-description: (Gate board) Prints every project's open work grouped by what it REQUIRES - work that needs nothing running, work that needs you, work that needs the app, work that needs special hardware. Read-only, reads origin/main, safe beside every other session type.
+description: "(Gate board) Prints every project's open work grouped by what it needs: nothing, you, the game, or hardware."
 ---
 
 `/gates` — **the board**. It answers one question: *what can I do right now, and in which mode?*

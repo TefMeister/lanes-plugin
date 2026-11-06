@@ -21,6 +21,7 @@ SW_RESTORE = 9
 ALT_SCAN = 0x38
 INPUT_MOUSE, INPUT_KEYBOARD = 0, 1
 MOUSEEVENTF_MOVE, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP = 0x0001, 0x0002, 0x0004
+MOUSEEVENTF_WHEEL, WHEEL_DELTA = 0x0800, 120
 TURN_STEP_COUNTS = 10   # a camera turn is sent as moves of at most this many counts...
 TURN_STEP_S = 0.012     # ...this far apart, so the game sees a smooth turn
 KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE = 0x0001, 0x0002, 0x0008
@@ -274,6 +275,24 @@ def click(hwnd, fx, fy, hold_s=KEY_HOLD_S):
         time.sleep(hold_s)
 
 
+def wheel(hwnd, clicks, fx=0.5, fy=0.5):
+    """Turn the mouse wheel `clicks` notches (positive = up, negative = down) with the cursor over a point given as
+    fractions of the window's client area. Added 2026-11-04 for REFramework's overlay, whose long list scrolls only by
+    wheel (the Village route to "Reset scripts" was wheel 10 down, click, 10 down, 6 up, click). Only when in front."""
+    if not focus(hwnd):
+        raise NotInFront("the window is not in front; the wheel was not turned")
+    width, height = client_size(hwnd)
+    pt = w.POINT(int(fx * width), int(fy * height))
+    u.ClientToScreen(hwnd, ctypes.byref(pt))
+    u.SetCursorPos(pt.x, pt.y)
+    time.sleep(0.05)
+    step = WHEEL_DELTA if clicks > 0 else -WHEEL_DELTA
+    for _ in range(abs(int(clicks))):
+        event = INPUT(type=INPUT_MOUSE, u=_U(mi=MOUSEINPUT(0, 0, step, MOUSEEVENTF_WHEEL, 0, None)))
+        u.SendInput(1, ctypes.byref(event), ctypes.sizeof(INPUT))
+        time.sleep(0.03)
+
+
 def hold(names, seconds, hwnd):
     """Hold several keys down together for `seconds` (walk forward, drive and steer), then let go of all of
     them. Keys are released even if something goes wrong, so a key is never left stuck down."""
@@ -349,9 +368,15 @@ def cpu_seconds(hwnd):
         kernel32.CloseHandle(handle)
 
 
-def hung(hwnd):
-    """Windows' own word: the window has stopped answering messages (the "Not Responding" title)."""
-    return bool(u.IsHungAppWindow(hwnd))
+def hung(hwnd, timeout_ms=1000):
+    """The window has stopped answering messages. IsHungAppWindow alone is not enough: RE3 froze at start-up
+    (2026-11-02) with IsHungAppWindow False while a plain message went unanswered, and a screen capture of it then
+    waited forever. So also send it a harmless message and give it timeout_ms to answer."""
+    if u.IsHungAppWindow(hwnd):
+        return True
+    result = ctypes.c_size_t()
+    ok = u.SendMessageTimeoutW(hwnd, 0, 0, 0, 0x0002, timeout_ms, ctypes.byref(result))   # WM_NULL, SMTO_ABORTIFHUNG
+    return not ok
 
 
 def in_front(hwnd):

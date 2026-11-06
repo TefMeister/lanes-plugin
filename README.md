@@ -31,7 +31,6 @@ you have at the start of every session: *what can I actually do right now?*
 | `/update` | Update | Gets the newest version of the plugin, after asking you. |
 | `/uninstall` | Uninstall | Takes Lanes off this PC in one go, after showing what it will do: the look, the shortcut, its helpers and settings, then the plugin. Your own work stays. |
 | `/theme` | Theme | The plugin's look (see below): puts it on, or puts your terminal back the way it was. |
-| `/pt` | Plugin Test | Tests the plugin itself. |
 
 Type them as `/lanes:<name>`, for example `/lanes:pd`.
 
@@ -310,7 +309,7 @@ any project. Expect changes: `/lanes:update` tells you what is new and never ins
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.99.1`, public, in daily use |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.105.0`, public, in daily use |
 
 ## Modding games?
 

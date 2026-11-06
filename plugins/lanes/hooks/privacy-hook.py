@@ -28,6 +28,46 @@ PUBLISHING = re.compile(r"\bgh(?:\.exe)?\s+(?:issue|pr|release|gist|label|variab
 # push, `commit -n` (alone or in a cluster such as -nm), or pointing core.hooksPath somewhere else for one command.
 SKIP_HOOKS = re.compile(r"\bgit\b[^;&|\n]*?(?:\s(?:commit|push|merge|rebase|am|cherry-pick)\b[^;&|\n]*?\s--no-verify\b"
                         r"|\scommit\b[^;&|\n]*?\s-[a-zA-Z]*n[a-zA-Z]*(?=\s|$)|\s-c\s+core\.hookspath\s*=)", re.I)
+# 0.103.0 (Run 5): only the gh command itself is read, from `gh` to the end of its part of the line, never a `cd` in
+# front of it (a read-only `gh api` after a cd into the home folder was refused); a gh command that only reads passes.
+GH_PART = re.compile(r"""\bgh(?:\.exe)?\s+(?:"[^"]*"|'[^']*'|[^;&|\n"'])*""")
+READ_VERBS = re.compile(r"^gh(?:\.exe)?\s+(?:issue|pr|release|gist|label|variable|repo)\s+"
+                        r"(?:list|view|status|download|diff|checks|ls)\b")
+API_WRITES = re.compile(r"""\s(?:-X|--method)\s*['"]?(?:POST|PATCH|PUT|DELETE)\b|\s(?:-f|-F|--field|--raw-field|--input)(?=[\s=])""",
+                        re.I)
+# Text filled in when the command runs, which can turn into a home-folder path or the login (Run 5 C5): the guard reads
+# the command as written, so it cannot see what these become. Inside single quotes nothing is filled in, and a ~ inside
+# any quotes stays a plain ~ (which is the right way to write the home folder).
+RUNTIME_HOME = re.compile(r"\$\(\s*(?:cygpath|pwd|whoami)|`\s*(?:cygpath|pwd|whoami)|\$\{?(?:HOME|USERPROFILE|USER|USERNAME|"
+                          r"PWD|LOGNAME)\b|%(?:USERPROFILE|USERNAME|HOMEPATH)%|\$env:(?:USERPROFILE|USERNAME|HOMEPATH)\b",
+                          re.I)
+FILE_FLAG_BEFORE = re.compile(r"(?:--body-file|--notes-file|--input|--file|-F)[\s=]+$")
+
+
+def fills_in_home(text):
+    """whether text, as the shell runs it, fills in something that can become a home-folder path or the login"""
+    quote, i, word_start = "", 0, True
+    while i < len(text):
+        ch = text[i]
+        if quote == "'":
+            if ch == "'":
+                quote = ""
+        else:
+            if ch == "\\" and i + 1 < len(text):
+                i += 2
+                word_start = False
+                continue
+            if ch in "\"'" and (quote == "" or ch == quote):
+                quote = "" if quote else ch
+            elif ch == "~" and quote == "" and word_start and not FILE_FLAG_BEFORE.search(text[:i]):
+                return True   # (a ~ that names a file to read is fine: the file's own text is checked below)
+            elif ch in "$`%" and RUNTIME_HOME.match(text, i):
+                return True
+        word_start = (ch.isspace() or ch == "=") and quote == ""
+        i += 1
+    return False
+
+
 FILE_MAX_BYTES = 8 * 1024 * 1024  # a file bigger than this is not read (a build zip of a few MB still is)
 TOKEN = re.compile(r"""[^\s"'`|;&<>()=]+""")
 
@@ -72,6 +112,13 @@ def main():
     skipping = SKIP_HOOKS.search(cmd)
     if not PUBLISHING.search(cmd) and not skipping:
         return 0
+    sends = [g.group(0) for g in GH_PART.finditer(cmd) if PUBLISHING.match(g.group(0))
+             and not READ_VERBS.match(g.group(0))
+             and not (re.match(r"^gh(?:\.exe)?\s+api\b", g.group(0)) and not API_WRITES.search(" " + g.group(0)))]
+    if not sends and not skipping:
+        return 0
+    first_gh = cmd.find(sends[0]) if sends else -1
+    pipe_in = cmd[:first_gh] if first_gh > 0 and "|" in cmd[:first_gh] else ""   # `cat file | gh ...` sends that file
     try:
         r = subprocess.run([sys.executable, os.path.join(TOOLS, "features.py"), "is-on", "privacy_guard"],
                            capture_output=True, timeout=15)
@@ -86,8 +133,11 @@ def main():
         pg = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(pg)
         ws, display = pg.words(True), pg.conf_value("display_name").lower()
-        found = {why for line in cmd.splitlines() for why in pg.check_line(line, ws, display)}
-        for path in named_files(cmd, data.get("cwd") or os.getcwd()):
+        sent = "\n".join(sends)
+        found = {why for line in sent.splitlines() for why in pg.check_line(line, ws, display)}
+        if fills_in_home(sent):
+            found.add("text filled in when the command runs (a home-folder path or the login can hide in it)")
+        for path in named_files(sent + "\n" + pipe_in, data.get("cwd") or os.getcwd()):
             try:
                 found |= file_findings(path, pg, ws, display)
             except Exception:

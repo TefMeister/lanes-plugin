@@ -31,7 +31,8 @@ def read_conf():
             for line in f:
                 if line.lstrip().startswith("#"):
                     continue
-                m = re.match(r"^\s*([A-Za-z_]+)\s*=\s*(.*?)\s*(#.*)?$", line)
+                # keys may carry dots and dashes (game_dir.<project>, 2026-11-04; the old pattern dropped them)
+                m = re.match(r"^\s*([A-Za-z_][A-Za-z0-9_.-]*)\s*=\s*(.*?)\s*(#.*)?$", line)
                 if m:
                     conf[m.group(1)] = m.group(2).strip().strip('"').strip("'")
     except OSError:

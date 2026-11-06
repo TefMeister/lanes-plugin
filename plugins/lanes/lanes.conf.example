@@ -33,6 +33,23 @@ role = DEV
 # . _ - only. Change it with tools/machine-name.py set <name>.
 # machine_name = PC1
 
+# THE NAME THIS PC'S SESSIONS START WITH (0.101.0). When set, the Lanes desktop
+# shortcut starts Claude Code with Remote Control on and the session already
+# named, so a session on your other PC can find it by name ("Dev PC desk")
+# without you renaming it each time. Re-make the shortcut after changing it:
+# python tools/shortcut.py create. Empty = plain `claude`, as before.
+# session_name = Dev PC desk
+# A second window started with the same name is numbered by itself
+# ("Dev PC desk 2", "Dev PC desk 3"), so the first one stays the desk (0.103.0).
+
+# A PC THAT RUNS NO GAMES (0.103.0). With two PCs where one does all the game
+# work, set this on the other one: /lm, /ms, VR Bench and Menu-o-matiC then
+# refuse with one line ("force" after the command starts it anyway), and its
+# game board leaves out rows that need a game running. games_role names the PC
+# role (HOME or DEV) that those rows belong to instead. Default: yes.
+# runs_games = no
+# games_role = HOME
+
 # WHERE YOUR CLONES LIVE - used by /gs, which sweeps all of them, and by
 # root-sync.sh, which keeps every lane's clone root holding every repo.
 # One folder holding every repo as a subfolder. Overridden by $LANES_ROOT,

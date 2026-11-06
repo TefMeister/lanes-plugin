@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Stop and Notification hook: taskbar blink (2026-11-05). When Claude finishes a reply or waits for an answer, the
+# terminal's taskbar button blinks, so a session in a window behind the game is noticed. The maintainer: "can you make
+# the taskbar session icon blink to notify me to check it, once you write something for me to check or respond to?"
+# Windows only; silent on every failure path, never holds a reply up.
+set -uo pipefail
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+PY=""
+for cand in python3 python py; do
+  command -v "$cand" >/dev/null 2>&1 || continue
+  "$cand" -c "" >/dev/null 2>&1 || continue
+  PY="$cand"; break
+done
+[ -n "$PY" ] || exit 0
+"$PY" "${PLUGIN_ROOT}/tools/features.py" is-on taskbar_flash >/dev/null 2>&1 || exit 0
+"$PY" "${PLUGIN_ROOT}/tools/taskbar_flash.py" >/dev/null 2>&1
+exit 0

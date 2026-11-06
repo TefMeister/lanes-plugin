@@ -102,14 +102,24 @@ open("render.png", "wb").write(png(b"File\0C:\\Users\\hiddenx\\guns\\gun.blend")
 open("clean.png", "wb").write(png(b"Software\0Blender"))
 open("tool.dll", "wb").write(b"MZ\0\0" + b"\0" * 64 + b"C:\\Users\\hiddenx\\src\\tool.pdb\0" + b"\0" * 16)   # privacy-guard:allow scrub-scan:allow (made-up name)
 open("noise.bin", "wb").write(b"\0\x01\x02 BOXNAME q\x01\0" * 4)
+open("vendor.dll", "wb").write(b"MZ\0\0" + b"\0" * 64 + b"/home/buildbot-x/out/dlss/model.cpp\0" + b"\0" * 16)   # privacy-guard:allow scrub-scan:allow (made-up name)
+open("ours.dll", "wb").write(b"MZ\0\0" + b"\0" * 64 + b"/home/loginx/src/tool.cpp\0" + b"\0" * 16)   # privacy-guard:allow scrub-scan:allow (made-up login)
+open("ourwin.dll", "wb").write(b"MZ\0\0" + b"\0" * 64 + b"C:\\Users\\loginx\\src\\tool.pdb\0" + b"\0" * 16)   # privacy-guard:allow scrub-scan:allow (made-up login)
+open("otherpc.dll", "wb").write(b"MZ\0\0" + b"\0" * 64 + b"C:\\Users\\homepcx\\src\\tool.pdb\0" + b"\0" * 16)   # privacy-guard:allow scrub-scan:allow (made-up login)
 PYEOF
+mkdir -p "$T/state"; printf 'homepcx\n' > "$T/state/private-words.txt"   # the other PC's login, as private words hold it
 staged_refused() { git add -A >/dev/null 2>&1; env_run staged >/dev/null 2>&1; r=$?; git reset -q; [ $r -eq 1 ]; }
-only() { for f in render.png clean.png tool.dll noise.bin; do [ "$f" = "$1" ] || mv "$f" "../$f.away" 2>/dev/null; done; }
-back() { for f in render.png clean.png tool.dll noise.bin; do [ -f "../$f.away" ] && mv "../$f.away" "$f"; done; }
+only() { for f in render.png clean.png tool.dll noise.bin vendor.dll ours.dll ourwin.dll otherpc.dll; do [ "$f" = "$1" ] || mv "$f" "../$f.away" 2>/dev/null; done; }
+back() { for f in render.png clean.png tool.dll noise.bin vendor.dll ours.dll ourwin.dll otherpc.dll; do [ -f "../$f.away" ] && mv "../$f.away" "$f"; done; }
 only render.png; check "binary: a PNG whose hidden text names a home folder is refused" 'staged_refused'; back
 only clean.png;  check "binary: a PNG with harmless hidden text passes" '! staged_refused'; back
-only tool.dll;   check "binary: a dll naming a home folder (its .pdb path) is refused" 'staged_refused'; back
+only tool.dll;   check "binary: another maker's Windows build path (.pdb) inside a dll passes (REFramework, 2026-11-05)" '! staged_refused'; back
+only otherpc.dll; check "binary: a dll built in the OTHER PC's home folder (a private word) is still refused" 'staged_refused'; back
 only noise.bin;  check "binary: a never-publish word by chance in other bytes passes" '! staged_refused'; back
+only vendor.dll; check "binary: another maker's Linux build path inside a dll passes (NVIDIA DLSS, 2026-11-05)" '! staged_refused'; back
+staged_refused_as() { git add -A >/dev/null 2>&1; USERNAME="$1" LANES_CONFIG="$T/lanes.conf" LANES_STATE_DIR="$T/state" "$PY" "$PG" staged >/dev/null 2>&1; r=$?; git reset -q; [ $r -eq 1 ]; }
+only ours.dll;   check "binary: a Linux path holding this PC's login is still refused" 'staged_refused_as loginx'; back
+only ourwin.dll; check "binary: a dll built in this PC's own home folder is still refused" 'staged_refused_as loginx'; back
 only render.png; git add -A; git commit -q -m pic; L="$(git rev-parse HEAD)"
 out="$(printf 'refs/heads/main %s refs/heads/main %s\n' "$L" "0000000000000000000000000000000000000000" | env_run push origin https://github.com/x/y.git 2>&1)"
 check "binary: the push check finds the picture's hidden text too" 'printf "%s" "$out" | grep -q "render.png (hidden text"'

@@ -18,7 +18,7 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-LANE_SKILLS = ("pd", "lm", "ms")
+LANE_SKILLS = ("pd", "lm", "ms", "bench", "menu")   # bench + menu: refused on a PC with runs_games = no (0.103.0)
 GUARD_TIMEOUT_S = 15
 
 

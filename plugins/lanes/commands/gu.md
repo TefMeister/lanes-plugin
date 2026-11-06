@@ -1,5 +1,5 @@
 ---
-description: (GitHub update) The weekly tool check. Finds what we rely on that has a newer version - our own apps and tools, two copies of the same tool that drifted apart, outside tools with a new release, lessons the tools should learn, - and brings each up to date, asking first before installing anything. GitHub's own pages and downloads are /lanes:od.
+description: "(GitHub update) The weekly tool check: what we rely on that has a newer version, installed only on your tick."
 ---
 
 `/gu` — **keep everything we rely on fresh.** `/gs` only checks; `/gu` checks the things that may need updating
@@ -126,3 +126,9 @@ python "${CLAUDE_PLUGIN_ROOT}/tools/gu.py" done
 Then the usual write-up: close-out box (`handover.py close`), the gate/model box, and a short report: what was
 updated, what was left and why, and what needs the person. A front-page or activity line only when something was
 released or changed for people (a tool update, a plugin release).
+
+## Last step: give back the clash guard's lock
+
+When this run ends, or stops early: `python "${CLAUDE_PLUGIN_ROOT}/tools/clash.py" release gu`. The clash
+guard's hook took it when the run started, so nothing it must not run beside could start meanwhile (docs/CLASHES.md);
+the session's end gives it back too. Inside `/lanes:fullscan` too (it is harmless when nothing is held).

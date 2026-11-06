@@ -179,6 +179,53 @@ def command_leftovers():
         return []
 
 
+def _json_of(out):
+    try:
+        return json.loads(out[out.index("{"):])
+    except ValueError:
+        return None
+
+
+def rule_reach():
+    """0.105.0 (audit P9, 2026-11-06): rule-reach-scan.py had been run by nothing since 0.15.0. A standing rule that
+    no always-read file mentions, or whose heading carries no searchable word, never reaches a session. Reads the
+    always-loaded rules (lanes.conf `rules_always`) against the full rules (`rules_file`). None when not set."""
+    always = [p for p in gu.conf_values("rules_always") if os.path.isfile(p)]
+    if not always:
+        return None
+    cmd = [sys.executable, os.path.join(HERE, "rule-reach-scan.py")]
+    for p in always:
+        cmd += ["--always", p]
+    for p in gu.conf_values("rules_file"):
+        if os.path.isfile(p):
+            cmd += ["--rules", p]
+    _rc, out = run(cmd + ["--json"])
+    j = _json_of(out)
+    if not j:
+        return {"error": "the rule-reach check did not answer"}
+    faults = j.get("faults", {})
+    fmt = lambda e: f"{e['file']} line {e['line']}: {e['heading'][:70]}"  # noqa: E731
+    return {"unreachable": [fmt(e) for e in faults.get("unreachable", [])],
+            "unfindable": [fmt(e) for e in faults.get("unfindable", [])]}
+
+
+def corrections_live():
+    """0.105.0 (audit P9): inbox-correction-scan.py, run by nothing since 0.16.0. A correction whose false sentence
+    is still in its target file is a live falsehood. Looks in every clone beside the board (the game repos)."""
+    board = (gu.conf_values("board") or [""])[-1]
+    root = os.path.dirname(board.rstrip("/\\")) if board else ""
+    clones = sorted(p for p in glob.glob(os.path.join(root, "*")) if os.path.isdir(os.path.join(p, ".git"))) \
+        if root and os.path.isdir(root) else []
+    clones += [r for r in repos() if r not in clones]
+    if not clones:
+        return None
+    _rc, out = run([sys.executable, os.path.join(HERE, "inbox-correction-scan.py")] + clones + ["--json"])
+    j = _json_of(out)
+    if j is None:
+        return {"error": "the corrections check did not answer"}
+    return {"live": [f"{e.get('repo')}/{e.get('target')}: {e.get('drop', '')}" for e in j.get("live", [])]}
+
+
 def scan():
     tools = {m: has_module(m) for m in ("ruff", "vulture")}
     report = {"date": today().isoformat(), "tools": tools, "repos": {}}
@@ -189,6 +236,8 @@ def scan():
     report["twins"] = twins()
     report["old_plugin_versions"], report["old_plugin_mb"] = plugin_leftovers()
     report["command_leftovers"] = command_leftovers()
+    report["rules"] = rule_reach()
+    report["corrections"] = corrections_live()
     return report
 
 
@@ -221,6 +270,23 @@ def show(report):
     cl = report["command_leftovers"]
     lines.append(f"   files in ~/.claude/commands that are not commands: {len(cl) or 'none'}"
                  + (f" ({', '.join(cl)})" if cl else ""))
+    rules = report.get("rules")
+    if rules is not None:
+        if rules.get("error"):
+            lines.append(f"\n== standing rules: {rules['error']}")
+        else:
+            lines.append(f"\n== standing rules that cannot reach a session: {len(rules['unreachable']) or 'none'}")
+            lines += ["    " + i for i in rules["unreachable"]]
+            lines.append(f"   rule headings with no word a session would search for: "
+                         f"{len(rules['unfindable']) or 'none'}")
+            lines += ["    " + i for i in rules["unfindable"]]
+    corr = report.get("corrections")
+    if corr is not None:
+        if corr.get("error"):
+            lines.append(f"\n== corrections: {corr['error']}")
+        else:
+            lines.append(f"\n== corrections whose false sentence is still there: {len(corr['live']) or 'none'}")
+            lines += ["    " + i for i in corr["live"]]
     return "\n".join(lines)
 
 
@@ -232,8 +298,20 @@ def load_state():
         return {}
 
 
+def _clash_step(job, project="all"):
+    """hold this tool's job against a clash (clash.step, 0.103.0)"""
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import clash
+    except Exception:  # noqa: BLE001
+        return
+    clash.step(job, project)
+
+
 def main(argv):
     cmd = argv[1] if len(argv) > 1 else "scan"
+    if cmd in ("backup", "scan", "done"):
+        _clash_step("ch")
     if cmd == "repos":
         print("\n".join(repos()) or "No repos: add `ch_repo = <clone>` (or `ours =`) lines to lanes.conf.")
     elif cmd == "backup":

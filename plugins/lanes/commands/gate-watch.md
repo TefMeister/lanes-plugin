@@ -1,5 +1,5 @@
 ---
-description: (Gate watch) The one sanctioned background watcher - allowed in /gr, /sr, /pd and ordinary sessions, but NEVER in /lm or /gs. Reports board changes this session did NOT make - work pushed by another lane or another machine. Read-only, never launches anything, silent when nothing changed.
+description: "(Gate watch) Background watcher that reports board changes other sessions or the other PC pushed; read-only."
 ---
 
 `/gate-watch` — **the constant known task.** One job, permanently: say when a project's status

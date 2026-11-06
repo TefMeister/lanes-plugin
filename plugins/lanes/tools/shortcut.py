@@ -52,6 +52,37 @@ def say(text):
     print("SHORTCUT: " + text)
 
 
+def session_name():
+    """`session_name = <name>` in lanes.conf (0.101.0, 2026-11-05): the shortcut starts Claude Code with Remote Control
+    on and the session already named, so another PC's session finds it by that name ("Dev PC desk") without the
+    person renaming it by hand every time. Empty = plain `claude`, as before."""
+    import re
+    pat = re.compile(r"^\s*session_name\s*=\s*(.*?)\s*(?:\s#.*)?$")
+    for line in conf_lines():
+        m = pat.match(line)
+        if m:
+            return m.group(1).strip().strip('"').strip("'").replace('"', "")
+    return ""
+
+
+def conf_lines():
+    """every line of the first lanes.conf that can be read (LANES_CONFIG wins), or none"""
+    cands = [os.environ["LANES_CONFIG"]] if os.environ.get("LANES_CONFIG") else [
+        os.path.join(HOME, ".claude", "lanes.conf"), os.path.join(HOME, ".config", "lanes", "lanes.conf")]
+    for path in cands:
+        try:
+            with open(path, encoding="utf-8", errors="replace") as f:
+                return [l.rstrip("\r\n") for l in f]
+        except OSError:
+            continue
+    return []
+
+
+def claude_command():
+    name = session_name()
+    return 'claude --remote-control "%s"' % name if name else "claude"
+
+
 def now():
     return datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %z")
 
@@ -130,7 +161,7 @@ def create(folder=None, dry_run=False):
         except OSError:
             icon = ""   # a shortcut without an icon still works
     link = os.path.join(desktop(), NAME + ".lnk")
-    args = '-p "%s" -d "%s" claude' % (guid, folder)
+    args = '-p "%s" -d "%s" %s' % (guid, folder, claude_command())
     say("target %s" % wt)
     say("arguments %s" % args)
     say("icon %s" % (icon or "(none)"))

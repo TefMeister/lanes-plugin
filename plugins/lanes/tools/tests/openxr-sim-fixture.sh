@@ -51,8 +51,16 @@ ELSE="$T/elsewhere"; command -v cygpath >/dev/null 2>&1 && ELSE="$(cygpath -m "$
 printf 'openxr_sim = %s\n' "$ELSE" > "$T/c.conf"
 out="$(LANES_CONFIG="$T/c.conf" run status)"
 check "a copy named in lanes.conf is found, release unknown" '[[ "$out" == *"release unknown"* ]]'
+# 2026-11-06: a copy put in by hand was never called out of date, so the dev PC sat on 1.5.x while 1.6.0 added the
+# frame checks a real headset makes (Silent Hill 2's "Early" frames: black in the headset, fine in the simulator).
+check "a copy of unknown release names the newest release" '[[ "$out" == *"v9.0"* ]]'
+out="$(LANES_CONFIG="$T/c.conf" run status --json)"
+check "a copy of unknown release counts as maybe out of date" '[[ "$out" == *"\"newer\": true"* && "$out" == *"\"release_unknown\": true"* ]]'
 out="$(LANES_CONFIG="$T/c.conf" run install --fork)"
 check "install --fork updates the copy where it is" 'grep -q "fork v9.1" "$T/elsewhere/lanes-release.txt" && [ ! -e "$T/default" ]'
+check "the copy it replaced is kept beside it" '[ -f "$T/elsewhere.before-v9.1/openxr_simulator.dll" ] && [[ "$out" == *"kept"* ]]'
+out="$(LANES_CONFIG="$T/c.conf" run status --json)"
+check "after a Lanes install the release is known again" '[[ "$out" == *"\"release_unknown\": false"* ]]'
 run decline >/dev/null
 out="$(run status --json)"
 check "decline is remembered" '[[ "$out" == *"\"declined\": true"* ]]'

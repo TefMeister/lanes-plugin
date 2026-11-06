@@ -81,6 +81,10 @@ FEATURES = {
     "theme": {"label": "The green look", "set": "everyday",
               "what": "puts the plugin's old-green-monitor look on this terminal, still by default (/lanes:theme animated adds a moving light that uses a bit more of the PC); /lanes:theme restore undoes it",
               "link": GH + "commands/theme.md"},
+    "version_line": {"label": "Lanes version first", "set": "everyday",
+                     "what": "every session opens with one line naming the Lanes version it runs (and \"test branch\" "
+                             "when a test copy is loaded), so two PCs on different versions are seen at a glance",
+                     "link": GH + "hooks/version-line"},
     "talk_rule": {"label": "Check before agreeing", "set": "everyday",
                   "what": "Claude never says \"you are right\" before checking what you said",
                   "link": GH + "hooks/talk-rule"},
@@ -88,6 +92,15 @@ FEATURES = {
                       "what": "Claude talks like a friend: warm but honest and direct, and when you miss something "
                               "obvious it says so with a light ribbing instead of \"easy to miss\"",
                       "link": GH + "hooks/straight-talk"},
+    "reply_check": {"label": "Reply check", "set": "everyday",
+                    "what": "when a reply forgets one of the promised lines (the green tick when you may quit the "
+                            "game or stop holding, the line under the save box, no \"you're right\"), it is handed "
+                            "back to add it, in the same turn",
+                    "link": GH + "hooks/reply-check.py"},
+    "rest_reminder": {"label": "Rest reminder", "set": "everyday",
+                      "what": "once a session, past the rest time you set (midnight by default), Claude says so in "
+                              "one line at the top of its reply",
+                      "link": GH + "hooks/rest-reminder.py"},
     "tools_rule": {"label": "Use the tools, grow the tools", "set": "everyday",
                    "what": "Claude drives menus and tests with the tools this PC has (routes, VR Bench, BeG0nE, the "
                            "live-game connectors) before doing it by hand, records what it learns, and adds a small "
@@ -109,6 +122,11 @@ FEATURES = {
                                "watched and typed into from the Claude phone app, claude.ai/code or a session on your "
                                "other PC; without it, /remote-control (or /rc) turns it on in one session",
                        "link": PROTO_LINK + "35-remote-control-in-every-session-0870-2026-10-26"},
+    "taskbar_flash": {"label": "Blink when Claude is done", "set": "everyday",
+                      "what": "the terminal's taskbar button blinks when Claude finishes a reply or waits for an "
+                              "answer, so a session behind a game window is not missed (Windows Terminal; the "
+                              "first blink sets its bell to blink instead of beep)",
+                      "link": GH + "tools/taskbar_flash.py"},
     "keep_transcripts": {"label": "Keep full conversation logs", "set": "everyday",
                          "what": "copies each conversation out of Claude Code's 30-day clean-up, kept on this PC only",
                          "link": PROTO_LINK + "21-keep-conversations-short-an-earlier-summary-that-loses-nothing-0630-2026-10-13"},
@@ -133,6 +151,20 @@ FEATURES = {
                  "what": "one line at session start when the weekly full scan (/lanes:fullscan: Gold Digger, research, "
                          "the tool check, the tidiness pass, then save) is a week old",
                  "link": GH + "commands/fullscan.md"},
+    # lanes-next 2026-11-05: the clash guard took over "fullscan_guard" (the full scan's lock was its first piece).
+    "clash_guard": {"label": "Clash guard", "set": "everyday",
+                    "what": "things that must not run at the same time (two full scans, the full scan and one of its "
+                            "parts, two research runs on one project, two Lanes installs on one PC, two recordings) "
+                            "are kept apart, on one PC and across both: the second one is refused with one line saying "
+                            "what is running where (docs/CLASHES.md has the whole table)",
+                    "link": GH + "docs/CLASHES.md"},
+    "collector": {"label": "Always-on collector", "set": "checkup",
+                  "what": "every launch of a project game, flat or VR, with or without a session, is collected "
+                          "quietly while it runs (the program's and the graphics card's load, memory and "
+                          "temperature, hangs, focus, the logs it wrote, crash dumps) and put on the Gold Digger "
+                          "shelves the moment it closes, so /lanes:gd finds it; no model reads anything while "
+                          "collecting",
+                  "link": PROTO_LINK + "44-the-always-on-collector-lanes-next-2026-11-04"},
     "code_health": {"label": "Code health", "set": "checkup",
                     "what": "/lanes:ch re-reads your own tools with the Inspector on, saves a working copy to GitHub "
                             "and a backup folder first, and tidies only what cannot change how they work; the weekly "
@@ -147,6 +179,13 @@ FEATURES = {
                     "what": "a quiet helper that starts with every session and turns each headset test of a mod wired "
                             "to it into a short report on jitter and hand faults",
                     "link": "https://github.com/TefMeister/BeG0nE"},
+    # 0.101.0 (2026-11-05): the rider only ever FILED reports; a session had to save them, and a session that ended
+    # first left them on the PC only (eight Village reports on 2026-11-05). Pushes to GitHub, so asked once.
+    "begone_autosave": {"label": "BeG0nE reports save themselves", "set": "vr", "ask_on_update": True,
+                        "what": "the BeG0nE helper puts each report it files on GitHub by itself (only its own new "
+                                "report files, and only when the BeG0nE folder is a git copy), so a session that "
+                                "ends early no longer leaves reports on this PC only",
+                        "link": "https://github.com/TefMeister/BeG0nE"},
     "vr_effects_off": {"label": "Gameplay only in VR", "set": "vr",
                        "what": "sessions switch off every blur and screen effect a game paints over the picture, such "
                                "as motion blur, blood on the screen and the low-health tint",
@@ -254,8 +293,13 @@ def kind():
     return k
 
 
+RENAMED = {"clash_guard": "fullscan_guard"}   # a PC that switched the old name off keeps it off
+
+
 def why(name):
     v = conf_value(name)
+    if v is None and name in RENAMED:
+        v = conf_value(RENAMED[name])
     if v in ON_WORDS:
         return True, "switched on"
     if v in OFF_WORDS:
@@ -338,6 +382,13 @@ def lint():
     for s in SETS:
         if not any(f["set"] == s for f in FEATURES.values()):
             problems.append(f"set '{s}' has no extras")
+    # every extra says whether it clashes with anything (tools/clash.py, lanes-next 2026-11-05)
+    try:
+        import clash
+        problems += [f"{n}: no row in tools/clash.py (say which job it is, or why it needs none)"
+                     for n in FEATURES if clash.row_of("feature:" + n) is None]
+    except Exception as e:
+        problems.append(f"tools/clash.py would not load: {e}")
     return problems
 
 

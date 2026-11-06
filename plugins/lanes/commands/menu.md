@@ -1,5 +1,5 @@
 ---
-description: (Menu-o-matiC) Gets an app from launch to where the work happens, and back out, by replaying a recorded menu route, and records new routes while looking at as little of the screen as possible. A replay costs no model tokens; the model only looks when a checkpoint fails. Launching belongs to /lm (or the person's say-so); never from /pd, /gr, /sr or /gs.
+description: "(Menu-o-matiC) Replays or records a game's menu route from launch to play; launching stays with /lm."
 ---
 
 `/menu` — **Menu-o-matiC and Move-o-matiC.** Walks an app's menus by itself, and moves a character or car along a

@@ -1,5 +1,5 @@
 ---
-description: (VR Bench) A robot player for VR games - the OpenXR Simulator plays the headset, the VR Bench layer plays the hands, buttons and sticks, and a learning hour finds out how a game's head, hands and buttons behave with nobody wearing anything. Launching belongs to /lm (or the person's say-so); never from /pd, /gr, /sr or /gs.
+description: "(VR Bench) A robot player for VR games: simulated headset and hands, with a learning hour; launching stays with /lm."
 ---
 
 `/bench` — **VR Bench.** Tests and learns a VR game with nobody in the headset. The OpenXR Simulator (by

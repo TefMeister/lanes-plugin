@@ -144,8 +144,29 @@ def brief(mark=True, start=True):
         out.append(f"... and {len(fresh) - NEW_MAX} more: begone.py new --peek")
     out.append("Tools:")
     out += tool_lines()
+    out += collector_lines()
     out += [READ_RULE, WIRE_RULE]
     return "\n".join(out)
+
+
+def collector_lines():
+    """one line on the always-on collector (lanes-next, 2026-11-04): what it collected since the last look"""
+    try:
+        sys.path.insert(0, BEGONE)
+        import collector
+        runs = collector.read_ledger(n=1000)
+        if not runs:
+            return ["Collector: on, nothing collected yet (every launch of a project game is collected and shelved)."]
+        last = runs[-1]
+        kept = [r for r in runs if r.get("shelved") == "yes"]
+        waiting = sum(1 for _, r in collector.pending() if r.get("end") and not r.get("shelved"))
+        line = (f"Collector: {len(kept)} run(s) shelved for Gold Digger; last {last['game']} {last['stamp'][:16]} "
+                f"({last['seconds']} s, {last['ended']}, {last['vr']})")
+        if waiting:
+            line += f"; {waiting} waiting for the shelves (collector.py shelve)"
+        return [line + "."]
+    except Exception:
+        return []
 
 
 def find_run(t, which, game=None):

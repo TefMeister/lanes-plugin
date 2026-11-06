@@ -21,11 +21,15 @@ need to save all the collected data in the MEGA transfer folder so both pc's can
     python gd.py fold <file> [--against <older file>]   the file with repeated lines folded into one (count, first
                                                 and last line number), warnings and errors marked, and with
                                                 --against, only what the older run did not have
+    python gd.py digest <game> [<shelf>]        the unread copies, each against EVERY earlier copy of the same kind:
+                                                only lines nothing before had (warnings first), the copies that
+                                                are only repeats counted and skipped; tables show their bad minutes
     python gd.py nudge                          one session-start line when the full scan is a week old
     python gd.py fullscan-done                  stamp a /lanes:fullscan run on this PC
 
 THE SHELVES (a first set; a new one is just a new word): camera, jitter, hands, guns, first-person, enemies, menus,
-hud, sound, crashes, performance, logs (whole game logs, a bit of everything), other. Each item lands on ONE shelf; when
+hud, sound, crashes, performance, runs (the always-on collector's card per game launch, lanes-next 2026-11-04), logs
+(whole game logs, a bit of everything), other. Each item lands on ONE shelf; when
 its name or contents also fit others, the index names those too ("also"), so /lanes:gd reading one shelf finds it.
 
 ON DISK, so both PCs can use it at once through a synced folder:
@@ -73,8 +77,9 @@ SHELVES = [
     ("menus", ["menu", "menus", "route", "routes", "ui", "title", "options", "settings", "pause"]),
     ("hud", ["hud", "crosshair", "overlay", "reticle", "subtitle"]),
     ("sound", ["sound", "audio", "music", "sfx", "fmod", "wwise", "soundxfound"]),
-    ("performance", ["perf", "fps", "timing", "frametime", "profile", "gpu"]),
-    ("logs", ["log", "logs", "txt", "framework", "console", "output"]),
+    ("performance", ["perf", "fps", "timing", "frametime", "profile", "gpu", "samples", "events"]),
+    ("runs", ["run", "runs", "collector"]),      # the always-on collector's run.json: one card per game launch
+    ("logs",["log", "logs", "txt", "framework", "console", "output"]),
 ]
 BEGONE_TOOLS = {"camera-jitter": "jitter", "ghost-hand": "hands", "occlusion-drift": "guns"}
 WARN_WORDS = (r"error|errors|fail|failed|failure|fatal|exception|crash|assert|warning|warn|refused|"
@@ -87,7 +92,10 @@ ZERO_COUNT = re.compile(rf"\b(?:{WARN_WORDS})\s*[=:]?\s*0(?![.\d])|(?<![.\d])\b0
 def looks_like_warning(text):
     return bool(WARN.search(ZERO_COUNT.sub("", text)))
 
-NUMBERS = re.compile(r"0x[0-9a-fA-F]+|\d+(?:\.\d+)?")
+# Bare hex addresses too ("Game Module Addr: 7ff6160b0000"): 6+ hex digits with at least one digit among them, so a
+# plain word such as "facade" stays. Without this, --against called 925 lines of a Village log "new" that were only
+# addresses moved by the next launch (2026-11-05, dev PC).
+NUMBERS = re.compile(r"0x[0-9a-fA-F]+|\b(?=[0-9a-fA-F]*\d)[0-9a-fA-F]{6,}\b|\d+(?:\.\d+)?")
 
 
 # ---- settings -----------------------------------------------------------------------------------------------------
@@ -330,7 +338,12 @@ def stage_begone(run, tool):
 
 def shelve(game, quiet=False):
     pc = pc_name()
-    known = {r["sha1"] for r in index(game)}
+    rows = index(game)
+    known = {r["sha1"] for r in rows}
+    # 2026-11-05: a BeG0nE report reaches both PCs (the reports travel by GitHub), and git can change its line
+    # endings on the way, so the same report had other bytes on the other PC and was shelved twice (Hard Reset 17,
+    # Psychonauts 5, Manhunt 6, Alice 4). A run already on any PC's index is never shelved again.
+    shelved_runs = {r["from"] for r in rows if r["from"].startswith("BeG0nE ")}
     added, skipped_busy = [], 0
     for pattern, hint in sources(game, pc):
         for f in expand(pattern):
@@ -347,7 +360,8 @@ def shelve(game, quiet=False):
     seen = state.setdefault("begone_seen", {})
     for run, tool, shelf in begone_reports(game):
         key = f"{tool}/{safe_game(game)}/{os.path.basename(run)}"
-        if key in seen:
+        if key in seen or f"BeG0nE {tool} {os.path.basename(run)}" in shelved_runs:
+            seen.setdefault(key, now_stamp())
             continue
         try:
             staged = stage_begone(run, tool)
@@ -436,10 +450,83 @@ def item_file(ref):
     return ref
 
 
+# ---- reading: tables ----------------------------------------------------------------------------------------------
+# ⚠️ ADDED 2026-11-05 (dev PC, Gold Digger test): `fold` blanks numbers, so a frame-rate recording (one row of numbers a
+# second) folded into ONE line and showed nothing; the worst Village stutter of 11-04 sat on the performance shelf
+# unseen until it was summed by hand. A table is now read by minute: the run's usual value per column, then only the
+# minutes where some column left it, and by how much.
+TIME_COLUMNS = ("uptime_s", "t", "seconds", "time_s", "elapsed_s")
+TABLE_STEP_S = 60
+TABLE_OFF = 0.4          # a minute is worth showing when a column's minute value is 40% off the run's usual
+TABLE_MIN_ABS = 1.0      # ... and off by at least this much (so 0 -> 0.4 stutters is not news)
+
+
+def read_table(lines):
+    """(header, rows) when the text is a table of numbers with a time column; else None."""
+    body = [ln for ln in lines if ln.strip()]
+    if len(body) < 5:
+        return None
+    sep = "\t" if body[0].count("\t") >= 3 else ("," if body[0].count(",") >= 3 else None)
+    if not sep:
+        return None
+    head = [h.strip().lstrip("#").strip() for h in body[0].split(sep)]
+    tcol = next((i for i, h in enumerate(head) if h in TIME_COLUMNS), None)
+    if tcol is None:
+        return None
+    rows = []
+    for ln in body[1:]:
+        p = ln.split(sep)
+        vals = []
+        for v in p[:len(head)]:
+            try:
+                vals.append(float(v))
+            except ValueError:
+                vals.append(None)
+        if len(vals) > tcol and vals[tcol] is not None:
+            rows.append(vals)
+    return (head, tcol, rows) if len(rows) >= 5 else None
+
+
+def table_summary(head, tcol, rows):
+    def med(v):
+        v = sorted(v)
+        return v[len(v) // 2] if v else None
+    minutes = {}
+    for r in rows:
+        minutes.setdefault(int(r[tcol] // TABLE_STEP_S), []).append(r)
+    cols = [i for i in range(len(head)) if i != tcol and sum(1 for r in rows if i < len(r) and r[i] is not None) >= len(rows) // 2]
+    per = {m: {i: med([r[i] for r in rs if i < len(r) and r[i] is not None]) for i in cols} for m, rs in minutes.items()}
+    usual = {i: med([per[m][i] for m in per if per[m][i] is not None]) for i in cols}
+    print(f"# a table: {len(rows)} rows, {len(minutes)} minute(s), {len(cols)} number column(s); usual = the median minute")
+    print("# usual: " + "  ".join(f"{head[i]}={usual[i]:g}" for i in cols if usual[i] is not None))
+    shown = 0
+    for m in sorted(per):
+        off = []
+        for i in cols:
+            v, u = per[m][i], usual[i]
+            if v is None or u is None or abs(v - u) < TABLE_MIN_ABS:
+                continue
+            if abs(v - u) > TABLE_OFF * max(abs(u), TABLE_MIN_ABS):
+                off.append(f"{head[i]} {v:g} (usual {u:g})")
+        if off:
+            shown += 1
+            print(f"! minute {m:3d}: " + "; ".join(off[:8]) + (f"; +{len(off) - 8} more" if len(off) > 8 else ""))
+    if not shown:
+        print("# every minute stayed near the usual values")
+    return 0
+
+
 def fold(path, against=None):
     path = item_file(path)
     against = item_file(against) if against else against
+    if not os.path.isfile(path):
+        print(f"gd: no such file or shelf item: {path}")
+        return 1
     lines = read_lines(path)
+    table = None if against else read_table(lines)
+    if table:
+        print(f"# {os.path.basename(path)}")
+        return table_summary(*table)
     groups, order = fold_lines(lines)
     old = set()
     if against:
@@ -453,6 +540,88 @@ def fold(path, against=None):
         mark = "W" if looks_like_warning(g["text"]) else " "
         rep = f"x{g['count']} ({g['first']}-{g['last']})" if g["count"] > 1 else f"   ({g['first']})"
         print(f"{mark} {rep:<20} {g['text']}")
+    return 0
+
+
+# ---- reading: digest ----------------------------------------------------------------------------------------------
+# ⚠️ ADDED 2026-11-05 (dev PC, the first full Gold Digger pass): most of what arrives is the same file again (23 of 24
+# Village file lists identical; 33 framework logs held 16 new kinds of warning between them). `fold --against` compares
+# two files; the digest compares each unread copy against EVERY earlier copy of the same kind, and says plainly which
+# copies are only repeats, so a reading session sees just the lines nothing before had.
+DIGEST_CAP = 25                      # lines shown per copy; warnings first
+STAMP = re.compile(r"^\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d_[^_]+_(?:\d+_)?")   # (n_ = two copies in one second)
+INNER_STAMP = re.compile(r"\d{4}-\d\d-\d\d(?:[-_]\d\d-?\d\d(?:-?\d\d)?)?|\d{8}[-_]\d{6}")
+
+
+def shelved_order(row):
+    """oldest first: the shelving second, then the copy's number within that second (2_, 3_ ...). The id cannot break
+    a tie: its tail is the contents' hash, so three copies in one second came back in a random order (2026-11-05)."""
+    m = re.match(r"^\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d_[^_]+_(\d+)_", os.path.basename(row["item"]))
+    return row["when"], int(m.group(1)) if m else 1
+
+
+def item_kind(item):
+    """what kind of file a shelf item is: its name without the shelving stamp and dates, so copies group together."""
+    return INNER_STAMP.sub("#", STAMP.sub("", os.path.basename(item)))
+
+
+def new_lines(path, seen):
+    """(lines of this copy no earlier copy had, is it a table); `seen` grows. A table's news is its bad minutes."""
+    import contextlib
+    import io
+    try:
+        lines = read_lines(path)
+    except OSError:
+        return [], False
+    table = read_table(lines)
+    if table:
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            table_summary(*table)
+        return [ln for ln in buf.getvalue().splitlines() if ln.startswith("!")], True
+    new = []
+    for ln in lines:
+        s = shape(ln)
+        if s and s not in seen:
+            seen.add(s)
+            new.append(ln.strip()[:MAX_FOLD_LINE])
+    return new, False
+
+
+def digest(game, shelf=None, cap=DIGEST_CAP):
+    done = sifted_ids(game)
+    kinds = {}
+    for r in index(game):
+        if not shelf or r["shelf"] == shelf or shelf in r["also"].split(","):
+            kinds.setdefault(item_kind(r["item"]), []).append(r)
+    repeats = 0
+    for kind, rows in sorted(kinds.items(), key=lambda kv: -len(kv[1])):
+        rows.sort(key=shelved_order)
+        if all(r["id"] in done for r in rows):
+            continue
+        seen, out = set(), []
+        for r in rows:
+            new, table = new_lines(item_file(os.path.join(game_dir(game), r["item"])), seen)
+            if r["id"] not in done:
+                out.append((r, new, r is rows[0] and not table))
+        adding = [o for o in out if o[1]]
+        repeats += len(out) - len(adding)
+        print(f"\n## {kind}: {len(rows)} copies, {len(out)} not read; {len(adding)} add something new, "
+              f"{len(out) - len(adding)} are only repeats")
+        for r, new, first in adding:
+            warn = [x for x in new if looks_like_warning(x)]
+            if first:
+                print(f"  {r['id']}  the first copy ({len(new)} different lines): its warnings only")
+                new = warn
+            else:
+                print(f"  {r['id']}  +{len(new)} new line(s)")
+                new = warn + [x for x in new if x not in warn]
+            for x in new[:cap]:
+                print(("  W " if looks_like_warning(x) else "    ") + x)
+            if len(new) > cap:
+                print(f"    ... {len(new) - cap} more (gd.py fold {r['id']})")
+    print(f"\n# {safe_game(game)}{' / ' + shelf if shelf else ''}: {repeats} unread copies held nothing new; "
+          f"mark the whole shelf read when done (gd.py sifted {safe_game(game)} --shelf <shelf>)")
     return 0
 
 
@@ -561,6 +730,16 @@ def cmd_sources(game, rest):
     return 0
 
 
+def _clash_step(job, project="all"):
+    """hold this tool's job against a clash (clash.step, 0.103.0)"""
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import clash
+    except Exception:  # noqa: BLE001
+        return
+    clash.step(job, project)
+
+
 def main(argv):
     for stream in (sys.stdout, sys.stderr):
         try:  # a log can hold any character; a Windows console or pipe defaults to cp1252 and would crash on it
@@ -571,6 +750,8 @@ def main(argv):
         print(__doc__)
         return 0
     cmd, rest = argv[0], argv[1:]
+    if cmd in ("digest", "sifted", "fullscan-done"):     # Gold Digger itself, not the shelving every session does
+        _clash_step("gd")
     quiet = "--quiet" in rest
     rest = [a for a in rest if a != "--quiet"]
     if cmd == "where":
@@ -617,6 +798,8 @@ def main(argv):
     if cmd == "fold" and rest:
         against = rest[rest.index("--against") + 1] if "--against" in rest and rest.index("--against") + 1 < len(rest) else None
         return fold(rest[0], against)
+    if cmd == "digest" and rest:
+        return digest(rest[0], rest[1] if len(rest) > 1 else None)
     if cmd == "nudge":
         return nudge()
     if cmd == "fullscan-done":

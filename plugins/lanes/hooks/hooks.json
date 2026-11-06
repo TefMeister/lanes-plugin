@@ -5,10 +5,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" name-rule",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" version-line",
             "shell": "bash",
             "timeout": 10,
-            "statusMessage": "Loading the naming rule",
+            "statusMessage": "Reading the Lanes version",
             "async": false
           }
         ]
@@ -17,11 +17,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" repo-rule",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook session-name.py",
             "shell": "bash",
-            "timeout": 10,
-            "statusMessage": "Loading the private-repos rule",
-            "async": false
+            "timeout": 15
           }
         ]
       },
@@ -29,19 +27,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" talk-rule",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook start-bundle.py",
             "shell": "bash",
-            "timeout": 10,
-            "statusMessage": "Loading the talk rule",
-            "async": false
-          },
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" straight-talk",
-            "shell": "bash",
-            "timeout": 10,
-            "statusMessage": "Loading straight talk",
-            "async": false
+            "timeout": 60,
+            "statusMessage": "Loading the rules and reminders (one after another)"
           }
         ]
       },
@@ -49,23 +38,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" tools-rule",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook start-bundle.py slow",
             "shell": "bash",
-            "timeout": 10,
-            "statusMessage": "Loading the tools rule",
-            "async": false
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" privacy-rule",
-            "shell": "bash",
-            "timeout": 30,
-            "statusMessage": "Loading the privacy rule and checking GitHub for personal details",
-            "async": false
+            "timeout": 120,
+            "statusMessage": "Loading the reminders that read GitHub (one after another)"
           }
         ]
       },
@@ -85,34 +61,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" owed-brief",
-            "shell": "bash",
-            "timeout": 20,
-            "statusMessage": "Checking what this machine owes",
-            "async": false
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" handover-brief",
             "shell": "bash",
             "timeout": 90,
             "statusMessage": "Handover light: is everything on GitHub?",
-            "async": false
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" ideas-brief",
-            "shell": "bash",
-            "timeout": 30,
-            "statusMessage": "Checking for waiting ideas",
             "async": false
           }
         ]
@@ -157,70 +109,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" setup-nudge",
-            "shell": "bash",
-            "timeout": 10,
-            "statusMessage": "Checking first-run setup",
-            "async": false
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" update-nudge",
-            "shell": "bash",
-            "timeout": 25,
-            "statusMessage": "Checking for a new lanes version",
-            "async": false
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" gu-nudge",
-            "shell": "bash",
-            "timeout": 15,
-            "statusMessage": "Is the weekly tool check due?",
-            "async": false
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" gd-shelve nudge",
-            "shell": "bash",
-            "timeout": 15,
-            "statusMessage": "Is the weekly full scan due?",
-            "async": false
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" theme-apply",
             "shell": "bash",
             "timeout": 30,
             "statusMessage": "First run: putting the plugin's look on the terminal",
-            "async": false
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" shortcut-offer",
-            "shell": "bash",
-            "timeout": 10,
-            "statusMessage": "Offering the Lanes desktop shortcut",
             "async": false
           }
         ]
@@ -266,101 +158,23 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook pd-guard.py",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook prompt-guards.py",
             "shell": "bash",
-            "timeout": 10,
-            "statusMessage": "PD lock"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook lane-claim-guard.py",
-            "shell": "bash",
-            "timeout": 20,
-            "statusMessage": "Live-claim guard"
+            "timeout": 60,
+            "statusMessage": "Lanes prompt checks"
           }
         ]
       }
     ],
     "PreToolUse": [
       {
-        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash",
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell|Read|Grep|Skill",
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook reader-guard.py",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook tool-guards.py",
             "shell": "bash",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Bash|PowerShell",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook inspector-hook.py",
-            "shell": "bash",
-            "timeout": 60,
-            "statusMessage": "Inspector: checking the commit"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash|PowerShell",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook repo-guard.py",
-            "shell": "bash",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Bash|PowerShell",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook update-hold-guard.py",
-            "shell": "bash",
-            "timeout": 20
-          }
-        ]
-      },
-      {
-        "matcher": "Skill",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook skill-lane-guard.py",
-            "shell": "bash",
-            "timeout": 40
-          }
-        ]
-      },
-      {
-        "matcher": "Bash|PowerShell",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook privacy-hook.py",
-            "shell": "bash",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Read|Grep|Bash|PowerShell",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook begone-raw-guard.py",
-            "shell": "bash",
-            "timeout": 10
+            "timeout": 90
           }
         ]
       }
@@ -370,10 +184,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" handover-end",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook end-work.py",
             "shell": "bash",
-            "timeout": 90,
-            "statusMessage": "Handover light: reporting how this session ended"
+            "timeout": 10,
+            "statusMessage": "Handing this session's end steps to a helper that outlives the window"
           }
         ]
       },
@@ -401,10 +215,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" gd-shelve",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook clash-guard.py",
             "shell": "bash",
-            "timeout": 120,
-            "statusMessage": "Gold Digger: shelving this session's logs"
+            "timeout": 60,
+            "statusMessage": "Clash guard: giving back this session's locks"
           }
         ]
       }
@@ -432,6 +246,38 @@
             "shell": "bash",
             "timeout": 180,
             "statusMessage": "Lanes: saving a checkpoint before the summary"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" taskbar-flash",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook reply-check.py",
+            "shell": "bash",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" taskbar-flash",
+            "timeout": 10
           }
         ]
       }

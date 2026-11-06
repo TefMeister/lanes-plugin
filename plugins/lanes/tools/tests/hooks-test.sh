@@ -10,6 +10,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN="$(cd "$HERE/../.." && pwd)"
 HOOKS="$PLUGIN/hooks"
+export LANES_RUNS_GAMES=yes   # this PC may be set to run no games; the tests must not see that (0.103.0)
 FIX="$HERE/fixture-board"
 FAILED=0
 
@@ -61,6 +62,15 @@ run_hook lane-claim-guard.py '{"prompt":"/lm force demo-alpha","session_id":"s1"
 
 run_hook lane-claim-guard.py '{"prompt":"/lm demo-beta","session_id":"s1"}'
 [ "$RC" = "0" ] && ok "an unclaimed job passes" || fail "unclaimed job must pass (rc=$RC)"
+# A PC set to run no games (runs_games = no, 0.103.0, Run 5 A7)
+LANES_RUNS_GAMES=no run_hook lane-claim-guard.py '{"prompt":"/lm demo-beta","session_id":"s1"}'
+[ "$RC" = "2" ] && ok "a no-games PC refuses /lm" || fail "a no-games PC must refuse /lm (rc=$RC)"
+LANES_RUNS_GAMES=no run_hook lane-claim-guard.py '{"prompt":"/lanes:bench demo-beta","session_id":"s1"}'
+[ "$RC" = "2" ] && ok "a no-games PC refuses VR Bench" || fail "a no-games PC must refuse /lanes:bench (rc=$RC)"
+LANES_RUNS_GAMES=no run_hook lane-claim-guard.py '{"prompt":"/lm force demo-beta","session_id":"s1"}'
+[ "$RC" = "0" ] && ok "a no-games PC lets /lm force through" || fail "force must pass on a no-games PC (rc=$RC)"
+LANES_RUNS_GAMES=no run_hook lane-claim-guard.py '{"prompt":"/pd demo-beta","session_id":"s1"}'
+[ "$RC" = "0" ] && ok "a no-games PC still runs /pd" || fail "/pd must pass on a no-games PC (rc=$RC)"
 
 run_hook lane-claim-guard.py '{"prompt":"what is going on","session_id":"s1"}'
 [ "$RC" = "0" ] && ok "an ordinary prompt is ignored" || fail "ordinary prompts must pass (rc=$RC)"
@@ -321,7 +331,7 @@ out=$("$PY" "$HERE/../../tools/shortcut.py" remove 2>&1)
 assert_contains 'nothing to remove' "$out" "remove with nothing on record says so"
 unset LANES_STATE_DIR LANES_DESKTOP LANES_WT_EXE
 rm -rf "$SH"
-grep -q 'shortcut-offer' "$HERE/../../hooks/hooks.json" && ok "the shortcut hook is registered for session start" || fail "hooks.json does not run shortcut-offer"
+grep -q 'shortcut-offer' "$HERE/../../hooks/hooks.json" "$HERE/../../hooks/start-bundle.py" && ok "the shortcut hook is registered for session start" || fail "hooks.json does not run shortcut-offer"
 
 # ---------------------------------------------------------------- repo guard (0.58.0)
 echo "repo-guard"
@@ -360,7 +370,7 @@ out=$(LANES_CONFIG="$RG/lanes.conf" bash "$HOOKS/repo-rule" 2>&1)
 out=$(LANES_CONFIG="$RG/lanes.conf" CLAUDE_PLUGIN_ROOT=x bash "$HOOKS/repo-rule" 2>&1)
 assert_contains 'private by default' "$out" "the session-start rule is printed by default"
 unset LANES_CONFIG; rm -rf "$RG"
-grep -q 'repo-guard.py' "$HOOKS/hooks.json" && grep -q 'repo-rule' "$HOOKS/hooks.json" \
+grep -q 'repo-guard.py' "$HOOKS/hooks.json" "$HOOKS/tool-guards.py" && grep -q 'repo-rule' "$HOOKS/hooks.json" "$HOOKS/start-bundle.py" \
   && ok "repo-guard and repo-rule are registered" || fail "hooks.json is missing repo-guard or repo-rule"
 
 # ---------------------------------------------------------------- update hold (lanes-next, 2026-11-01)
@@ -385,6 +395,11 @@ uh_bash 'claude plugin install lanes@lanes-plugin'
 [ "$RC" = "2" ] && ok "held: a reinstall is refused" || fail "held install should be refused (rc=$RC)"
 uh_bash 'python "$P/tools/uninstall.py" --yes'
 [ "$RC" = "2" ] && ok "held: uninstall.py is refused" || fail "held uninstall should be refused (rc=$RC)"
+uh_bash 'py -3 C:/x/tools/uninstall.py do'
+[ "$RC" = "2" ] && ok "held: uninstall.py run by the py launcher is refused too" || fail "py uninstall should be refused (rc=$RC)"
+uh_bash 'grep -n "obs" tools/uninstall.py; python -m py_compile tools/ch.py tools/uninstall.py'
+[ "$RC" = "0" ] && ok "held: a search or compile check that only names uninstall.py passes (0.105.0)" \
+  || fail "naming uninstall.py without running it should pass (rc=$RC, out=$OUT)"
 uh_bash 'claude plugin update superpowers@claude-plugins-official'
 [ "$RC" = "0" ] && [ -z "$OUT" ] && ok "held: another plugin's update passes" || fail "other plugin update should pass (rc=$RC)"
 uh_bash 'claude plugin marketplace update claude-plugins-official'
@@ -404,7 +419,7 @@ uh_bash 'claude plugin update lanes@lanes-plugin'
 run_hook update-hold-guard.py 'this is not json'
 [ "$RC" = "0" ] && ok "bad input passes (never fails closed)" || fail "bad input must pass (rc=$RC)"
 unset LANES_STATE_DIR LANES_CONFIG; rm -rf "$UH"
-grep -q 'update-hold-guard.py' "$HOOKS/hooks.json" && ok "update-hold-guard is registered" || fail "hooks.json is missing update-hold-guard"
+grep -q 'update-hold-guard.py' "$HOOKS/hooks.json" "$HOOKS/tool-guards.py" && ok "update-hold-guard is registered" || fail "hooks.json is missing update-hold-guard"
 
 # ---------------------------------------------------------------- the launcher keeps a refusal (2026-11-01)
 # Claude Code starts every hook through run-hook.cmd; on Windows that runs in cmd.exe. Until 2026-11-01 it handed
@@ -452,8 +467,67 @@ sk third gates ""
 run_hook skill-lane-guard.py 'this is not json'
 [ "$RC" = "0" ] && ok "bad input passes (never fails closed)" || fail "bad input must pass (rc=$RC)"
 unset LANES_PD_LOCK LANE_CLAIM_REPO; rm -rf "$SK"
-grep -q 'skill-lane-guard.py' "$HOOKS/hooks.json" && grep -q '"matcher": "Skill"' "$HOOKS/hooks.json" \
+grep -q 'skill-lane-guard.py' "$HOOKS/hooks.json" "$HOOKS/tool-guards.py" && grep -q '|Skill"' "$HOOKS/hooks.json" \
   && ok "skill-lane-guard is registered on the Skill tool" || fail "hooks.json is missing skill-lane-guard on Skill"
+
+# ---------------------------------------------------------------- 0.105.0: one program per hook event, rest, reply
+echo "tool-guards / prompt-guards / rest-reminder / reply-check (0.105.0)"
+NG="$(mktemp -d)"; export LANES_STATE_DIR="$NG" LANES_CONFIG="$NG/lanes.conf"
+printf 'rest_reminder = on\nreply_check = on\n' > "$LANES_CONFIG"
+GH_CMD="gh repo"; GH_CMD="$GH_CMD create demo-x"     # built in pieces so this test file never looks like the command
+run_hook tool-guards.py "{\"hook_event_name\":\"PreToolUse\",\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"$GH_CMD\"},\"session_id\":\"n1\"}"
+[ "$RC" = "2" ] && ok "one program: a guard's refusal (exit 2) is passed on" || fail "tool-guards should refuse a public-by-default repo (rc=$RC, out=$OUT)"
+assert_contains "private by default" "$OUT" "with that guard's own reason"
+run_hook tool-guards.py "{\"hook_event_name\":\"PreToolUse\",\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"$GH_CMD --public\"},\"session_id\":\"n1\"}"
+[ "$RC" = "0" ] && ok "an ask is not a refusal" || fail "ask should exit 0 (rc=$RC)"
+assert_contains '"permissionDecision": "ask"' "$OUT" "and the ask is passed on"
+run_hook tool-guards.py '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"ls"},"session_id":"n1"}'
+[ "$RC" = "0" ] && [ -z "$OUT" ] && ok "a harmless command passes silently" || fail "harmless should pass silently (rc=$RC, out=$OUT)"
+run_hook tool-guards.py '{"hook_event_name":"PreToolUse","tool_name":"Read","tool_input":{"file_path":"x.txt"},"session_id":"n1"}'
+[ "$RC" = "0" ] && [ -z "$OUT" ] && ok "a harmless read passes silently" || fail "read should pass (rc=$RC, out=$OUT)"
+run_hook tool-guards.py 'not json'
+[ "$RC" = "0" ] && ok "bad input passes (never fails closed)" || fail "bad input must pass (rc=$RC)"
+grep -q 'py-hook tool-guards.py' "$HOOKS/hooks.json" && grep -q 'py-hook prompt-guards.py' "$HOOKS/hooks.json" \
+  && grep -q 'py-hook reply-check.py' "$HOOKS/hooks.json" && grep -q 'start-bundle.py slow' "$HOOKS/hooks.json" \
+  && ok "hooks.json runs the one-program guards, the reply check and the slow queue" || fail "hooks.json is missing a 0.105.0 entry"
+[ "$(grep -c 'py-hook tool-guards.py' "$HOOKS/hooks.json")" = "1" ] && ! grep -q 'py-hook repo-guard.py' "$HOOKS/hooks.json" \
+  && ok "and no guard runs twice (the old separate entries are gone)" || fail "an old separate guard entry is still in hooks.json"
+P='{"hook_event_name":"UserPromptSubmit","prompt":"hello there","session_id":"n2"}'
+OUT=$(printf '%s' "$P" | LANES_FAKE_TIME=00:30 "$PY" "$HOOKS/prompt-guards.py" 2>&1); RC=$?
+[ "$RC" = "0" ] && assert_contains "REST (lanes plugin)" "$OUT" "past midnight the prompt checks add the rest line"
+OUT=$(printf '%s' "$P" | LANES_FAKE_TIME=00:45 "$PY" "$HOOKS/prompt-guards.py" 2>&1)
+[ -z "$OUT" ] && ok "and only once a session" || fail "the rest line came twice (out=$OUT)"
+OUT=$(printf '%s' '{"session_id":"n3"}' | LANES_FAKE_TIME=14:00 "$PY" "$HOOKS/rest-reminder.py" 2>&1)
+[ -z "$OUT" ] && ok "never in the daytime" || fail "rest line in the daytime (out=$OUT)"
+printf 'rest_reminder = on\nreply_check = on\nrest_from = 23:00\nrest_until = 06:00\n' > "$LANES_CONFIG"
+OUT=$(printf '%s' '{"session_id":"n4"}' | LANES_FAKE_TIME=23:10 "$PY" "$HOOKS/rest-reminder.py" 2>&1)
+assert_contains "REST" "$OUT" "a window set across midnight works (23:00-06:00 at 23:10)"
+printf 'reply_check = on\nrest_reminder = off\n' > "$LANES_CONFIG"
+OUT=$(printf '%s' '{"session_id":"n5"}' | LANES_FAKE_TIME=00:30 "$PY" "$HOOKS/rest-reminder.py" 2>&1)
+[ -z "$OUT" ] && ok "switched off, it says nothing" || fail "rest reminder spoke while off (out=$OUT)"
+rc_reply() { OUT=$("$PY" -c 'import json,sys; print(json.dumps({"session_id":sys.argv[1],"last_assistant_message":sys.argv[2],"stop_hook_active":sys.argv[3]=="1"}))' "$1" "$2" "${3:-0}" | "$PY" "$HOOKS/reply-check.py" 2>&1); }
+rc_reply r1 "$(printf '| \360\237\224\246 **SAVED** | x |\n\nWHAT I DID')"
+assert_contains '"decision": "block"' "$OUT" "reply check: a close-out box with no shell line is handed back"
+rc_reply r1 "$(printf '| \360\237\224\246 **SAVED** | x |\n\360\237\220\232 Nothing running.')"
+[ -z "$OUT" ] && ok "and passes with the shell line" || fail "box with shell line should pass (out=$OUT)"
+rc_reply r1 "You're right, the file was old."
+assert_contains "you're right" "$OUT" "an unchecked you're-right is handed back"
+rc_reply r1 'The rule says never "you are right".'
+[ -z "$OUT" ] && ok "but not when it is quoted" || fail "quoted you-are-right should pass (out=$OUT)"
+rc_reply g1 "Keep the game running while I build."
+rc_reply g1 "Built. You can close the game now."
+assert_contains "quit the game now" "$OUT" "after keep-it-running, a may-close reply without the tick is handed back"
+rc_reply g1 "$(printf '\342\234\205 **You can quit the game now.**')"
+[ -z "$OUT" ] && ok "and passes with the tick" || fail "tick reply should pass (out=$OUT)"
+rc_reply h1 "Hold both controllers up in front of you."
+rc_reply h1 "The log shows the hands moved."
+assert_contains "You can stop" "$OUT" "after a hold request, a reply that does not free them is handed back"
+rc_reply s1 "$(printf '| \360\237\224\246 x |')" 1
+[ -z "$OUT" ] && ok "never hands back twice in a row (stop hook already active)" || fail "should not block while active (out=$OUT)"
+printf 'reply_check = off\n' > "$LANES_CONFIG"
+rc_reply r9 "You're right."
+[ -z "$OUT" ] && ok "switched off, the reply check says nothing" || fail "reply check spoke while off (out=$OUT)"
+unset LANES_STATE_DIR LANES_CONFIG; rm -rf "$NG"
 
 echo
 if [ "$FAILED" -eq 0 ]; then echo "hooks-test: all assertions passed"; else echo "hooks-test: FAILURES above"; fi

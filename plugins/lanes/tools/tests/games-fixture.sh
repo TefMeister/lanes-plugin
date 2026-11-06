@@ -65,6 +65,23 @@ out="$(run check)"
 check "a project that left the root is named" 'printf "%s" "$out" | grep -q "GONE PROJECT: p1"'
 check "the tool row (none) is never called gone" '! printf "%s" "$out" | grep -q "GONE PROJECT: tool"'
 mkdir -p "$T/root/p1/dev-archive"; git init -q "$T/root/p1"
+# 2026-11-05: which root holds the projects differs by PC. The dev PC's `root =` is its sweep root (missing new clones)
+# while its board sits in the live root; the home PC's board sits in the home folder while `root =` is the live root.
+# The root that holds most of the listed projects wins, so neither PC sees false GONE lines.
+mkdir -p "$T/sweep/p1/dev-archive"; git init -q "$T/sweep/p1"
+mkdir -p "$T/root/board"; git init -q "$T/root/board"
+cp "$T/lanes.conf" "$T/lanes.conf.bak"
+printf 'root = %s\nboard = %s\n' "$T/sweep" "$T/root/board" >> "$T/lanes.conf"
+out="$(run check)"
+check "a sweep root that lacks a clone does not call it gone (dev PC shape)" '! printf "%s" "$out" | grep -q "GONE PROJECT"'
+mkdir -p "$T/elsewhere/board"; git init -q "$T/elsewhere/board"
+cp "$T/lanes.conf.bak" "$T/lanes.conf"
+printf 'root = %s\nboard = %s\n' "$T/root" "$T/elsewhere/board" >> "$T/lanes.conf"
+out="$(run check)"
+check "a board outside the clone root still finds every project (home PC shape)" '! printf "%s" "$out" | grep -q "GONE PROJECT"'
+cp "$T/lanes.conf.bak" "$T/lanes.conf"; rm -rf "$T/sweep" "$T/home" "$T/root/board"
+rm -rf "$T/root/p1"
+mkdir -p "$T/root/p1/dev-archive"; git init -q "$T/root/p1"
 
 UPPER="$(printf '%s' "$S" | tr '[:lower:]' '[:upper:]')"
 if [ -d "$UPPER" ]; then   # case-insensitive disks (Windows): the same Steam seen in other letters is no move

@@ -61,7 +61,10 @@ reproducing on purpose.
 
 ## How the rows get filled in
 
-By running **`/pt`** — the read-only test lane — in a third window beside the working lanes.
+(Since 0.105.0, 2026-11-06: the two-PC test, `docs/TWO-PC-TEST.md`, fills them; the `/pt` command below was retired
+because the two-PC test replaced it. The rows it wrote stay.)
+
+Until then, by running **`/pt`** — the read-only test lane — in a third window beside the working lanes.
 It runs both suites from the installed copy, diffs every tool against the original it came
 from, exercises the guards against the live claim state, and writes a row here plus any fault
 into `FAULTS.md`. It ends every run by printing these counts, so progress is visible without

@@ -1,5 +1,5 @@
 ---
-description: (Uninstall) Takes Lanes off this PC in one go - the look, the Desktop shortcut, the background helpers, its own settings and state, and finally the plugin itself - after showing what it will do and getting a yes. Never touches the person's own work or the tools setup installed.
+description: "(Uninstall) Takes Lanes off this PC in one go, after showing what it will do; your own work is never touched."
 ---
 
 1. **Show the plan first** (it changes nothing):
@@ -30,3 +30,9 @@ description: (Uninstall) Takes Lanes off this PC in one go - the look, the Deskt
    Claude Code to finish, since this window keeps Lanes loaded until then.
 
 Never run step 3 without the yes in step 2. Nothing here touches a repo or a game folder.
+
+## Last step: give back the clash guard's lock
+
+When this run ends, or stops early: `python "${CLAUDE_PLUGIN_ROOT}/tools/clash.py" release uninstall`. The clash
+guard's hook took it when the run started, so nothing it must not run beside could start meanwhile (docs/CLASHES.md);
+the session's end gives it back too. Inside `/lanes:fullscan` too (it is harmless when nothing is held).

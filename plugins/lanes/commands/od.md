@@ -1,5 +1,5 @@
 ---
-description: (Out of Date) Is everything we published on GitHub as new as the work behind it? Finds downloads older than their program, tools with no download, descriptions and front pages behind the work, catalog and skills pages missing something, and tools Lanes does not offer yet - then brings each up to date. Runs before /gu.
+description: "(Out of Date) Is everything on GitHub as new as the work behind it? Downloads, front pages, descriptions, catalogs."
 ---
 
 `/od` — **Out of Date: GitHub always shows the newest work.** Asked for by the maintainer, 2026-10-27, after one
@@ -89,3 +89,9 @@ look older than it is.
 Rerun the scan: every section should come back empty or explained. Then the usual write-up: close-out box
 (`handover.py close`), the gate/model box, and a short report: which downloads were published (name and version),
 which pages changed, what was left and why. A front-page activity line only when something was released.
+
+## Last step: give back the clash guard's lock
+
+When this run ends, or stops early: `python "${CLAUDE_PLUGIN_ROOT}/tools/clash.py" release od`. The clash
+guard's hook took it when the run started, so nothing it must not run beside could start meanwhile (docs/CLASHES.md);
+the session's end gives it back too. Inside `/lanes:fullscan` too (it is harmless when nothing is held).

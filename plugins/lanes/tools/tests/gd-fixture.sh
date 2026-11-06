@@ -49,6 +49,12 @@ check "a BeG0nE jitter report lands on the jitter shelf" 'ls "$G/jitter" | grep 
 check "the raw numbers are not copied" '! ls -R "$G/jitter" | grep -q summary.json'
 "$PY" "$TOOL" shelve game-vr >/dev/null
 check "a BeG0nE report is shelved once" '[ "$(ls "$G/jitter" | wc -l)" -eq 1 ]'
+# the same report on the other PC, its line endings changed by git on the way: still shelved once (2026-11-05)
+printf 'transfer = %s/mega\nmachine_name = PCY\nbegone = %s/begone-y\n' "$T" "$T" > "$T/lanes-y.conf"
+mkdir -p "$T/begone-y/camera-jitter/data/game-vr/2026-10-26_12-00-00_openxr"
+printf '# report\r\n' > "$T/begone-y/camera-jitter/data/game-vr/2026-10-26_12-00-00_openxr/report.md"
+LANES_CONFIG="$T/lanes-y.conf" LANES_STATE_DIR="$T/state-y" "$PY" "$TOOL" shelve game-vr >/dev/null
+check "the same BeG0nE run from the other PC is not shelved again" '[ "$(ls "$G/jitter" | wc -l)" -eq 1 ]'
 
 out=$("$PY" "$TOOL" list game-vr)
 check "list counts the unread items" 'printf "%s" "$out" | grep -q "4 item(s), 4 not read"'
@@ -76,6 +82,28 @@ check "an error line is marked" 'printf "%s" "$out" | grep -q "^W .*could not op
 printf 'frame 1 took 1 ms\nnew thing happened\n' > "$T/b.txt"
 out=$("$PY" "$TOOL" fold "$T/b.txt" --against "$T/game/logs/framework_log.txt")
 check "--against keeps only what the older run did not have" 'printf "%s" "$out" | grep -q "new thing" && ! printf "%s" "$out" | grep -q "frame 1"'
+printf 'Game Module Addr: 7ff6160b0000\na facade opened\n' > "$T/c1.txt"
+printf 'Game Module Addr: 7ff7a91c0000\na facade closed\n' > "$T/c2.txt"
+out=$("$PY" "$TOOL" fold "$T/c2.txt" --against "$T/c1.txt")
+check "--against ignores a moved address but keeps a changed word" '! printf "%s" "$out" | grep -q "Module Addr" && printf "%s" "$out" | grep -q "facade closed"'
+{ echo "time,uptime_s,game_fps,game_stutters"; for s in $(seq 1 300); do if [ "$s" -gt 120 ] && [ "$s" -le 180 ]; then echo "x,$s,38,4"; else echo "x,$s,95,0"; fi; done; } > "$T/perf.csv"
+out=$("$PY" "$TOOL" fold "$T/perf.csv")
+check "a frame-rate table is read by minute and only the bad minute is shown" 'printf "%s" "$out" | grep -q "^! minute   2: game_fps 38" && [ "$(printf "%s" "$out" | grep -c "^! minute")" -eq 1 ]'
+out=$("$PY" "$TOOL" fold "$T/not-there.txt" 2>&1)
+check "a missing file is said in one line, no traceback" 'printf "%s" "$out" | grep -q "no such file" && ! printf "%s" "$out" | grep -q Traceback'
+
+# the digest: each unread copy against every earlier copy of the same kind (2026-11-05)
+mkdir -p "$T/dg"
+printf 'start 1\nERROR: lamp missing\n' > "$T/dg/mod.log"; old "$T/dg/mod.log"
+"$PY" "$TOOL" add dg-vr "$T/dg/mod.log" >/dev/null
+printf 'start 2\nERROR: lamp missing\n' > "$T/dg/mod.log"; old "$T/dg/mod.log"
+"$PY" "$TOOL" add dg-vr "$T/dg/mod.log" >/dev/null
+printf 'start 3\nERROR: lamp missing\nnew gun found\n' > "$T/dg/mod.log"; old "$T/dg/mod.log"
+"$PY" "$TOOL" add dg-vr "$T/dg/mod.log" >/dev/null
+out=$("$PY" "$TOOL" digest dg-vr)
+check "the digest counts a copy with nothing new as a repeat" 'printf "%s" "$out" | grep -q "3 copies, 3 not read; 2 add something new, 1 are only repeats"'
+check "the digest shows only the line no earlier copy had" 'printf "%s" "$out" | grep -q "new gun found" && [ "$(printf "%s" "$out" | grep -c "start")" -eq 0 ]'
+check "the digest shows the first copy's warnings once" '[ "$(printf "%s" "$out" | grep -c "lamp missing")" -eq 1 ]'
 
 out=$("$PY" "$TOOL" nudge)
 check "the nudge speaks when items wait and no full scan ever ran" 'printf "%s" "$out" | grep -q "never run"'

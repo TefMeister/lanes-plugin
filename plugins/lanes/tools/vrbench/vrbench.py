@@ -145,12 +145,15 @@ def main(argv):
         return vb_install.uninstall()
     if argv[:1] == ["status"]:
         return status()
-    if argv[:1] == ["learn"]:
-        return learn(argv[1:])
+    if argv[:1] in (["learn"], ["start"]):
+        # the clash guard (tools/clash.py): one pretend headset and one set of pretend hands per PC. The learning hour
+        # holds "bench" while it runs; a start is refused while another program holds it.
+        sys.path.insert(0, os.path.dirname(HERE))
+        import clash
+        with clash.hold("bench"):
+            return learn(argv[1:]) if argv[0] == "learn" else (start(argv[1]) if len(argv) == 2 else main([]))
     if argv[:1] == ["profile"]:
         return profile()
-    if argv[:1] == ["start"] and len(argv) == 2:
-        return start(argv[1])
     if argv[:1] == ["stop"]:
         return stop()
     print(__doc__)

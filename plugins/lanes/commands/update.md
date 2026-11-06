@@ -1,5 +1,5 @@
 ---
-description: (Update) Checks GitHub for a newer version of the lanes plugin, says in plain words what changed, and updates it - only after the user says yes. The same check runs by itself at session start.
+description: "(Update) Checks GitHub for a newer Lanes, says in plain words what changed, and updates only on your yes."
 ---
 
 1. **Check** (fetches now, ignoring the usual few-hour wait):
@@ -138,3 +138,9 @@ it, and "Not now" to an update quiets that version for good. Updates of things a
 `newer` true) are not offers of something new and are asked when a newer version appears.
 
 Never update without a yes in this session. A yes from an earlier session does not count.
+
+## Last step: give back the clash guard's lock
+
+When this run ends, or stops early: `python "${CLAUDE_PLUGIN_ROOT}/tools/clash.py" release update`. The clash
+guard's hook took it when the run started, so nothing it must not run beside could start meanwhile (docs/CLASHES.md);
+the session's end gives it back too. Inside `/lanes:fullscan` too (it is harmless when nothing is held).

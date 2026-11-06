@@ -33,6 +33,9 @@ import zipfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 NET_TIMEOUT_S = 120
 RUN_TIMEOUT_S = 900
+# mcp 2.x renamed FastMCP and both of elliotttate's frame-tool connectors crashed at start ("No module named
+# mcp.server.fastmcp", home PC and dev PC, 2026-11-05). Held at 1.x until they move to 2.x.
+MCP_PIN = ["mcp<2"]
 GH = "https://github.com/"
 
 # name: what it is. `feature` is its features.py name; `repo` its GitHub home; `asset` the release file to take.
@@ -51,11 +54,11 @@ TOOLS = {
                    "what": "sharpens the headset picture (AMD's FidelityFX CAS) and adjusts colour in any OpenXR game; "
                            "changes what every test sees, so it is downloaded, not switched on"},
     "pix_mcp": {"label": "PIX MCP", "maker": "elliotttate", "repo": "elliotttate/pix-mcp", "kind": "mcp",
-                "mcp": "pix", "exe": "pix-mcp", "needs": ["winget:Microsoft.PIX"],
+                "mcp": "pix", "exe": "pix-mcp", "needs": ["winget:Microsoft.PIX"], "pins": MCP_PIN,
                 "what": "takes apart one captured frame of a Direct3D 12 game, draw by draw, through Microsoft PIX: "
                         "which pass drew what, with which textures and numbers (the RE Engine games are Direct3D 12)"},
     "nsight_mcp": {"label": "Nsight Graphics MCP", "maker": "elliotttate", "repo": "elliotttate/nsight-graphics-mcp",
-                   "kind": "mcp", "mcp": "nsight-graphics", "exe": "nsight-graphics-mcp",
+                   "kind": "mcp", "mcp": "nsight-graphics", "exe": "nsight-graphics-mcp", "pins": MCP_PIN,
                    "needs": ["NVIDIA Nsight Graphics, from https://developer.nvidia.com/nsight-graphics (an NVIDIA "
                              "graphics card only)"],
                    "what": "the same for NVIDIA's frame tool: capture a frame of a D3D11, D3D12 or Vulkan game and "
@@ -237,7 +240,9 @@ def get(name):
                 run([sys.executable, "-m", "venv", venv])
             py = os.path.join(venv, "Scripts", "python.exe") if os.name == "nt" else os.path.join(venv, "bin", "python")
             run([py, "-m", "pip", "install", "-q", "-e", d])
-            exe = os.path.join(os.path.dirname(py), t["exe"] + (".exe" if os.name == "nt" else ""))
+            if t.get("pins"):                  # held-back libraries: installed after the tool so they win
+                run([py, "-m", "pip", "install", "-q"] + t["pins"])
+            exe =os.path.join(os.path.dirname(py), t["exe"] + (".exe" if os.name == "nt" else ""))
             listed = subprocess.run(["claude", "mcp", "list"], capture_output=True, text=True, timeout=RUN_TIMEOUT_S)
             if f"{t['mcp']}:" not in (listed.stdout or ""):
                 run(["claude", "mcp", "add", "--scope", "user", t["mcp"], "--", exe])

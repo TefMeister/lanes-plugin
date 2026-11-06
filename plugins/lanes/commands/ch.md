@@ -1,5 +1,5 @@
 ---
-description: (Code health) A careful re-read of our own tools - the plugin, the BeG0nE tools, the o-matiC tools and the rest - with the Inspector on, tidying only what cannot change how they work. A working copy of everything is saved to GitHub and to a backup folder first. Never launches anything.
+description: "(Code health) Re-reads our own tools with the Inspector on and tidies only what cannot change how they work."
 ---
 
 `/ch` — **Code health: re-read our own tools and tidy them without breaking what works.** Asked for by the
@@ -89,3 +89,9 @@ stray command files likewise.
 Commit and push each repo, release the plugin if it changed (`tools/release.sh`), then
 `python "${CLAUDE_PLUGIN_ROOT}/tools/ch.py" done`. Report in plain words: what went, what was kept and why, the board
 rows written, the tests run and their result, and the backup tag. Questions (installs, PC leftovers) go last.
+
+## Last step: give back the clash guard's lock
+
+When this run ends, or stops early: `python "${CLAUDE_PLUGIN_ROOT}/tools/clash.py" release ch`. The clash
+guard's hook took it when the run started, so nothing it must not run beside could start meanwhile (docs/CLASHES.md);
+the session's end gives it back too. Inside `/lanes:fullscan` too (it is harmless when nothing is held).

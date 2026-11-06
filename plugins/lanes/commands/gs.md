@@ -1,5 +1,5 @@
 ---
-description: (Good-standing Sweep) Periodic READ-ONLY hygiene pass over every repo. Verifies claims are tagged with confidence, corrections point at what they supersede, inboxes are being drained, and templates have not drifted. Curates NOTHING - it reports, and files create-only inbox drops for whatever an owner must fix. Safe to run alongside every other lane.
+description: "(Good-standing Sweep) Read-only hygiene pass over every repo: tags, corrections, inboxes, templates; it only reports."
 ---
 
 `/gs` — the hygiene pass.
@@ -195,3 +195,9 @@ The whole vocabulary, and check 3b enforces exactly these:
 **`n=1` is not verified** — write `n=1` and let the reader judge. An invented tag reads as a strong
 claim to a human and counts as untagged to every tool: put the precision in the prose beside the
 tag, never inside it. Untagged claims are treated as `[hypothesis]`.
+
+## Last step: give back the clash guard's lock
+
+When this run ends, or stops early: `python "${CLAUDE_PLUGIN_ROOT}/tools/clash.py" release gs`. The clash
+guard's hook took it when the run started, so nothing it must not run beside could start meanwhile (docs/CLASHES.md);
+the session's end gives it back too. Inside `/lanes:fullscan` too (it is harmless when nothing is held).

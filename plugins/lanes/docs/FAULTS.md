@@ -682,6 +682,16 @@ touched. So it counts every commit landed since the session started, in every ro
 made. Fix idea: count only commits carrying this session's `Claude-Session:` trailer (or made from this session's
 lane root), and build the front-page row from those. `[measured 2026-11-01, n=1]`
 
+**Fixed** on `next` (2026-11-02, after it happened again: about 70 rows, the /gs and /gu copies with hundreds of
+"new commits", the front-page row naming the same rows five times; Tefa: *"i like the compact way ... instead of a
+bunch of things saying nothing, please keep doing that and add this to lanes"*). A repo gets a row only for commits
+MADE in that clone since the session began, read from its HEAD reflog (a commit, amend or merge; never a pull or a
+rebase); the start snapshot now keeps the start time. The front-page row looks only at those commits' files and
+names each row once. Real data, same session: 9 rows instead of about 70. Left: a second session working in the
+SAME clone root at the same time still counts as this one (git cannot tell them apart; the lane rules already forbid
+it). The `Claude-Session:` trailer was not used: it is not the same id as the session the hooks see.
+handover-fixture.sh checks that work pulled during the session gets no row. `[verified-numerically 2026-11-02]`
+
 ### No guard has ever stopped anything on Windows: the hook launcher threw the "stop" away (2026-11-01, dev PC)
 
 **Supersedes:** the hypothesis under "second /pd not stopped" (prompt hooks skipped during start-up). Disproved.
@@ -777,7 +787,7 @@ release downloads the way the new check does:
 - **Programs built on a PC keep that PC's folders** (the debug-file path inside an .exe or .dll), and model
   definitions inside a .pk3 can too. The two public Ashes release downloads carried the home folder this way;
   both were replaced with cleaned copies of the same size and re-checked after download. `[measured 2026-11-02]`
-- **A code comment naming the dev PC by its machine name** sat in ten public Village Scope downloads (one line of
+- **A code comment naming the home PC by its machine name** sat in ten public Village Scope downloads (one line of
   a script). Cleaned copies are ready, waiting for Tefa's upload. `[measured 2026-11-02]`
 - **The profile repo's history** held Tefa's real e-mail on one website commit and a machine name in old notes;
   rewritten on Tefa's yes (Tefa ran the push). `[measured 2026-11-02]`
@@ -787,3 +797,58 @@ release downloads the way the new check does:
   Checks in privacy-fixture.sh. `[measured 2026-11-02]`
 - **Still open:** old history of about 31 public repos names the PCs by machine name in old notes (current files
   are clean). Cleaning it is Tefa's decision.
+
+## 2026-11-03 — the ideas copier worked from a stale, locked ideas clone
+
+- **What happened:** `ideas.py sync` reads the ideas clone named by `ideas =` in lanes.conf. On the dev PC that
+  clone had three empty lock files left from 2026-11-01 and 2026-11-02, so every pull failed quietly and it fell 6
+  commits behind. The sync then missed a just-filed idea, and re-copied ideas the home PC had already copied, with
+  a new "copied" date; 14 game repos stopped mid-rebase on those clashes. In every clash the copy already on GitHub
+  was the fuller one (it carried "Chosen by Tefa"), so it was kept. Nothing was lost. `[measured 2026-11-03]`
+- **Also:** `sync <name>` wants the REPO name (`ashes-2063-weapons`); given the page name (`ashes-2063`) it says
+  "nothing new" instead of "no such repo". `[measured 2026-11-03]`
+- **To fix (open):** sync should pull its ideas clone first and stop with a plain line if that fails; a clash that
+  differs only in the "copied" date should keep the GitHub copy by itself; an unknown name should be named.
+
+### The BeG0nE rider died on a Ghost Hand file the game still held (2026-11-04, home PC, twice)
+- **What happened:** at 21:25 and again at 22:46 the rider stopped. After filing a finished Ghost Hand recording it
+  moved the file into `done\`, and that move sat outside the rider's safety net: the game still had the file open,
+  Windows refused the move (`PermissionError`), and the whole loop ended. Everything after it went uncollected, the
+  second time a whole headset run of Village. `[reported 2026-11-04, n=2]` by the home session.
+- **Also:** on the OpenXR Simulator the Lua Ghost Hand recorder writes `game=?`, and the rider then asked for a video
+  folder named `?`, which Windows does not allow (WinError 123). `[reported 2026-11-04]`
+- **Fixed (lanes-fixes branch, 2026-11-05, dev PC; waits for the next tested bulk):** a held file is tried three
+  times two seconds apart, then left for a later pass, which only retries the move and never files it twice; a
+  "never got going" file that cannot be removed is left too; every pass now runs inside a net, so whatever fails in
+  one pass is written to the rider's log and the next pass runs; `game=?` is named after the collector's one open run
+  (the VR one when two run), else `unknown-game`, never `?`. New `tools/tests/rider_test.py` (17 checks, in the smoke
+  test) holds a file open the way the game does. `[verified-numerically 2026-11-05, n=1]` on the dev PC; not yet on
+  the home PC with a real game.
+
+### The privacy guard refused NVIDIA's DLSS file in every Village build (2026-11-04, home PC)
+- **What happened:** since 0.99.1 the guard reads the strings inside programs. NVIDIA's `nvngx_dlss.dll` (56 MB, in
+  each Village build) holds a Linux home folder of one of NVIDIA's own build machines (`/home/<user>/...`),
+  so every `builds.py snap` of Village was refused, and the home PC took the file out of b059-b062 by hand.
+  `[reported 2026-11-04]`; reproduced on the dev PC with the copy in an older Village build `[measured 2026-11-05]`.
+- **Fixed (lanes-fixes branch, 2026-11-05; waits for the next tested bulk):** inside a program's strings a `/home/`
+  path is another maker's build machine and no longer refuses. Our PCs are Windows, so our own folders show as
+  `C:\Users\<user>`, still refused; a `/home/` path of ours would hold our login, which the word check still refuses;
+  pictures keep the full check. Two new checks in `privacy-fixture.sh` (38 pass), and the real NVIDIA file passes.
+  `[verified-numerically 2026-11-05, n=1]`; the `builds.py snap visceral-re8-vr` run itself is for the home PC once
+  the bulk is installed.
+- **Left:** the guard is 820 lines, past the 800 soft limit; split its binary and zip reading into its own file,
+  move-only, once the frozen test is over (Inspector I-0001, `status/code-health.md`).
+
+### Neither PC ever recorded a session END on GitHub (2026-11-02 to 11-05, both PCs)
+- **What happened:** the session-start line said for days that the other PC "has not reported a session end since
+  2026-11-02", on both PCs. On the dev PC every end report since 11-02 began and none finished: 12 "began" lines and
+  no "done" in this PC's end log `[measured 2026-11-05]`. The end report runs as the session closes (the SessionEnd
+  hook) and first checks every clone on the PC, which takes about 36 s here with ~320 repos `[measured 2026-11-05]`;
+  the session is gone before it gets to write `[inferred-static]`. Meanwhile the close-out box, which every session
+  prints at its end and which already knows SAVED or NOT SAVED, never wrote anything to the board: on 2026-11-04 the
+  home PC sent four "SAVED" close-outs and GitHub's record only ever showed new STARTs `[measured 2026-11-04, n=4]`.
+- **Fixed (lanes-fixes branch, 2026-11-05; waits for the next tested bulk):** `handover.py close` now writes and
+  pushes this PC's END record right after the box (one line under it says so), and marks the end report finished in
+  the end log. The SessionEnd hook stays as a second chance. `--no-write` leaves the board alone. New checks in
+  `handover-fixture.sh` (all pass): the close-out pushes its end, GitHub's record is an END, the end log says done.
+  `[verified-numerically 2026-11-05, n=1]`; on the real board after the bulk is installed.

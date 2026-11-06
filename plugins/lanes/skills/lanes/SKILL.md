@@ -1,6 +1,6 @@
 ---
 name: lanes
-description: Use when several Claude sessions work one set of repos at once, or before editing anything in a repo other sessions touch - the lane rules, the create-only inbox hand-off, the board format, and the confidence tags. Also use when asked what a gate tag means, why a session is blocked from a job, or how to hand a finding to another lane.
+description: "Use when several sessions share one set of repos: lane rules, inbox hand-offs, the board, gate tags and confidence tags."
 ---
 
 # Working in lanes

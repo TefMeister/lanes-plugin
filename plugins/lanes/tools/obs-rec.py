@@ -294,6 +294,14 @@ def split_target(t):
 
 def cmd_start(exe, label, project, cls=None, also=None):
     state = load_state()
+    # The clash guard (tools/clash.py, 2026-11-05): OBS records one thing at a time. A second start used to re-point
+    # the running recording at another window and folder, so a clip asked for by hand took over the BeG0nE recording.
+    # Only while OBS is really up: a "recording" left in the state by a PC that was switched off does not count.
+    cur = state.get("recording")
+    if cur and obs_running():
+        print(f"CLASH GUARD: OBS is already recording {cur.get('exe', '?')} ({cur.get('label', '?')}, since "
+              f"{cur.get('since', '?')}), so a second recording does not start. Stop that one first: obs-rec.py stop")
+        sys.exit(1)
     cl = ensure_obs(state)
     ensure_setup(cl, state)
     save_state(state)   # so `done` can put the user's own setup back even if the start fails below

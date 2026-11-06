@@ -74,8 +74,16 @@ def judge(signs):
     still_all = signs["motion_anywhere"] == 0.0
     cores, disk0 = signs.get("cpu_cores"), signs.get("disk_mb_s")
     if still_all and signs.get("in_front", True) and cores is not None and cores >= FROZEN_BUSY_CORES and (disk0 or 0) < 1.0:
-        return "frozen", (f"nothing on screen changes and nothing is read from disk, yet the game keeps {cores:.1f} cores busy: "
-                          "stuck in a loop (a script or mod call that never returns is the usual cause)")
+        # 2026-11-04 (Village): a player standing still in gameplay, or a chapter card waiting for a key, looks exactly
+        # like this (still picture, no disk, 3-4 cores drawing the same frame) and the window answers. Only a poke that
+        # gets no answer, or Windows saying the window hangs (above), proves a freeze.
+        if signs.get("poke_answer") is not None and signs["poke_answer"] <= 0.0:
+            return "frozen", (f"nothing on screen changes, nothing is read from disk, a key press changed nothing, yet the game "
+                              f"keeps {cores:.1f} cores busy: stuck in a loop (a script or mod call that never returns is the "
+                              "usual cause)")
+        return "still", (f"nothing on screen changes and nothing is read from disk while the game keeps {cores:.1f} cores busy "
+                         "and the window answers: an idle player, or a screen waiting for a key; a frozen game looks the same "
+                         "until a poke (--poke KEY) gets no answer")
     if still_all and signs.get("in_front") is False:
         return "paused", "the window is not in front, and many games (every RE Engine one) pause until it is"
     disk = signs.get("disk_mb_s")

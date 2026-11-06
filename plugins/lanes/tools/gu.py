@@ -480,12 +480,24 @@ def nudge():
     return 0
 
 
+def _clash_step(job, project="all"):
+    """hold this tool's job against a clash (clash.step, 0.103.0)"""
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import clash
+    except Exception:  # noqa: BLE001
+        return
+    clash.step(job, project)
+
+
 def main(argv):
     lanes_common.utf8_console()
     if not argv or argv[0] in ("-h", "--help"):
         print(__doc__)
         return 0
     cmd = argv[0]
+    if cmd in ("scan", "done"):
+        _clash_step("gu")
     if cmd == "scan":
         return scan("--json" in argv)
     if cmd == "seen" and len(argv) == 3:

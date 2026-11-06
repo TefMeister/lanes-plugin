@@ -167,7 +167,9 @@ def check_line(line, ws, display):
     for m in HOME_PATH.finditer(line):
         name = m.group(1).strip().lower()
         if name and name != display and name not in PLACEHOLDERS and not name.startswith(("<", "$", "%", "{")):
-            why.append("a home-folder path (%s...)" % m.group(0)[:12].replace("\\\\", "\\"))
+            # the KIND only, never any of the text: a refusal is shown on screen, and the screen may be recorded
+            # (0.103.0, Run 5 C5: it showed the first letters of the login)
+            why.append("a home-folder path")
     return sorted(set(why))
 
 
@@ -212,6 +214,7 @@ ZIP_MAX_DEPTH = 3                     # zips inside zips (a pk3 inside a release
 ZIP_MAGIC = b"PK\x03\x04"
 BINARY_SNIFF_BYTES = 8000             # a NUL byte this early means binary (git's own test)
 NOISY = "a never-publish word"        # short words turn up by chance inside compressed bytes
+HOME_REASON = "a home-folder path"          # inside a program: another maker's build machine (2026-11-05)
 JPEG_SOS, JPEG_COM = 0xDA, 0xFE      # JPEG markers: start of the image data; a comment
 JPEG_APP_FIRST, JPEG_APP_LAST = 0xE0, 0xEF   # APP0..APP15: EXIF, XMP and the like
 
@@ -295,7 +298,12 @@ def check_binary(data, ws, display, depth=0):
     why = set()
     for t in texts:
         why |= set(check_line(t, ws, display))
-    return sorted(w for w in why if exact or not w.startswith(NOISY))
+    # A home folder inside a program's strings is its maker's build machine (2026-11-05: NVIDIA's nvngx_dlss.dll
+    # carries "/home/<user>/...", REFramework's HexaGen.Runtime.dll "C:\Users\<user>\source\...pdb"; Village
+    # and RE3 builds were refused for them). Inside a program only OUR words count: this PC's login, our e-mail and
+    # the private words (which hold the other PC's login) are still checked above, so a program built in our own home
+    # folder is still refused. Pictures (exact) keep the full check.
+    return sorted(w for w in why if exact or not (w.startswith(NOISY) or w.startswith(HOME_REASON)))
 
 
 def binary_paths(*diff_args):
@@ -713,6 +721,13 @@ case "$name" in
     cat > "$tmp"
     @@PY@@ "@@TOOL@@" push "$2" < "$tmp" || { rm -f "$tmp"; exit 1; }
     exec 3< "$tmp"; rm -f "$tmp"; exec 0<&3 ;;
+  post-commit)
+    # which Claude Code session made this commit, for the close-out box (handover.py, 2026-11-05): two sessions on
+    # one PC committing in the same clone were each shown the other's commits as their own
+    if [ -n "${CLAUDE_CODE_SESSION_ID:-}" ]; then
+      printf '%s\\t%s\\n' "$CLAUDE_CODE_SESSION_ID" "$(git rev-parse HEAD 2>/dev/null)" \\
+        >> "$(dirname "$0")/session-commits.txt" 2>/dev/null
+    fi ;;
 esac
 prev=$(cat "$(dirname "$0")/.previous" 2>/dev/null)
 if [ -n "$prev" ] && [ -x "$prev/$name" ]; then exec "$prev/$name" "$@"; fi
