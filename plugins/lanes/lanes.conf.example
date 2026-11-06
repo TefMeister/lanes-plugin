@@ -50,6 +50,13 @@ role = DEV
 # runs_games = no
 # games_role = HOME
 
+# SEVERAL /pd AT ONCE (0.106.0). How many /pd sessions may run on this PC at
+# once, each on its own game (the live claim keeps them apart; the git queue,
+# extra `git_queue`, saves one after another). A /pd sweep (skip:) still runs
+# alone, and only one game session (/lm or /ms) runs on a PC. 1 = the old
+# one-at-a-time. Default: 3.
+# pd_parallel = 3
+
 # WHERE YOUR CLONES LIVE - used by /gs, which sweeps all of them, and by
 # root-sync.sh, which keeps every lane's clone root holding every repo.
 # One folder holding every repo as a subfolder. Overridden by $LANES_ROOT,

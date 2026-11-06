@@ -235,6 +235,17 @@
             "statusMessage": "Inspector: looking over the edit"
           }
         ]
+      },
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook git-queue.py",
+            "shell": "bash",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PreCompact": [

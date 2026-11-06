@@ -22,6 +22,9 @@ def guards_for(data):
                 ("privacy-hook.py", [])]
     if tool in ("Read", "Grep") or tool in SHELLS:
         out.append(("begone-raw-guard.py", []))
+    if tool in SHELLS:
+        # LAST (0.106.0): it holds the git queue until PostToolUse, so a command another guard refuses never holds it
+        out.append(("git-queue.py", []))
     if tool == "Skill":
         out += [("skill-lane-guard.py", []), ("clash-guard.py", [])]
     return out

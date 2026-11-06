@@ -92,35 +92,67 @@ echo "pd-guard"
 # prompt landing in that window would get the wrong answer.
 LOCK="$(mktemp -u)"
 export LANES_PD_LOCK="$LOCK"
+export LANES_PD_PARALLEL=2
 
 run_hook pd-guard.py '{"hook_event_name":"UserPromptSubmit","prompt":"/pd alpha","session_id":"first"}'
 [ "$RC" = "0" ] && ok "the first /pd takes the lock" || fail "first /pd must pass (rc=$RC)"
 
+# 0.106.0: several /pd at once, each on its own game (the live claim keeps them off one game)
 run_hook pd-guard.py '{"hook_event_name":"UserPromptSubmit","prompt":"/pd beta","session_id":"second"}'
-[ "$RC" = "2" ] && ok "a second /pd from another session is blocked" \
-                || fail "second /pd must be blocked (rc=$RC)"
-case "$OUT" in *"PD GUARD"*) ok "and says why" ;; *) fail "the block must explain itself" ;; esac
-run_hook pd-guard.py '{"hook_event_name":"UserPromptSubmit","prompt":"/lanes:pd beta","session_id":"second"}'
-[ "$RC" = "2" ] && ok "the long form /lanes:pd is blocked too" \
-                || fail "/lanes:pd slipped past the lock (rc=$RC)"
+[ "$RC" = "0" ] && ok "a second /pd on another game runs beside it" || fail "second /pd must pass (rc=$RC)"
+case "$OUT" in *"2 /pd session"*) ok "and is told two run now" ;; *) fail "the second /pd must be told it has company" ;; esac
+
+run_hook pd-guard.py '{"hook_event_name":"UserPromptSubmit","prompt":"/lanes:pd gamma","session_id":"third"}'
+[ "$RC" = "2" ] && ok "a third /pd past pd_parallel = 2 is blocked (long form too)" \
+                || fail "the limit must hold (rc=$RC)"
+case "$OUT" in *"PD GUARD"*pd_parallel*) ok "and says why" ;; *) fail "the block must name the limit" ;; esac
 
 run_hook pd-guard.py '{"hook_event_name":"UserPromptSubmit","prompt":"/pd alpha","session_id":"first"}'
-[ "$RC" = "0" ] && ok "the holder may keep working" || fail "the lock holder must not block itself"
-
-run_hook pd-guard.py '{"hook_event_name":"UserPromptSubmit","prompt":"/pd force beta","session_id":"second"}'
-[ "$RC" = "0" ] && ok "force steals the lock" || fail "force must pass (rc=$RC)"
-case "$OUT" in *stole*) ok "and says it stole it" ;; *) fail "stealing must be said out loud" ;; esac
-
-run_hook pd-guard.py '{"hook_event_name":"UserPromptSubmit","prompt":"/lm alpha","session_id":"third"}'
-[ "$RC" = "0" ] && ok "/lm is not affected by the /pd lock" || fail "/lm must pass (rc=$RC)"
+[ "$RC" = "0" ] && ok "a holder may keep working" || fail "a lock holder must not block itself"
 
 run_hook pd-guard.py '{"hook_event_name":"SessionEnd","session_id":"second"}'
+run_hook pd-guard.py '{"hook_event_name":"UserPromptSubmit","prompt":"/pd skip:alpha","session_id":"third"}'
+[ "$RC" = "2" ] && ok "a sweep (skip:) does not start beside another /pd" || fail "a sweep must run alone (rc=$RC)"
+
+run_hook pd-guard.py '{"hook_event_name":"UserPromptSubmit","prompt":"/pd force beta","session_id":"third"}'
+[ "$RC" = "0" ] && ok "force clears the others" || fail "force must pass (rc=$RC)"
+case "$OUT" in *cleared*) ok "and says so" ;; *) fail "clearing must be said out loud" ;; esac
+
+run_hook pd-guard.py '{"hook_event_name":"UserPromptSubmit","prompt":"/lm alpha","session_id":"fourth"}'
+[ "$RC" = "0" ] && ok "/lm is not affected by the /pd lock" || fail "/lm must pass (rc=$RC)"
+
+run_hook pd-guard.py '{"hook_event_name":"SessionEnd","session_id":"third"}'
 [ "$RC" = "0" ] && ok "SessionEnd releases cleanly" || fail "SessionEnd must pass (rc=$RC)"
-[ -f "$LOCK" ] && fail "SessionEnd should have removed the lock" || ok "and the lock is gone"
+[ -f "$LOCK" ] && fail "the last SessionEnd should have removed the lock" || ok "and the lock is gone"
+
+# the pre-0.106 one-holder file still counts as one holder
+printf '{"session_id":"old","started":%s}' "$(date +%s)" > "$LOCK"
+LANES_PD_PARALLEL=1 run_hook pd-guard.py '{"hook_event_name":"UserPromptSubmit","prompt":"/pd beta","session_id":"new"}'
+[ "$RC" = "2" ] && ok "an old-format lock is read, and pd_parallel = 1 is the old one-at-a-time" \
+                || fail "old-format lock must count (rc=$RC)"
 
 rm -f "$LOCK"
-unset LANES_PD_LOCK
+unset LANES_PD_LOCK LANES_PD_PARALLEL
 ok "the real lock was never touched"
+
+# ------------------------------------------------------------------ git queue
+echo "git-queue"
+QS="$(mktemp -d)"
+export LANES_STATE_DIR="$QS" LANES_GIT_QUEUE_WAIT_S=2
+run_hook git-queue.py '{"hook_event_name":"PreToolUse","tool_name":"Bash","session_id":"A","tool_input":{"command":"git -C x commit -m y"}}'
+[ "$RC" = "0" ] && [ -f "$QS/git-queue.json" ] && ok "a git commit takes the queue" || fail "commit must take the queue (rc=$RC)"
+run_hook git-queue.py '{"hook_event_name":"PreToolUse","tool_name":"Bash","session_id":"B","tool_input":{"command":"git status"}}'
+[ "$RC" = "0" ] && [ -z "$OUT" ] && ok "a git read passes at once" || fail "git status must pass silently"
+run_hook git-queue.py '{"hook_event_name":"PreToolUse","tool_name":"Bash","session_id":"B","tool_input":{"command":"rtk git push -q"}}'
+[ "$RC" = "0" ] && case "$OUT" in *"went ahead"*) true ;; *) false ;; esac && ok "a second session's push waits, then goes ahead with a note" \
+                || fail "a held queue must make the other wait (rc=$RC, out=$OUT)"
+run_hook git-queue.py '{"hook_event_name":"PostToolUse","tool_name":"Bash","session_id":"A","tool_input":{"command":"git commit"}}'
+run_hook git-queue.py '{"hook_event_name":"PreToolUse","tool_name":"Bash","session_id":"B","tool_input":{"command":"git push"}}'
+[ "$RC" = "0" ] && [ -z "$OUT" ] && ok "once given back, the next one takes it without waiting" || fail "the released queue must be free"
+run_hook git-queue.py '{"hook_event_name":"PostToolUse","tool_name":"Bash","session_id":"B","tool_input":{"command":"git push"}}'
+[ -f "$QS/git-queue.json" ] && fail "PostToolUse must give the queue back" || ok "and PostToolUse gives it back"
+rm -rf "$QS"
+unset LANES_STATE_DIR LANES_GIT_QUEUE_WAIT_S
 
 # --------------------------------------------------------------- reader guard
 echo "reader-guard"
@@ -428,10 +460,10 @@ echo "run-hook.cmd exit code"
 case "$(uname -s 2>/dev/null)" in
   MINGW*|MSYS*|CYGWIN*)
     LH=$(mktemp -d); LHP=$(cygpath -m "$LH")
-    printf '%s' '{"hook_event_name":"UserPromptSubmit","prompt":"/pd","session_id":"holder"}'       | LANES_PD_LOCK="$LHP/pd.lock" "$PY" "$HOOKS/pd-guard.py" >/dev/null 2>&1
-    printf '%s' '{"hook_event_name":"UserPromptSubmit","prompt":"/pd","session_id":"second"}'       | LANES_PD_LOCK="$LHP/pd.lock" "$HOOKS/run-hook.cmd" py-hook pd-guard.py >/dev/null 2>&1; rc=$?
+    printf '%s' '{"hook_event_name":"UserPromptSubmit","prompt":"/pd","session_id":"holder"}'       | LANES_PD_PARALLEL=1 LANES_PD_LOCK="$LHP/pd.lock" "$PY" "$HOOKS/pd-guard.py" >/dev/null 2>&1
+    printf '%s' '{"hook_event_name":"UserPromptSubmit","prompt":"/pd","session_id":"second"}'       | LANES_PD_PARALLEL=1 LANES_PD_LOCK="$LHP/pd.lock" "$HOOKS/run-hook.cmd" py-hook pd-guard.py >/dev/null 2>&1; rc=$?
     [ "$rc" = "2" ] && ok "a refusal comes back through run-hook.cmd as exit 2" || fail "run-hook.cmd lost the refusal (rc=$rc, wanted 2)"
-    printf '%s' '{"hook_event_name":"UserPromptSubmit","prompt":"hello","session_id":"second"}'       | LANES_PD_LOCK="$LHP/pd.lock" "$HOOKS/run-hook.cmd" py-hook pd-guard.py >/dev/null 2>&1; rc=$?
+    printf '%s' '{"hook_event_name":"UserPromptSubmit","prompt":"hello","session_id":"second"}'       | LANES_PD_PARALLEL=1 LANES_PD_LOCK="$LHP/pd.lock" "$HOOKS/run-hook.cmd" py-hook pd-guard.py >/dev/null 2>&1; rc=$?
     [ "$rc" = "0" ] && ok "a pass comes back through run-hook.cmd as exit 0" || fail "run-hook.cmd pass should be 0 (rc=$rc)"
     rm -rf "$LH" ;;
   *) ok "not Windows: run-hook.cmd runs as a shell script, exit codes pass by exec" ;;
@@ -441,7 +473,7 @@ esac
 # Claude starting the pd / lm / ms skill itself must meet the same checks as a typed command.
 echo "skill-lane-guard"
 SK=$(mktemp -d); SKP=$(cygpath -m "$SK" 2>/dev/null || echo "$SK")
-export LANES_PD_LOCK="$SKP/pd.lock" LANE_CLAIM_REPO="$FIX"
+export LANES_PD_PARALLEL=1 LANES_PD_LOCK="$SKP/pd.lock" LANE_CLAIM_REPO="$FIX"
 sk() { run_hook skill-lane-guard.py "{\"hook_event_name\":\"PreToolUse\",\"tool_name\":\"Skill\",\"session_id\":\"$1\",\"tool_input\":{\"skill\":\"$2\",\"args\":\"$3\"}}"; }
 sk first pd ""
 [ "$RC" = "0" ] && ok "the first session's pd skill passes and takes the lock" || fail "first pd skill should pass (rc=$RC, out=$OUT)"
@@ -466,7 +498,7 @@ sk third gates ""
 [ "$RC" = "0" ] && [ -z "$OUT" ] && ok "other skills pass untouched" || fail "other skills should pass silently (rc=$RC)"
 run_hook skill-lane-guard.py 'this is not json'
 [ "$RC" = "0" ] && ok "bad input passes (never fails closed)" || fail "bad input must pass (rc=$RC)"
-unset LANES_PD_LOCK LANE_CLAIM_REPO; rm -rf "$SK"
+unset LANES_PD_LOCK LANES_PD_PARALLEL LANE_CLAIM_REPO; rm -rf "$SK"
 grep -q 'skill-lane-guard.py' "$HOOKS/hooks.json" "$HOOKS/tool-guards.py" && grep -q '|Skill"' "$HOOKS/hooks.json" \
   && ok "skill-lane-guard is registered on the Skill tool" || fail "hooks.json is missing skill-lane-guard on Skill"
 

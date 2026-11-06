@@ -24,7 +24,8 @@ was cut off runs out after 12 hours. Written by `tools/clash.py doc`; edit the t
 - **a recording asked for by hand** (`obs_clip`): never two at once on the same PC; not beside the automatic BeG0nE recording on the same PC. Why: OBS records one thing at a time; a second start would take over the first one's recording. Guarded by: obs-rec.py start refuses while OBS is already recording.
 - **the automatic BeG0nE recording** (`begone_record`): never two at once on the same PC; not beside a recording asked for by hand on the same PC. Why: OBS records one thing at a time. Guarded by: the BeG0nE helper never starts one while OBS is recording.
 - **the BeG0nE helper (and the collector in it)** (`rider`): never two at once on the same PC. Why: two would file every report and every game run twice. Guarded by: rider.py start: one helper per PC (a running one is kept, or restarted when its code is older).
+- **a game session (/lm or /ms)** (`live`): never two at once on the same PC. Why: a PC runs one game at a time: two game sessions would fight over the screen, the keys, the headset and the frame-time numbers (Tefa, 2026-11-06: several /pd at once, only one live game).
 - **/pd, /lm or /ms on one project** (`lane`): never two at once on either PC (on one project). Why: two sessions changing one game's mod at once undo each other's work. Guarded by: the live claim on the board (lane-claim.sh, the /pd lock and their hooks).
 
-Every other command, hook, tool and extra of the plugin (91 of them) has a row saying why it needs no guard;
+Every other command, hook, tool and extra of the plugin (93 of them) has a row saying why it needs no guard;
 `clash.py audit` refuses a new one without a row.

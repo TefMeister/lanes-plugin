@@ -58,19 +58,25 @@ the atomic arbiter; losing that race is normal.
 
 ---
 
-## 2. Never run two `/pd` sessions at once
+## 2. Several `/pd` at once: each on its OWN game (0.106.0)
 
-Not in two terminals, not for two different projects, not "to get through the list faster".
+Up to `pd_parallel` `/pd` sessions (lanes.conf, default 3; `1` = the old one-at-a-time) may run on one PC at once,
+**each on a different game** (Tefa, 2026-11-06). Three things keep them apart, and all three are built in:
 
-Clone roots partition **lanes, not sessions**. A second `/pd` lands in the same working tree and the
-same git index as the first, so the two fight over `git pull`, over `index.lock`, and over every
-shared file. **It is slower, not faster.** This has happened; it cost both sessions about ten
-minutes of untangling, which is more than the second job would have taken.
+- **The live claim** (§3 of `/lm`, `lane-claim.sh`): a second session on a claimed game is refused, and a bare `/pd`'s
+  auto-pick skips claimed games. Take your claim before any work, as always.
+- **The git queue** (`hooks/git-queue.py`, extra `git_queue`): a git command that writes (add, commit, pull, push ...)
+  waits while another session's runs, so saves go to GitHub one after another and never into each other's index.
+- **A sweep runs alone:** `/pd skip:<name> ...` walks many games, so it starts only when no other `/pd` runs, and
+  nothing starts beside it.
 
-**The right way to do several projects is one session with several arguments:** `/pd alpha beta`.
+What stays YOURS to do: **stage only your own paths** (never `git add -A`, never `git commit -a`), keep each
+`git add` and its `git commit` in ONE command so the queue covers both, and **never edit another game's files** or a
+shared file's line that belongs to another game. A shared file (the front page row, ACTIVITY.md, INDEX.json) gets
+only your game's line, then is saved at once. If a pull stops on a conflict in a line that is not yours, stop and say
+so; never resolve another session's line.
 
-Four *different* lanes in parallel is the design and works. Two of the *same* lane is not a faster
-version of it.
+**Several projects in one session** still works too: `/pd alpha beta`.
 
 If you end up in a conflicted shared root anyway: **nothing is lost.** `git pull --rebase` against a
 dirty tree refuses outright; only `--autostash` reaches the bad state, and even then the stash

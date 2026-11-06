@@ -109,6 +109,18 @@ def main():
     on("pc1"); C.release(c1, "gr", "village")
     on("pc2"); C.release(c2, "gr", "re2")
 
+    # 0.106.0: one game session per PC, on any game; the other PC is its own
+    on("pc1")
+    check(C.take(c1, "live", "village", session="G1")[0], "PC1 runs a game session on Village")
+    check(not C.take(c1, "live", "darkness", session="G2")[0], "a second game session on PC1, another game, is refused")
+    check(C.take(c1, "live", "village", session="G1")[0], "the game session itself may take it again")
+    on("pc2")
+    check(C.take(c2, "live", "re2", session="G3")[0], "PC2 may run its own game session meanwhile")
+    C.release(c2, "live", "re2")
+    on("pc1")
+    C.release(c1, "live", "village")
+    check(C.take(c1, "live", "darkness", session="G2")[0], "once given back, the next game session starts")
+    C.release(c1, "live", "darkness")
     # a same-PC-only job
     on("pc1")
     check(C.take(c1, "update", session="S1")[0], "PC1 updates Lanes")

@@ -97,6 +97,9 @@ FEATURES = {
                             "game or stop holding, the line under the save box, no \"you're right\"), it is handed "
                             "back to add it, in the same turn",
                     "link": GH + "hooks/reply-check.py"},
+    "git_queue": {"label": "Git queue", "set": "everyday",
+                  "what": "sessions on one PC save to GitHub one after another: a git command that writes waits while another session's runs, so several /pd sessions (pd_parallel) never commit into each other's work",
+                  "link": GH + "hooks/git-queue.py"},
     "rest_reminder": {"label": "Rest reminder", "set": "everyday",
                       "what": "once a session, past the rest time you set (midnight by default), Claude says so in "
                               "one line at the top of its reply",

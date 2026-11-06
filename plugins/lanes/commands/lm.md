@@ -192,6 +192,8 @@ Git was clean; the loss was semantic. The claim takes the judgement out of it.
 `lane-claim.sh` stops two sessions taking the same **job**. It does not stop two `/lm` sessions
 sharing one **keyboard** — two `/lm` on different projects both read `NONE` and both proceed.
 
+**Since 0.106.0 a lock enforces it** (the clash guard's `live` job): a second `/lm` or `/ms` on this PC, on any game, is refused with one line while one runs (`force` after the command starts it anyway). Several `/pd` beside it are fine: they never run the app. The check below still applies when the lock is off.
+
 **Before launching or driving anything:**
 
 ```bash

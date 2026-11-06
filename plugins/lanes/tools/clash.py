@@ -112,6 +112,8 @@ JOBS = {
     "rider": {"label": "the BeG0nE helper (and the collector in it)", "alone": PC,
               "by": "rider.py start: one helper per PC (a running one is kept, or restarted when its code is older)",
               "why": "two would file every report and every game run twice"},
+    "live": {"label": "a game session (/lm or /ms)", "alone": PC,
+             "why": "a PC runs one game at a time: two game sessions would fight over the screen, the keys, the headset and the frame-time numbers (Tefa, 2026-11-06: several /pd at once, only one live game)"},
     "lane": {"label": "/pd, /lm or /ms on one project", "alone": EVERY, "per_project": True,
              "by": "the live claim on the board (lane-claim.sh, the /pd lock and their hooks)",
              "why": "two sessions changing one game's mod at once undo each other's work"},
@@ -119,7 +121,7 @@ JOBS = {
 # Commands whose hook-held lock is taken from what is typed: the command name -> its job.
 COMMAND_JOBS = {"fullscan": "fullscan", "gd": "gd", "gr": "gr", "sr": "sr", "od": "od", "gu": "gu", "ch": "ch",
                 "gs": "gs", "ideas": "ideas", "update": "update", "setup": "setup", "uninstall": "uninstall",
-                "theme": "theme", "sp": "save"}
+                "theme": "theme", "sp": "save", "lm": "live", "ms": "live"}
 # Menu-o-matiC and VR Bench are not here: the tools hold their own job while they press keys or run, since a lock
 # taken when the command is typed would also stop the session's own tool.
 
@@ -172,6 +174,7 @@ ROWS = {
     "hook:theme-apply": free("acts once, the first session after an install, and not at all when the look is on"),
     "hook:compact-hook.py": PER_SESSION, "hook:inspector-hook.py": PER_SESSION,
     "hook:pd-guard.py": free("is itself a guard (the /pd lock)"),
+    "hook:git-queue.py": free("is itself a guard (one git write at a time on a PC)"),
     "hook:lane-claim-guard.py": free("is itself a guard (the live claim)"),
     "hook:skill-lane-guard.py": free("is itself a guard (the same checks when a skill is started)"),
     "hook:update-hold-guard.py": free("is itself a guard (holds Lanes updates during a test)"),
@@ -222,7 +225,7 @@ ROWS = {
     "feature:begone_record": job("begone_record"), "feature:begone_video_tidy": part("rider"),
     "feature:begone_autosave": free("commits only its own new report files"),
     "feature:fullscan": READ_ONLY, "feature:gu_nudge": READ_ONLY, "feature:version_line": READ_ONLY,
-    "feature:clash_guard": free("is itself the guard"),
+    "feature:clash_guard": free("is itself the guard"), "feature:git_queue": free("is itself a guard"),
     "feature:update_hold": free("is itself a guard"), "feature:privacy_guard": free("is itself a guard"),
     "feature:update_safety": part("gu"), "feature:gold_digger": part("gd"), "feature:code_health": part("ch"),
     "feature:out_of_date": part("od"),
