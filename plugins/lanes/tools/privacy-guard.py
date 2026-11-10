@@ -95,6 +95,15 @@ def git(*args, cwd=None):
     return r.stdout if r.returncode == 0 else ""
 
 
+def git_lines(*args, cwd=None):
+    """(0.107.1) A git command's output one line at a time, never the whole of it in memory. A push of a large repo's
+    whole history (a history clean-up, a first push) made `git log -p` print more text than Python could hold: the
+    guard crashed with MemoryError and the push was refused for no reason a person could act on."""
+    with subprocess.Popen(["git"] + list(args), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, cwd=cwd) as proc:
+        for raw in proc.stdout:
+            yield raw.decode("utf-8", "replace").rstrip("\r\n")
+
+
 def words(public):
     """(word, why) pairs to refuse, lower-case."""
     display = conf_value("display_name").lower()
@@ -388,8 +397,7 @@ def pushed_content(rng, ws, display):
     on, all reach the push unchecked. Every commit is read, not only the end result, because a line added in one
     commit and taken out in the next still goes to GitHub in the history."""
     findings, commit, cur, line_no = [], "", "", 0
-    out = git("log", "-p", "-U0", "--no-color", "--no-ext-diff", "--no-renames", "--format=%x01%H", *rng)
-    for line in out.splitlines():
+    for line in git_lines("log", "-p", "-U0", "--no-color", "--no-ext-diff", "--no-renames", "--format=%x01%H", *rng):
         if line.startswith("\x01"):
             commit = line[1:10]
         elif line.startswith("+++ "):
@@ -406,14 +414,31 @@ def pushed_content(rng, ws, display):
                 findings.append(("commit %s, %s:%d" % (commit, cur, line_no), why))
             line_no += 1
     # binary files each pushed commit adds or changes (0.99.1): their hidden text, as the commit check reads it
-    commit = ""
-    for line in git("log", "--numstat", "--no-renames", "--diff-filter=AM", "--format=%x01%H", *rng).splitlines():
+    # 0.107.1: each distinct file is opened ONCE. A repo of saved builds holds the same sound or program file in
+    # hundreds of commits (22,007 entries, 3,183 distinct files in the one that showed it); opened one by one per
+    # commit, a push of its whole history was still reading after 70 minutes. The --raw lines give each file's
+    # object name, so a file already read is known without opening it.
+    commit, blob_of, seen = "", {}, {}
+    for line in git_lines("log", "--raw", "--no-abbrev", "--numstat", "--no-renames", "--diff-filter=AM",
+                          "--format=%x01%H", *rng):
         if line.startswith("\x01"):
-            commit = line[1:]
+            commit, blob_of = line[1:], {}
+            continue
+        if line.startswith(":"):
+            meta, _, path = line.partition("\t")
+            fields = meta.split()
+            if len(fields) >= 4:
+                blob_of[path] = fields[3]
             continue
         parts = line.split("\t", 2)
         if len(parts) == 3 and parts[0] == "-" and parts[1] == "-":
-            why = check_binary(blob_bytes("show", "%s:%s" % (commit, parts[2])), ws, display)
+            blob = blob_of.get(parts[2], "")
+            if blob and blob in seen:
+                why = seen[blob]
+            elif blob:
+                why = seen[blob] = check_binary(blob_bytes("cat-file", "blob", blob), ws, display)
+            else:   # a name git printed in quotes (odd characters): read it the old way
+                why = check_binary(blob_bytes("show", "%s:%s" % (commit, parts[2])), ws, display)
             if why:
                 findings.append(("commit %s, %s (hidden text inside the file)" % (commit[:9], parts[2]), why))
     return findings

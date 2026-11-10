@@ -1145,7 +1145,10 @@ def places_cell(conf, pushed):
             for cat_repo, cat_file, text in catalogs:
                 if cat_repo != name and squash_name(name) not in text:
                     said.append("%s never names it" % cat_file)
-            ok, tag = git(["describe", "--tags", "--abbrev=0"], r["repo"])
+            # 0.107.1: only a tag that looks like a version is a download. The first real box took a safety tag
+            # ("pre-ch-2026-11-01", the copy saved before a code-health pass) for one and raised a false alarm.
+            ok, tag = git(["describe", "--tags", "--abbrev=0", "--match", "v[0-9]*", "--match", "*-v[0-9]*",
+                           "--match", "[0-9]*.[0-9]*"], r["repo"])
             if ok and tag.strip():
                 try:
                     import od

@@ -181,6 +181,9 @@ printf 'texts = %s\nours = %s\ncatalog = demo-tools/TOOLKIT.md\n' "$TP/A/texts" 
 out=$(LANES_CONFIG="$TP/A/lanes-pl.conf" "$PY" "$TOOL" close --no-write --session=fixture-fp 2>&1)
 assert_contains "| 📣 Also mentioned | ⚠️ demo-dirty: TOOLKIT.md never names it" "$out" "a tool of ours the tool list page never names"
 echo "# Tools: Hand Freeze, Window View, Demo Dirty" > "$T/A/texts/demo-tools/TOOLKIT.md"
+( cd "$T/A/clones/demo-dirty" && q git tag pre-ch-2026-11-01 HEAD~1 && q git push -q origin pre-ch-2026-11-01 )
+out=$(LANES_CONFIG="$TP/A/lanes-pl.conf" "$PY" "$TOOL" close --no-write --session=fixture-fp 2>&1)
+assert_not_contains "📣" "$out" "a safety tag is not a download (0.107.1: the first real box took one for a download)"
 ( cd "$T/A/clones/demo-dirty" && q git tag v0.1 HEAD~1 && q git push -q origin v0.1 )
 out=$(LANES_CONFIG="$TP/A/lanes-pl.conf" "$PY" "$TOOL" close --no-write --session=fixture-fp 2>&1)
 assert_contains "| 📣 Also mentioned | ⚠️ demo-dirty: its download v0.1 is 1 change older than the program" "$out" "a download older than the program it is made from"
