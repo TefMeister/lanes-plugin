@@ -9,6 +9,14 @@ Run 5 it was cut off in every fresh window (3 of 3) and sessions started with no
         outlives the window; the next session start shows that. Nothing kept yet: says so (the refresh is started).
     python briefcache.py refresh <name> -- <command...>    run <command> now and keep its output (what show starts)
 
+    python briefcache.py show <name> --wait-s=N [--own] -- <command...>      (0.107.0)
+        the same, but waits up to N seconds for the fresh result and prints THAT when it arrives in time (no "from the
+        last check" line); only when it does not, the last result is printed with its age. For checks a session
+        should see fresh when the PC allows it (the save light, the reminders that read GitHub): on a busy start-up
+        they were cut off by their time limit and the session saw nothing at all (dev PC, 2026-11-10: the save light
+        ran past 90 s and the "11 jobs wait for this PC" reminder never arrived, though both take 20-40 s alone).
+        --own: this window always starts its own run (for a check that also records something for this session).
+
 Kept in the Lanes state folder as brief-<name>.txt. A result older than --max-age-h (default 24) is not shown.
 Never raises; any failure prints nothing.
 """
@@ -56,18 +64,66 @@ def refresh(name, cmd):
 FRESH_ENOUGH_S = 300            # several windows opened together start one refresh between them, not one each
 
 
-def start_refresh(name, cmd):
+def start_refresh(name, cmd, own=False):
+    """start the background run; returns the time the run that is now under way began (this one, or another
+    window's started a moment ago)"""
     marker = path_of(name) + ".started"
     try:
-        if time.time() - os.path.getmtime(marker) < FRESH_ENOUGH_S:
-            return
+        began = os.path.getmtime(marker)
+        if not own and time.time() - began < FRESH_ENOUGH_S:
+            return began
     except OSError:
         pass
+    began = time.time()
     os.makedirs(STATE_DIR, exist_ok=True)
     with open(marker, "w", encoding="utf-8") as f:
         f.write(str(os.getpid()))
     import endwork   # its twice-started helper is the one that outlives a closing window
     endwork.outlive(os.path.abspath(__file__), ["refresh", name, "--"] + cmd)
+    return began
+
+
+POLL_S = 0.5
+
+
+def show_waiting(name, cmd, max_age_h, wait_s, own):
+    """the fresh result when it arrives within wait_s, else the last one with its age (see the module text)"""
+    p = path_of(name)
+    try:
+        before = os.path.getmtime(p)
+    except OSError:
+        before = 0.0
+    try:
+        began = start_refresh(name, cmd, own)
+    except Exception:  # noqa: BLE001
+        began = time.time()
+    deadline = time.time() + wait_s
+    fresh = False
+    while time.time() < deadline:
+        try:
+            m = os.path.getmtime(p)
+            if m > before and m >= began - 1:
+                fresh = True
+                break
+        except OSError:
+            pass
+        time.sleep(POLL_S)
+    try:
+        age = time.time() - os.path.getmtime(p)
+        with open(p, encoding="utf-8") as f:
+            text = f.read().rstrip("\n")
+    except OSError:
+        age, text = None, ""
+    if fresh and text:
+        print(text)
+    elif text and age is not None and age <= max_age_h * 3600:
+        print("(this check was still running after %d s, so this is its last result, from %s; the fresh one is kept "
+              "for the next session)" % (wait_s, age_words(age)))
+        print(text)
+    else:
+        print("(this check was still running after %d s and no recent result is kept; it finishes in the background "
+              "for the next session)" % wait_s)
+    return 0
 
 
 def show(name, cmd, max_age_h):
@@ -101,19 +157,21 @@ def main(argv):
     cut = argv.index("--")
     head, cmd = argv[:cut], argv[cut + 1:]
     mode, name = head[0], head[1]
-    max_age_h = DEFAULT_MAX_AGE_H
+    max_age_h, wait_s, own = DEFAULT_MAX_AGE_H, 0.0, "--own" in head[2:]
     for a in head[2:]:
-        if a.startswith("--max-age-h="):
-            try:
+        try:
+            if a.startswith("--max-age-h="):
                 max_age_h = float(a.split("=", 1)[1])
-            except ValueError:
-                pass
+            if a.startswith("--wait-s="):
+                wait_s = float(a.split("=", 1)[1])
+        except ValueError:
+            pass
     if not cmd:
         return 2
     sys.path.insert(0, HERE)
     try:
         if mode == "show":
-            return show(name, cmd, max_age_h)
+            return show_waiting(name, cmd, max_age_h, wait_s, own) if wait_s > 0 else show(name, cmd, max_age_h)
         if mode == "refresh":
             import endwork
             endwork.hide_child_windows()   # started with no console: bash would open a visible window (Run 6)

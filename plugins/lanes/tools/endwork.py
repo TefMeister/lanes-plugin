@@ -16,7 +16,8 @@ Claude Code ends the hook and whatever it started, but not a program whose paren
     python endwork.py status                 is an end running now, and how the last one went
 
 The end steps, in order (each only when its extra is on): give back this PC's clash locks on GitHub (clash.py sweep),
-report the end on the board (handover.py end --write), shelve logs for Gold Digger (gd.py shelve --all --quiet).
+report the end on the board (handover.py end --write), look at GitHub again (handover.py refresh), bring copies that
+are only behind level with it (handover.py level), shelve logs for Gold Digger (gd.py shelve --all --quiet).
 Only one end runs at a time on a PC (two windows closing together queue up). Every line goes to endwork.log.
 Never raises; a failed step is logged and the next one still runs.
 """
@@ -35,6 +36,7 @@ RUNNING = os.path.join(STATE_DIR, "endwork.running")
 LOG_KEEP_LINES = 400
 WAIT_FOR_OTHER_S = 600          # a second window closing waits this long for the first one's end steps
 STEP_TIMEOUT_S = 300            # one end step (the save scan of ~300 repos takes about half a minute)
+TURN_MAX_AGE_S = 45 * 60        # no end takes this long (five steps of at most 300 s): an older turn file is left over
 DETACHED, NEW_GROUP, NO_WINDOW = 0x8, 0x200, 0x08000000
 
 
@@ -104,10 +106,17 @@ def alive(pid):
 
 
 def running_pid():
+    """the program number of an end that is running now, else 0. A turn file older than TURN_MAX_AGE_S is left over
+    whatever its number says: Windows hands a finished program's number to the next program that starts, so "is that
+    number alive" alone called a four-hour-old end "still running" (dev PC, 2026-11-10: the number had gone to a
+    Windows search helper), and a real end behind it would have waited ten minutes and then been skipped."""
     try:
         with open(RUNNING, encoding="utf-8") as f:
-            pid = int(json.load(f).get("pid", 0))
-    except (OSError, ValueError, AttributeError):
+            d = json.load(f)
+        pid, since = int(d.get("pid", 0)), float(d.get("since", 0))
+    except (OSError, ValueError, AttributeError, TypeError):
+        return 0
+    if time.time() - since > TURN_MAX_AGE_S:
         return 0
     return pid if pid and alive(pid) else 0
 
@@ -136,10 +145,13 @@ def take_turn():
 
 
 def give_turn():
+    """Take the turn file away when it is this program's. Read first, CLOSE, then delete: Windows refuses to delete a
+    file that is still open, so until 0.107.0 the file was never removed there and every end left its number behind."""
     try:
         with open(RUNNING, encoding="utf-8") as f:
-            if int(json.load(f).get("pid", 0)) == os.getpid():
-                os.remove(RUNNING)
+            mine = int(json.load(f).get("pid", 0)) == os.getpid()
+        if mine:
+            os.remove(RUNNING)
     except (OSError, ValueError, AttributeError):
         pass
 
@@ -188,6 +200,9 @@ def run(session):
         if os.environ.get("LANES_HANDOVER", "1") != "0":
             # after the end report, never before it: the box's "SAVED" is only as fresh as each copy's last look (Run 5 D7)
             step("GitHub looked at again", [os.path.join(HERE, "handover.py"), "refresh"])
+        if os.environ.get("LANES_HANDOVER", "1") != "0" and feature_on("keep_level"):
+            # after the look at GitHub: copies that are only behind are fast-forwarded (0.107.0; handover.py level)
+            step("copies brought level", [os.path.join(HERE, "handover.py"), "level"])
         if feature_on("gold_digger"):
             step("logs shelved", [os.path.join(HERE, "gd.py"), "shelve", "--all", "--quiet"])
         log("end of %s: done" % (session or "?"))

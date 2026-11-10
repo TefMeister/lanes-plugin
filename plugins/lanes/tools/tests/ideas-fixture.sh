@@ -96,5 +96,19 @@ out=$(run sync proj-a); has "nothing new" "$out" "a dropped idea is never offere
 out=$(run pick proj-b 7); has "no idea numbered" "$out" "a wrong number is refused"
 [ -f "$R/proj-b/ideas/fresh/all--shared-thing.md" ] && ok "and nothing is dropped" || fail "and nothing is dropped"
 
+echo "sync downloads the ideas copy first (0.107.0: an idea filed from another copy was 'nothing new')"
+g() { git -c user.name=t -c user.email=t@example.invalid "$@" >/dev/null 2>&1; }
+g init -q --bare "$T/ideas-remote.git"; g -C "$T/ideas-remote.git" symbolic-ref HEAD refs/heads/main
+g -C "$I" add -A; g -C "$I" commit -q -m "the ideas so far"; g -C "$I" branch -M main
+g -C "$I" remote add origin "$T/ideas-remote.git"; g -C "$I" push -q -u origin main
+g clone -q "$T/ideas-remote.git" "$T/ideas-second"       # the copy `ideas =` names; nobody works in it
+printf '\n### Filed from the other copy\n`[raw]` \xc2\xb7 `[not judged]`\nA new idea.\n' >> "$I/pages/a.md"
+g -C "$I" add -A; g -C "$I" commit -q -m "one more idea"; g -C "$I" push -q
+out=$(LANES_IDEAS="$T/ideas-second" "$PY" "$TOOL" sync proj-a 2>&1)
+[ -f "$R/proj-a/ideas/fresh/a--filed-from-the-other-copy.md" ] && ok "an idea pushed from another copy reaches the project's list" \
+  || fail "an idea pushed from another copy reaches the project's list (got: $out)"
+out=$(LANES_IDEAS="$T/ideas-second" LANES_IDEAS_NO_PULL=1 "$PY" "$TOOL" sync proj-a 2>&1)
+has "nothing new" "$out" "and is offered once"
+
 echo
 [ "$FAILED" = 0 ] && echo "ideas-fixture: $N checks, 0 failed" || { echo "ideas-fixture: FAILED"; exit 1; }

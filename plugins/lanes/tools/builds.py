@@ -567,6 +567,9 @@ def local_app_keys():
     return out
 
 
+DIFF_NAMED = 6      # differing files spelled out in the session-start line
+
+
 def cmd_check(_a):
     """Session start (0.28.0): silent unless an app folder on this PC drifted from the saved builds.
 
@@ -598,11 +601,24 @@ def cmd_check(_a):
         saved = builds(root, project, conf)
         if not saved:
             continue
-        num, _, diff = closest(root, project, conf, app_state(conf))
+        state = app_state(conf)
+        num, _, diff = closest(root, project, conf, state)
         newest = saved[-1][0]
         if diff:
+            # 0.107.0: name the files and the newest build. "15 files differ from the nearest, b090" read as lost
+            # work on 2026-11-09 when 14 of the 15 were files the app writes while it runs (frame-time tables, state
+            # files) and the build actually in the folder was the newest, b094.
+            shown = ", ".join(diff[:DIFF_NAMED]) + (f" and {len(diff) - DIFF_NAMED} more" if len(diff) > DIFF_NAMED else "")
+            also = ""
+            if newest != num:
+                man = read_manifest(os.path.join(root, project, saved[-1][1]))
+                man = {q: h for q, h in man.items() if not skipped(q.rsplit("/", 1)[-1], q, conf)}
+                n_new = sum(1 for q in set(man) | set(state) if man.get(q) != state.get(q))
+                also = f"; {n_new} from the newest, b{newest:03d}"
             msgs.append(f"- {project}: the app folder matches NO saved build ({len(diff)} file(s) differ from "
-                        f"the nearest, b{num:03d}). Something was swapped, or a change was never saved. "
+                        f"the nearest, b{num:03d}{also}): {shown}. A file the app writes by itself while it runs "
+                        f"is not a change: add it to the project's skip list (`skip = <name or pattern>` in its "
+                        f"PROJECT.conf) and it stops counting. Anything else was swapped or never saved: "
                         f"`builds.py which {project}` lists them; do not test until it is known.")
         elif newest > num and not held_covers(root, project, num, newest):
             msgs.append(f"- {project}: this PC holds b{num:03d}; a newer build, b{newest:03d}, is saved "

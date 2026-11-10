@@ -28,8 +28,14 @@ TOTAL_BUDGET_S = 50        # stop starting new parts after this, so the hook its
 # update-nudge 5); alone they take 3-8 s each. After them, every `start_part = <command>` line in lanes.conf runs
 # (with bash, the same hook input on stdin), so a PC's own start-up scripts join the queue instead of the crowd.
 SLOW_PARTS = [("owed-brief", []), ("privacy-rule", []), ("ideas-brief", []), ("update-nudge", [])]
-SLOW_PART_TIMEOUT_S = 25
-SLOW_TOTAL_BUDGET_S = 105  # the slow entry has 120 in hooks.json
+SLOW_PART_TIMEOUT_S = 40
+SLOW_TOTAL_BUDGET_S = 300  # the slow group runs in the background since 0.107.0 (below), so it may take its time
+# 0.107.0: `slow` no longer runs the group itself. It starts `slow-run` in the background (tools/briefcache.py), waits
+# up to SLOW_WAIT_S for its text, and otherwise hands the session the last kept text with its age. Measured on the dev
+# PC 2026-11-10: the group takes 38 s alone, and in a real start-up it never came back inside its 120 s, so the
+# reminders ("11 jobs wait for this PC") reached no session at all.
+SLOW_WAIT_S = 60
+SLOW_MAX_AGE_H = 24
 
 
 def conf_start_parts():
@@ -76,7 +82,9 @@ def main():
         data = b""
     texts, began, sh = [], time.time(), bash()
     flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)   # no window for each part (Windows only)
-    slow = sys.argv[1:2] == ["slow"]
+    if sys.argv[1:2] == ["slow"]:
+        return slow_from_cache()
+    slow = sys.argv[1:2] == ["slow-run"]
     if slow:
         jobs = [[sh, os.path.join(HERE, s)] + a for s, a in SLOW_PARTS if os.path.isfile(os.path.join(HERE, s))]
         jobs += [[sh, "-c", c] for c in conf_start_parts()]
@@ -95,9 +103,33 @@ def main():
             t = ""
         if t:
             texts.append(t)
-    if texts:
+    if texts and slow:
+        sys.stdout.buffer.write(("\n".join(texts) + "\n").encode("utf-8"))   # plain text: briefcache keeps it
+    elif texts:
         sys.stdout.write(json.dumps({"hookSpecificOutput": {"hookEventName": "SessionStart",
                                                             "additionalContext": "\n".join(texts)}}))
+    return 0
+
+
+def slow_from_cache():
+    """`slow`: the slow group's text, fresh when it comes in time, else the last kept one (briefcache.py --wait-s)"""
+    tool = os.path.join(os.path.dirname(HERE), "tools", "briefcache.py")
+    try:
+        wait_s = float(os.environ.get("LANES_BRIEF_WAIT_S") or SLOW_WAIT_S)
+    except ValueError:
+        wait_s = SLOW_WAIT_S
+    try:
+        r = subprocess.run([sys.executable, tool, "show", "slow-start", "--wait-s=%g" % wait_s,
+                            "--max-age-h=%d" % SLOW_MAX_AGE_H, "--", sys.executable, os.path.abspath(__file__),
+                            "slow-run"],
+                           capture_output=True, timeout=wait_s + 20, stdin=subprocess.DEVNULL,
+                           creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        text = r.stdout.decode("utf-8", errors="replace").strip()
+    except Exception:  # noqa: BLE001
+        text = ""
+    if text:
+        sys.stdout.write(json.dumps({"hookSpecificOutput": {"hookEventName": "SessionStart",
+                                                            "additionalContext": text}}))
     return 0
 
 

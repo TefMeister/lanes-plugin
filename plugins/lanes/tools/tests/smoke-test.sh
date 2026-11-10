@@ -486,6 +486,48 @@ PYEOF
 )
 assert_contains "GOOD" "$out" "an installed copy and a repo checkout are told apart"
 
+# 3. (0.107.0) A PC that loads Lanes from a folder on a TEST BRANCH: the newest version is that branch's on GitHub,
+#    not the default branch's, and the copy that runs is the folder, not an old one in the plugin cache. Seen
+#    2026-11-10: "latest 0.95.0, up to date" on a PC one version behind its branch.
+(
+  set -e
+  cd "$UPTMP/work"
+  git checkout -q -b next
+  echo '{"name":"lanes","version":"9.9.4"}' > plugins/lanes/.claude-plugin/plugin.json
+  git add -A && git -c user.name=t -c user.email=t@t commit -q -m "lanes 9.9.4 on the test branch" && git push -q origin next
+  git -C "$UPTMP/market" fetch -q origin
+  git -C "$UPTMP/market" checkout -q -b next --track origin/next
+  echo '{"name":"lanes","version":"9.9.5"}' > plugins/lanes/.claude-plugin/plugin.json
+  git add -A && git -c user.name=t -c user.email=t@t commit -q -m "lanes 9.9.5 on the test branch" && git push -q origin next
+  git -C "$UPTMP/market" fetch -q origin
+) >/dev/null 2>&1
+echo '{"version":"9.9.4"}' > "$UPTMP/installed/.claude-plugin/plugin.json"
+out=$(env "${UPENV[@]}" LANES_UPDATE_MARKETPLACE_SOURCE=directory LANES_STATE_DIR="$UPTMP/s6" \
+      "$PY" "$TOOLS/update-check.py" --json --force 2>&1)
+assert_contains '"latest": "9.9.5"' "$out" "a folder on a test branch is compared with ITS branch on GitHub, not the default branch"
+assert_contains '"newer": true' "$out" "and the newer version there is offered"
+assert_contains '"marketplace_behind": 1' "$out" "and how far the folder is behind is counted on that branch"
+out=$("$PY" - "$TOOLS/update-check.py" "$UPTMP" <<'PYEOF'
+import importlib.util, json, os, sys
+spec = importlib.util.spec_from_file_location("uc", sys.argv[1])
+uc = importlib.util.module_from_spec(spec); spec.loader.exec_module(uc)
+tmp = sys.argv[2]
+home = os.path.join(tmp, "home"); folder = os.path.join(tmp, "market")
+os.makedirs(os.path.join(home, ".claude", "plugins"), exist_ok=True)
+with open(os.path.join(home, ".claude", "plugins", "known_marketplaces.json"), "w") as f:
+    json.dump({"demo": {"source": {"source": "directory", "path": folder}, "installLocation": folder},
+               "hub": {"source": {"source": "github"}, "installLocation": os.path.join(tmp, "work")}}, f)
+uc.HOME = home
+inside = uc.directory_market(os.path.join(folder, "plugins", "lanes"))[0] == "demo"
+outside = uc.directory_market(os.path.join(tmp, "work", "plugins", "lanes"))[0] is None
+uc.PLUGIN_ROOT = os.path.join(folder, "plugins", "lanes")
+os.environ.pop("LANES_PLUGIN_ROOT", None)
+root, version, from_repo = uc.resolve_root()
+print("GOOD" if inside and outside and version == "9.9.4" and not from_repo else "BAD", inside, outside, version, from_repo)
+PYEOF
+)
+assert_contains "GOOD" "$out" "the folder a PC loads Lanes from counts as the installed copy (not an old one in the cache)"
+
 rm -rf "$UPTMP"
 
 echo "root-sync: every lane's clone root ends up holding every repo, and nothing existing is touched"
@@ -1018,6 +1060,17 @@ fi
 if out=$("$PY" "$TOOLS/clash.py" audit 2>&1); then ok "$out"; else printf '%s
 ' "$out"; fail "clash.py audit"; fi
 if out=$("$PY" "$TOOLS/clash.py" doc --check 2>&1); then ok "$out"; else fail "$out"; fi
+
+echo
+echo "endwork.py + briefcache.py - the end helper's turn file, and a start-up check that waits for its fresh result (0.107.0)"
+if out=$("$PY" "$HERE/endwork_test.py" 2>&1); then
+  ok "$(printf '%s
+' "$out" | tail -n 1)"
+else
+  printf '%s
+' "$out" | grep FAIL
+  fail "endwork_test.py failed"
+fi
 
 echo
 if [ "$FAILED" -eq 0 ]; then

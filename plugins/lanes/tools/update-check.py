@@ -110,10 +110,47 @@ def newest_installed():
     return best
 
 
+def directory_market(root):
+    """(name, folder) of the marketplace registered as a local DIRECTORY that this copy sits inside, else (None, None).
+
+    A PC that loads Lanes straight from a folder (a test branch, a developer's clone) RUNS that folder: the plugin
+    cache then holds only whatever was installed long ago. Until 0.107.0 this check took the newest cache copy as
+    "installed" (0.100.0 while 0.106.3 ran) and read the newest version off the repo's default branch instead of the
+    branch the folder is on, so it said "0.95.0 is the latest, up to date" on a PC one version behind (2026-11-10)."""
+    try:
+        with open(os.path.join(HOME, ".claude", "plugins", "known_marketplaces.json"), encoding="utf-8") as f:
+            known = json.load(f)
+    except (OSError, ValueError):
+        return None, None
+    here = os.path.normcase(os.path.abspath(root))
+    for name, entry in known.items():
+        loc = (entry or {}).get("installLocation")
+        if not loc or ((entry.get("source") or {}).get("source") != "directory"):
+            continue
+        base = os.path.normcase(os.path.abspath(loc))
+        if here == base or here.startswith(base + os.sep):
+            return name, loc
+    return None, None
+
+
+def tracking_ref(clone):
+    """The branch on GitHub that the clone's checked-out branch follows (origin/lanes-next for a test-branch folder),
+    else the repo's default branch. What an update installs is the folder's own branch, so that is what is compared."""
+    up = (git(clone, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}") or "").strip()
+    if up and git(clone, "rev-parse", "--verify", "--quiet", up):
+        return up
+    for cand in ("origin/HEAD", "origin/main", "origin/master"):
+        if git(clone, "rev-parse", "--verify", "--quiet", cand):
+            return cand
+    return None
+
+
 def resolve_root():
     """(root, version, ran_from_repo). Prefer the real installed copy over this file's location."""
     if in_cache(PLUGIN_ROOT) or os.environ.get("LANES_PLUGIN_ROOT"):
         return PLUGIN_ROOT, version_at(PLUGIN_ROOT), False
+    if directory_market(PLUGIN_ROOT)[0]:
+        return PLUGIN_ROOT, version_at(PLUGIN_ROOT), False   # this folder IS the copy that runs
     root, version = newest_installed()
     if root:
         return root, version, True
@@ -124,6 +161,8 @@ def resolve_root():
 def marketplace(root):
     """(name, clone dir). Installed copies live at plugins/cache/<marketplace>/<plugin>/<version>."""
     name = os.environ.get("LANES_UPDATE_MARKETPLACE")
+    if not name and not in_cache(root):
+        name = directory_market(root)[0]
     if not name:
         parts = os.path.normpath(os.path.abspath(root)).split(os.sep)
         if "cache" in parts and len(parts) > parts.index("cache") + 1:
@@ -152,16 +191,15 @@ def commits_behind(clone):
     Observed 2026-09-18: 0.12.0 was pushed from one clone root while the marketplace pointed at
     another, and the update reported success twice without installing anything.
     """
-    if not clone or not os.path.isdir(os.path.join(clone, ".git")):
+    if not clone or not os.path.exists(os.path.join(clone, ".git")):   # a folder, or a file in a git worktree
         return None
-    for cand in ("origin/HEAD", "origin/main", "origin/master"):
-        if git(clone, "rev-parse", "--verify", "--quiet", cand):
-            out = git(clone, "rev-list", "--count", f"HEAD..{cand}")
-            try:
-                return int((out or "").strip())
-            except ValueError:
-                return None
-    return None
+    ref = tracking_ref(clone)
+    if not ref:
+        return None
+    try:
+        return int((git(clone, "rev-list", "--count", f"HEAD..{ref}") or "").strip())
+    except ValueError:
+        return None
 
 
 def load_state():
@@ -193,11 +231,7 @@ def fetch_latest(clone):
     if not clone or not os.path.isdir(clone):
         return None, []
     git(clone, "fetch", "--quiet", "origin")
-    ref = None
-    for cand in ("origin/HEAD", "origin/main", "origin/master"):
-        if git(clone, "rev-parse", "--verify", "--quiet", cand):
-            ref = cand
-            break
+    ref = tracking_ref(clone)
     if not ref:
         return None, []
     manifest = git(clone, "show", f"{ref}:{MANIFEST_REL}")

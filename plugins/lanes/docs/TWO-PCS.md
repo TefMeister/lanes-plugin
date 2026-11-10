@@ -52,6 +52,21 @@ What they are never for: carrying files, running commands on the other PC on som
 anything. A message is information to the other session, never the person's yes. A session that is closed gets
 nothing; for work that must wait for the other PC, use an owed reminder (§7) instead, which waits on GitHub.
 
+## Keeping each PC's copies level (0.107.0, optional: `keep_level`)
+
+A PC that mostly reads falls behind without a word: each lane pulls only the project it works on, so after a
+week of the other PC doing the modding, one of ours had 50 of 66 repos behind GitHub and two new projects it had
+no copy of. With `keep_level = on` in `lanes.conf`, the helper that runs after every session end
+(`tools/endwork.py`) looks at GitHub again and then runs `handover.py level`:
+
+- a copy on a branch that follows GitHub, with nothing of its own, no changed file and no git step half done,
+  is fast-forwarded to GitHub's state;
+- a project a session on the PC is writing into (the project guard's hold) and the folder Lanes itself is
+  loaded from are left alone (moving that folder is a Lanes update, which asks first);
+- a repo of the account (`texts_owner =`) that the live root has no copy of is cloned there, five per run.
+
+`python tools/handover.py level` does the same by hand and says what it moved.
+
 ## Which channel for what
 
 | Need | Channel |

@@ -351,6 +351,135 @@ def refresh_views(roots):
     return len(old), sum(1 for d in done if d)
 
 
+HELD_H = 3                 # hooks/project-guard.py: a project a session wrote into this recently is left alone
+LEVEL_CLONES_MAX = 5       # repos new on GitHub that one run copies to this PC; the rest wait for the next run
+LEVEL_CLONE_TIMEOUT_S = 300
+LEVEL_NAMED = 8            # repo names spelled out in the result line
+
+
+def held_projects():
+    """names of the projects a session on this PC is writing into now (the project guard's holds, HELD_H fresh)"""
+    folder = os.path.join(os.environ.get("LANES_STATE_DIR") or os.path.join(os.path.expanduser("~"), ".claude", "lanes"),
+                          "projects-held")
+    out = set()
+    try:
+        names = os.listdir(folder)
+    except OSError:
+        return out
+    for n in names:
+        try:
+            with open(os.path.join(folder, n), encoding="utf-8") as f:
+                last = float(json.load(f).get("last", 0))
+        except (OSError, ValueError, AttributeError, TypeError):
+            continue
+        if time.time() - last < HELD_H * 3600:
+            out.add(n[:-5].lower() if n.endswith(".json") else n.lower())
+    return out
+
+
+def level_copies(roots):
+    """Bring every copy that is only BEHIND GitHub up to it (0.107.0). [(name, root label, commits)] of those moved.
+
+    Why: the copies on a PC that mostly reads fall behind without a word. On 2026-11-10 the dev PC, which had done
+    little but receive the home PC's work for a week, had 50 of the 66 repos in its live root behind GitHub (one by
+    213 commits), so every note, tool and Inspector hint read there was days old. Nothing pulled them: each lane
+    pulls only what it works on.
+
+    Safe by construction. A copy is moved only when it is on a branch that follows GitHub, has nothing of its own
+    that GitHub lacks, no changed or staged file, and no git step half done; then it is fast-forwarded to what the
+    last fetch saw (no network here: the end helper's "GitHub looked at again" step runs just before). Left alone:
+    a project a session on this PC is writing into (the project guard's hold), and the folder Lanes itself is loaded
+    from (moving that is a Lanes update, which asks first)."""
+    held = held_projects()
+    here = norm(os.path.abspath(__file__))
+    todo = []
+    for root in roots:
+        for repo in repos_in(root):
+            if os.path.basename(repo).lower() in held or here.startswith(norm(repo).rstrip("\\/") + os.sep):
+                continue
+            todo.append((repo, root))
+
+    def one(item):
+        repo, root = item
+        gitdir = os.path.join(repo, ".git")
+        if any(os.path.exists(os.path.join(gitdir, n)) for n in ("index.lock", "MERGE_HEAD", "rebase-merge",
+                                                                  "rebase-apply")):
+            return None
+        ok, counts = git(["rev-list", "--left-right", "--count", "HEAD...@{u}"], repo)
+        parts = counts.split() if ok else []
+        if len(parts) != 2 or not parts[1].isdigit() or parts[0] != "0" or int(parts[1]) == 0:
+            return None                              # no branch that follows GitHub, work of its own, or level
+        ok, st = git(["status", "--porcelain", "--untracked-files=no"], repo)
+        if not ok or st.strip():
+            return None
+        if not git(["merge", "-q", "--ff-only", "@{u}"], repo, timeout=FETCH_TIMEOUT_S)[0]:
+            return None
+        return (os.path.basename(repo), root_label(root), int(parts[1]))
+    with ThreadPoolExecutor(max_workers=STATUS_WORKERS) as pool:
+        return [r for r in pool.map(one, todo) if r]
+
+
+def account_repos(owner):
+    """[(name, clone address)] of the account's own repos on GitHub (not forks, not archived), or None when it cannot
+    be asked. LANES_LEVEL_REPOS (a JSON list of [name, address]) stands in for GitHub in the tests."""
+    fake = os.environ.get("LANES_LEVEL_REPOS")
+    if fake:
+        try:
+            return [tuple(x) for x in json.loads(fake)]
+        except ValueError:
+            return None
+    try:
+        r = subprocess.run(["gh", "repo", "list", owner, "--limit", "1000", "--json", "name,isFork,isArchived,url"],
+                           capture_output=True, text=True, timeout=FETCH_TIMEOUT_S, encoding="utf-8", errors="replace")
+        return [(x["name"], x["url"]) for x in json.loads(r.stdout) if not x.get("isFork") and not x.get("isArchived")] \
+            if r.returncode == 0 else None
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        return None
+
+
+def clone_missing(conf, roots):
+    """Copy to the live root the repos GitHub has that it lacks (the other PC made a new project). (cloned, waiting)."""
+    owner = conf.get("texts_owner", "").strip()
+    if not roots or not (owner or os.environ.get("LANES_LEVEL_REPOS")):
+        return [], 0
+    listed = account_repos(owner)
+    if not listed:
+        return [], 0
+    live = roots[0]
+    have = {os.path.basename(r).lower() for r in repos_in(live)}
+    have |= {n.lower() for n in os.listdir(live)}       # a folder of that name that is not a clone is left alone too
+    missing = [(n, url) for n, url in listed if n.lower() not in have]
+    cloned = []
+    for name, url in missing[:LEVEL_CLONES_MAX]:
+        try:
+            r = subprocess.run(["git", "clone", "-q", url, os.path.join(live, name)], capture_output=True,
+                               timeout=LEVEL_CLONE_TIMEOUT_S)
+            if r.returncode == 0:
+                cloned.append(name)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    return cloned, len(missing) - len(cloned)
+
+
+def level_report(conf):
+    roots = roots_from(conf)
+    moved = level_copies(roots)
+    cloned, waiting = clone_missing(conf, roots)
+    if not moved and not cloned and not waiting:
+        return "HANDOVER: every copy that could be brought level with GitHub already is."
+    bits = []
+    if moved:
+        names = ", ".join("%s%s (%d)" % (n, "" if lab == "live root" else " in the " + lab, c)
+                          for n, lab, c in sorted(moved, key=lambda m: -m[2])[:LEVEL_NAMED])
+        more = " and %d more" % (len(moved) - LEVEL_NAMED) if len(moved) > LEVEL_NAMED else ""
+        bits.append("%s brought level with GitHub: %s%s" % (plural(len(moved), "copy", "copies"), names, more))
+    if cloned:
+        bits.append("new on GitHub, copied to this PC: " + ", ".join(cloned))
+    if waiting:
+        bits.append("%s more on GitHub with no copy here yet" % plural(waiting, "repo", "repos"))
+    return "HANDOVER: " + "; ".join(bits) + "."
+
+
 def scan_roots(roots):
     """One dict per clone in every root. The clones are read in parallel: 60 clones one after another
     took 63 s on 2026-10-01, far past a session-start hook's patience."""
@@ -812,6 +941,18 @@ def close_box(conf, session):
     profile = profile_cell(conf, pushed, snap)
     if profile:
         lines.append("| 🪧 Front page | %s |" % profile)
+    try:
+        places = places_cell(conf, pushed)
+    except Exception:  # noqa: BLE001 - a check that cannot run never stops the box
+        places = ""
+    if places:
+        lines.append("| 📣 Also mentioned | %s |" % places)
+    try:
+        owed = owed_cell(conf)
+    except Exception:  # noqa: BLE001
+        owed = ""
+    if owed:
+        lines.append("| 📌 Jobs for this PC | %s |" % owed)
     for g in games_running():
         # 0.103.0 (Run 5 D9): the rule is to close the game when a run ends; the box said nothing when one was open
         lines.append("| 🎮 Game | ⚠️ %s is still running: close it with its own quit if this session's run is done |" % g)
@@ -896,26 +1037,159 @@ def profile_cell(conf, pushed, snap):
         from gu_texts import NOT_WORK
     except ImportError:
         NOT_WORK = ()
-    today = datetime.now().strftime("%m-%d")
     behind, fine, seen = [], 0, set()
     for r in pushed:
         for repo, sub, mmdd, title in rows:
             if repo != r["name"].lower() or title in seen:
                 continue
-            spec = ["--", sub or "."] + [":(exclude,glob)%s" % p for p in NOT_WORK]
-            # only commits this session made here (0.99.2): a row is not "behind" because of work pulled from elsewhere
-            if not any(git(["diff-tree", "--no-commit-id", "--name-only", "-r", "--root", h] + spec, r["repo"])[1]
-                       for h in r.get("made", [])):
+            day = work_day(r, sub)
+            if not day:
                 continue
             seen.add(title)
-            if mmdd == today:
+            # The row must be as new as the session's own last work there. Until 0.107.0 it had to carry TODAY's
+            # date, so a session that ran past midnight was told its rows were behind when they were right (rows dated
+            # 11-09, work committed 11-09 19:33, box printed 11-10).
+            if mmdd >= day[5:] or (mmdd[:2] == "01" and day[5:7] == "12"):     # a January row after December work
                 fine += 1
             else:
                 behind.append("\"%s\" (%s)" % (title[:PROFILE_TITLE_CHARS], mmdd))
     if behind:
         return "⚠️ this session's work is not on its row yet: %s. Refresh the row, its INDEX.json stage, and Recent " \
                "Activity if it moved forward" % ", ".join(behind)
-    return "%s refreshed today" % plural(fine, "row", "rows") if fine else ""
+    return "%s up to date" % plural(fine, "row", "rows") if fine else ""
+
+
+def work_day(r, sub=""):
+    """'YYYY-MM-DD' of the newest commit this session made in repo row `r` that touches real work (under `sub`, when
+    the front-page row is about one folder), or "" when it made none: research notes, inboxes, Inspector notes and
+    ideas move without the project moving (gu_texts.NOT_WORK). Only this session's own commits count (0.99.2)."""
+    try:
+        from gu_texts import NOT_WORK
+    except ImportError:
+        NOT_WORK = ()
+    spec = ["--", sub or "."] + [":(exclude,glob)%s" % p for p in NOT_WORK]
+    days = []
+    for h in r.get("made", []):
+        if git(["diff-tree", "--no-commit-id", "--name-only", "-r", "--root", h] + spec, r["repo"])[1]:
+            ok, d = git(["log", "-1", "--format=%cs", h], r["repo"])
+            if ok and d.strip():
+                days.append(d.strip())
+    return max(days) if days else ""
+
+
+def conf_values(key):
+    """every value of a setting that may be written on several lines (`ours = ...`), comments cut off"""
+    out = []
+    try:
+        with open(conf_path(), encoding="utf-8") as f:
+            for line in f:
+                m = re.match(r"^\s*%s\s*=\s*(.*?)\s*(#.*)?$" % re.escape(key), line)
+                if m and m.group(1).strip():
+                    out.append(m.group(1).strip())
+    except OSError:
+        pass
+    return out
+
+
+def squash_name(name):
+    """'Hand Poser', 'hand-poser-vr' and 'HandPoser' all read as 'handposer' (the same rule as gu_texts.squash)"""
+    s = re.sub(r"[^a-z0-9]", "", name.lower())
+    return s[:-2] if s.endswith("vr") and len(s) > 4 else s
+
+
+def places_cell(conf, pushed):
+    """The close-out box's "Also mentioned" row (0.107.0): the OTHER places that speak about a repo this session pushed
+    real work to, each checked from files already on this PC (no network, a second or two).
+
+    Asked for by the maintainer, 2026-11-10: "if we upload and push new things, then all the relevant departments get
+    updated, not just the mod release page for instance, but mod page, front page, notes, and other parts where this
+    work might be mentioned". The front-page row had its own check since 0.94.2; that day's Out of Date scan still
+    found the index behind for five games, three tool downloads older than their programs, and three tools the tool
+    list page never names. Out of Date finds those once a week; this says it while the session that did the work is
+    still open. Checked: the project's stage line in INDEX.json (beside the front page), the catalog page
+    (`catalog =`) naming a tool of ours (`ours =`), and a tool's newest download against its program. "" = all fine."""
+    page = os.environ.get("LANES_FRONTPAGE") or conf.get("frontpage", "")
+    folder = (page if os.path.isdir(page) else os.path.dirname(page)) if page else ""
+    stages = {}
+    try:
+        with open(os.path.join(folder, "INDEX.json"), encoding="utf-8") as f:
+            for p in json.load(f).get("projects") or []:
+                dates = sorted(re.findall(r"\d{4}-\d\d-\d\d", p.get("stage") or ""))
+                if p.get("repo"):
+                    stages[p["repo"].lower()] = dates[-1] if dates else ""
+    except (OSError, ValueError, AttributeError):
+        pass
+    ours = {os.path.basename(p.replace("\\", "/").rstrip("/")).lower() for p in conf_values("ours")}
+    catalogs = []
+    for spec in conf_values("catalog"):
+        repo, _, rel = spec.replace("\\", "/").partition("/")
+        for base in [conf.get("texts", "")] + roots_from(conf):
+            path = os.path.join(base, repo, rel) if base and rel else ""
+            if path and os.path.isfile(path):
+                try:
+                    with open(path, encoding="utf-8") as f:
+                        catalogs.append((repo.lower(), os.path.basename(rel), squash_name(f.read())))
+                except OSError:
+                    pass
+                break
+    flags = []
+    for r in pushed:
+        name = r["name"].lower()
+        day = work_day(r)
+        if not day:
+            continue
+        said = []
+        if name in stages and stages[name] < day:
+            said.append("its INDEX.json stage is dated %s" % (stages[name] or "with no date"))
+        if name in ours:
+            for cat_repo, cat_file, text in catalogs:
+                if cat_repo != name and squash_name(name) not in text:
+                    said.append("%s never names it" % cat_file)
+            ok, tag = git(["describe", "--tags", "--abbrev=0"], r["repo"])
+            if ok and tag.strip():
+                try:
+                    import od
+                    changes = od.code_changes_since(r["repo"], tag.strip(), "HEAD")
+                except Exception:  # noqa: BLE001 - the box is printed whatever this check does
+                    changes = None
+                if changes and changes[0]:
+                    said.append("its download %s is %s older than the program" % (
+                        tag.strip(), plural(changes[0], "change", "changes")))
+        if said:
+            flags.append("%s: %s" % (r["name"], ", ".join(said)))
+    if flags:
+        return "⚠️ " + "; ".join(flags) + ". Bring each up to date before ending (or say why it waits)"
+    return ""
+
+
+OWED_SHOWN = 6          # titles named in the box; the rest are counted
+OWED_TITLE_CHARS = 60
+
+
+def owed_cell(conf):
+    """The close-out box's row of jobs raised for THIS PC that are still open (0.107.0). Nothing ticked a job off when
+    its work was done and the close-out never asked, so on 2026-11-09 the home PC's start listed three waiting jobs of
+    which two were finished, and it read as lost work ("something is not saving"). Read from the board's owed/<ROLE>/
+    folder as it is on this PC; "" when there is none."""
+    board, role = conf.get("board", ""), (conf.get("role") or "").upper()
+    folder = os.path.join(board, "owed", role) if board and role else ""
+    if not folder or not os.path.isdir(folder):
+        return ""
+    titles = []
+    for n in sorted(os.listdir(folder)):
+        if not n.endswith(".md") or n.lower() == "readme.md":
+            continue
+        try:
+            with open(os.path.join(folder, n), encoding="utf-8") as f:
+                first = f.readline().strip().lstrip("# ").strip()
+        except OSError:
+            first = ""
+        titles.append((first or n[:-3])[:OWED_TITLE_CHARS])
+    if not titles:
+        return ""
+    more = " (+%d more)" % (len(titles) - OWED_SHOWN) if len(titles) > OWED_SHOWN else ""
+    return "%s still open: %s%s. Tick off any this session finished (owed.sh done), so it is not offered again" % (
+        plural(len(titles), "job", "jobs"), "; ".join(titles[:OWED_SHOWN]), more)
 
 
 def early_summary_on():
@@ -1076,6 +1350,9 @@ def main(argv):
     if mode == "refresh":
         n, ok = refresh_views(roots_from(conf))
         print("HANDOVER: looked at GitHub again for %d cop%s (%d fetched)" % (n, "y" if n == 1 else "ies", ok))
+        return 0
+    if mode == "level":
+        print(level_report(conf))
         return 0
     if mode not in ("check", "start", "end"):
         print(__doc__); return 2

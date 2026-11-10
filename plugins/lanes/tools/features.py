@@ -164,6 +164,12 @@ FEATURES = {
                             "are kept apart, on one PC and across both: the second one is refused with one line saying "
                             "what is running where (docs/CLASHES.md has the whole table)",
                     "link": GH + "docs/CLASHES.md"},
+    "keep_level": {"label": "Copies kept level with GitHub", "set": "everyday", "ask_on_update": True,
+                   "what": "after each session ends, every copy on this PC that is only behind GitHub is brought up "
+                           "to it, and a project the other PC started is copied over, so a PC that mostly reads "
+                           "never works from week-old notes; a copy with unsaved work, or one a session is "
+                           "writing into, is never touched",
+                   "link": GH + "docs/TWO-PCS.md"},
     "collector": {"label": "Always-on collector", "set": "checkup",
                   "what": "every launch of a project game, flat or VR, with or without a session, is collected "
                           "quietly while it runs (the program's and the graphics card's load, memory and "

@@ -354,8 +354,30 @@ def git_commit(repo_path, msg):
     print(f"  {'pushed' if ok else 'PUSH FAILED'} {repo_path.name}")
 
 
+def pull_ideas(ideas):
+    """Bring the ideas copy up to GitHub before reading it (0.107.0). `sync` and `list` read the copy named by
+    `ideas =`, which on a PC may be a second clone that no session works in: an idea filed and pushed from another
+    copy was then reported as "nothing new" and never reached the project's list (home PC, 2026-11-08, two ideas).
+    Quiet when it works or when the copy follows nothing on GitHub; one line when the download fails."""
+    if not ideas or not (ideas / ".git").exists() or os.environ.get("LANES_IDEAS_NO_PULL"):
+        return
+    try:
+        if subprocess.run(["git", "-C", str(ideas), "rev-parse", "--abbrev-ref", "@{u}"],
+                          capture_output=True, text=True).returncode != 0:
+            return
+        r = subprocess.run(["git", "-C", str(ideas), "pull", "--ff-only", "--quiet"],
+                           capture_output=True, text=True, timeout=PULL_TIMEOUT_S)
+        ok = r.returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        ok = False
+    if not ok:
+        print("ideas.py: could not download the ideas repo first, so this reads the copy as it was on this PC "
+              "(an idea filed elsewhere since may be missing).")
+
+
 def cmd_sync(a, ctx):
     ideas, root = ctx["ideas"], ctx["root"]
+    pull_ideas(ideas)
     pdir, url = pages_dir(ideas), web_url(ideas)
     wanted, changed, everyone = set(a.repos), {}, None
     for page_no, (page, targets) in enumerate(read_map(ideas).items()):

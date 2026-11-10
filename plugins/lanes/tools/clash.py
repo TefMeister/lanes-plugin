@@ -228,6 +228,8 @@ ROWS = {
     "feature:fullscan": READ_ONLY, "feature:gu_nudge": READ_ONLY, "feature:version_line": READ_ONLY,
     "feature:clash_guard": free("is itself the guard"), "feature:git_queue": free("is itself a guard"),
     "feature:project_guard": free("is itself a guard"),
+    "feature:keep_level": free("only fast-forwards a copy with no work of its own and no session writing into it; "
+                               "the end helper runs one end at a time on a PC"),
     "feature:update_hold": free("is itself a guard"), "feature:privacy_guard": free("is itself a guard"),
     "feature:update_safety": part("gu"), "feature:gold_digger": part("gd"), "feature:code_health": part("ch"),
     "feature:out_of_date": part("od"),
@@ -596,14 +598,30 @@ def sweep(c, fetch=True):
         return []
     if fetch and not FL.git(b, "fetch", "-q", "origin", timeout=GIT_TIMEOUT_S)[0]:
         return ["CLASH GUARD: GitHub could not be reached; left-over locks not checked."]
-    me, here = FL.me(c), {(r["job"], r["project"]) for r in local_locks()}
-    out = []
+    me, out = FL.me(c), []
+    # A lock past its time stops nothing, but nothing took it away either (0.107.0): the home PC's full scan of
+    # 2026-11-07 left three on GitHub for three days, because its files were still on that PC and the sweep only
+    # looked for GitHub locks WITHOUT a file. This PC's own run-out files go first, so their GitHub copies follow.
+    for rec in local_locks():
+        if rec["job"] in JOBS and age_h(rec["when"]) >= JOBS[rec["job"]].get("stale_h", STALE_H):
+            drop_local(os.path.join(LOCAL_DIR, key(rec["job"], rec["project"]) + ".lock"))
+    here = {(r["job"], r["project"]) for r in local_locks()}
     for rec in remote_locks(b):
-        if rec.get("machine") != me or (rec["job"], rec["project"]) in here or rec["job"] not in JOBS:
+        if rec["job"] not in JOBS:
+            continue
+        k = key(rec["job"], rec["project"])
+        if rec.get("machine") != me:
+            # the other PC's: only once it has run out (it blocks nothing by then), so the list stays readable
+            if rec["when"] and age_h(rec["when"]) >= STALE_H and FL.push_change(
+                    b, None, "clash guard: %s clears %s's run-out lock %s" % (me, rec.get("machine", "?"), k),
+                    rel=rec["rel"]):
+                out.append("CLASH GUARD: %s of %s had run out (over %d h old); cleared on GitHub."
+                           % (k, rec.get("machine", "the other PC"), STALE_H))
+            continue
+        if (rec["job"], rec["project"]) in here:
             continue
         if rec["when"] and age_h(rec["when"]) * 3600 < ORPHAN_MIN_AGE_S:
             continue
-        k = key(rec["job"], rec["project"])
         ok = FL.push_change(b, None, "clash guard: %s gives back %s (its window closed first)" % (me, k), rel=rec["rel"])
         out.append("CLASH GUARD: %s %s." % (k, "given back on GitHub: its window closed before its end steps did"
                                             if ok else "is left over on GitHub and could NOT be removed now"))

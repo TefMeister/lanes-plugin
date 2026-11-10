@@ -150,6 +150,31 @@ def main():
         child.kill()
     C.release(c1, "menu")
 
+    # a lock that ran out is taken away, not only ignored (0.107.0: three sat on GitHub for three days, their files
+    # still on the PC that took them, so the sweep's "no file here" rule never matched)
+    on("pc1")
+    check(C.take(c1, "gd", session="OLD")[0], "PC1 holds Gold Digger (on GitHub too)")
+    rec = {"machine": "PC1", "since": old, "job": "gd", "project": "all", "session": "OLD"}
+    with open(os.path.join(C.LOCAL_DIR, "gd.lock"), "w") as f:
+        f.write(C.lock_text(rec))
+    L.push_change(c1["board"], C.lock_text(rec), "test: the lock is old now", rel=C.remote_rel("gd", "gd"))
+    on("pc2")
+    lines = C.sweep(c2)
+    check(any("run out" in l for l in lines) and not any(r["job"] == "gd" for r in C.remote_locks(c2["board"])),
+          "the other PC clears a lock that ran out on GitHub")
+    on("pc1")
+    L.push_change(c1["board"], C.lock_text(rec), "test: old again", rel=C.remote_rel("gd", "gd"))
+    C.sweep(c1)
+    check(not os.path.exists(os.path.join(C.LOCAL_DIR, "gd.lock"))
+          and not any(r["job"] == "gd" for r in C.remote_locks(c1["board"])),
+          "the PC that took it drops its own run-out file and the GitHub copy")
+    check(C.take(c1, "sr", session="LIVE")[0], "a lock in use ...")
+    on("pc2"); C.sweep(c2)
+    check(any(r["job"] == "sr" for r in C.remote_locks(c2["board"])), "... is left alone by the other PC's sweep")
+    on("pc1"); C.sweep(c1)
+    check(any(r["job"] == "sr" for r in C.remote_locks(c1["board"])), "... and by its own PC's sweep")
+    C.release(c1, "sr")
+
     # the hook
     conf = os.path.join(T, "pc2.conf")
     with open(conf, "w") as f:

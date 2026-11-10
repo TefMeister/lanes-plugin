@@ -9,6 +9,14 @@
 set -uo pipefail
 [ "${LANES_BUILDS_CHECK:-1}" = "0" ] && exit 0
 
+# A PC set up to run no apps (runs_games = no) tests nothing, so an app folder that matches no saved build is no
+# warning there (0.107.0). On the dev PC an old leftover folder was called out at every start with "do not test
+# until it is known", and the check took 50 s of the busiest minute of the session.
+CONF="${LANES_CONFIG:-$HOME/.claude/lanes.conf}"
+RUNS="$(sed -n 's/^[[:space:]]*runs_games[[:space:]]*=[[:space:]]*//p' "$CONF" 2>/dev/null | head -1 |
+        sed 's/[[:space:]]*#.*$//' | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
+case "$RUNS" in no|off|false|0) exit 0 ;; esac
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 TOOL="${PLUGIN_ROOT}/tools/builds.py"

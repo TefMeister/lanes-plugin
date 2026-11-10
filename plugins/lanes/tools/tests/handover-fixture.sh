@@ -155,7 +155,46 @@ out=$(LANES_CONFIG="$TP/A/lanes-fp.conf" "$PY" "$TOOL" close --no-write --sessio
 assert_contains "| 🪧 Front page | ⚠️ this session's work is not on its row yet: \"Demo dirty\" (01-01)." "$out" "a row older than today is named"
 sed -i "s/| 01-01 |/| $(date +%m-%d) |/" "$T/A/profile/README.md"
 out=$(LANES_CONFIG="$TP/A/lanes-fp.conf" "$PY" "$TOOL" close --no-write --session=fixture-fp 2>&1)
-assert_contains "| 🪧 Front page | 1 row refreshed today |" "$out" "a row dated today is fine"
+assert_contains "| 🪧 Front page | 1 row up to date |" "$out" "a row dated today is fine"
+# 0.107.0: a session that runs past midnight. Its work and its row are both dated yesterday; the row is right.
+YDAY=$("$PY" -c "import datetime; print((datetime.date.today() - datetime.timedelta(days=1)).isoformat())")
+mkdir -p "$T/midnight/demo-late" "$T/midnight/profile"
+( cd "$T/midnight/demo-late" && q git init -q . && echo late > late.cpp && q git add late.cpp   && GIT_AUTHOR_DATE="${YDAY}T23:30:00" GIT_COMMITTER_DATE="${YDAY}T23:30:00" q git -c user.name=t -c user.email=t@example.invalid commit -q -m "work late last night" )
+late=$(git -C "$T/midnight/demo-late" rev-parse HEAD)
+printf '| Project | Where it stands | Updated |
+| --- | --- | --- |
+| **Demo late** | [demo](https://github.com/someone/demo-late) worked on | %s |
+' "${YDAY:5}" > "$T/midnight/profile/README.md"
+cell=$(cd "$HERE/.." && PYTHONIOENCODING=utf-8 "$PY" -c "import sys, handover; print(handover.profile_cell({'frontpage': sys.argv[1]}, [{'name': 'demo-late', 'repo': sys.argv[2], 'made': [sys.argv[3]]}], None))" "$TP/midnight/profile" "$TP/midnight/demo-late" "$late")
+assert_contains "1 row up to date" "$cell" "past midnight: a row dated the day of the session's last work is not called behind"
+
+echo "close: the other places that speak about a repo this session pushed work to (0.107.0)"
+printf '{"projects": [{"repo": "demo-dirty", "stage": "First light (2000-01-01)."}]}\n' > "$T/A/profile/INDEX.json"
+out=$(LANES_CONFIG="$TP/A/lanes-fp.conf" "$PY" "$TOOL" close --no-write --session=fixture-fp 2>&1)
+assert_contains "| 📣 Also mentioned | ⚠️ demo-dirty: its INDEX.json stage is dated 2000-01-01" "$out" "an index entry older than the session's work is named"
+printf '{"projects": [{"repo": "demo-dirty", "stage": "Moved on (%s)."}]}\n' "$(date +%Y-%m-%d)" > "$T/A/profile/INDEX.json"
+out=$(LANES_CONFIG="$TP/A/lanes-fp.conf" "$PY" "$TOOL" close --no-write --session=fixture-fp 2>&1)
+assert_not_contains "📣" "$out" "an index entry dated the day of the work: no row"
+mkdir -p "$T/A/texts/demo-tools"; echo "# Tools: Hand Freeze, Window View" > "$T/A/texts/demo-tools/TOOLKIT.md"
+cp "$T/A/lanes-fp.conf" "$T/A/lanes-pl.conf"
+printf 'texts = %s\nours = %s\ncatalog = demo-tools/TOOLKIT.md\n' "$TP/A/texts" "$TP/A/clones/demo-dirty" >> "$T/A/lanes-pl.conf"
+out=$(LANES_CONFIG="$TP/A/lanes-pl.conf" "$PY" "$TOOL" close --no-write --session=fixture-fp 2>&1)
+assert_contains "| 📣 Also mentioned | ⚠️ demo-dirty: TOOLKIT.md never names it" "$out" "a tool of ours the tool list page never names"
+echo "# Tools: Hand Freeze, Window View, Demo Dirty" > "$T/A/texts/demo-tools/TOOLKIT.md"
+( cd "$T/A/clones/demo-dirty" && q git tag v0.1 HEAD~1 && q git push -q origin v0.1 )
+out=$(LANES_CONFIG="$TP/A/lanes-pl.conf" "$PY" "$TOOL" close --no-write --session=fixture-fp 2>&1)
+assert_contains "| 📣 Also mentioned | ⚠️ demo-dirty: its download v0.1 is 1 change older than the program" "$out" "a download older than the program it is made from"
+( cd "$T/A/clones/demo-dirty" && q git tag v0.2 HEAD && q git push -q origin v0.2 )
+out=$(LANES_CONFIG="$TP/A/lanes-pl.conf" "$PY" "$TOOL" close --no-write --session=fixture-fp 2>&1)
+assert_not_contains "📣" "$out" "named on the tool list, download as new as the program: no row"
+
+echo "close: jobs raised for this PC that are still open (0.107.0: finished jobs came back and read as lost work)"
+mkdir -p "$T/owed-board/owed/DEV"
+printf '# Build the connector\n\nMachine: DEV\n' > "$T/owed-board/owed/DEV/2099-01-01-build-the-connector.md"
+cell=$(cd "$HERE/.." && PYTHONIOENCODING=utf-8 "$PY" -c "import sys, handover; print(handover.owed_cell({'board': sys.argv[1], 'role': 'dev'}))" "$TP/owed-board")
+assert_contains "1 job still open: Build the connector. Tick off any this session finished" "$cell" "an open job for this PC is named at the close-out"
+cell=$(cd "$HERE/.." && PYTHONIOENCODING=utf-8 "$PY" -c "import sys, handover; print(repr(handover.owed_cell({'board': sys.argv[1], 'role': 'HOME'})))" "$TP/owed-board")
+assert_contains "''" "$cell" "none for this PC: no row"
 
 echo "close: writes this session's END on the board (2026-11-05: the end hook was always cut off, on both PCs)"
 out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" close --session=fixture-close 2>&1)
@@ -267,5 +306,34 @@ printf 'board = %s\nroot = %s\nmachine_name = PCC\nrole = HOME\n' "$TP/C/userdir
 out=$(LANES_CONFIG="$TP/C/lanes.conf" "$PY" "$TOOL" check 2>&1); rc=$?
 assert_contains "demo-clean (/pd root): 1 file(s) never added" "$out" "a file left in the /pd root beside 'root' is named"
 [ "$rc" = "1" ] && ok "exit 1 when red" || fail "exit 1 when red (got $rc)"
+
+echo "level: a copy that is only behind GitHub is brought up to it; anything with work of its own is left (0.107.0)"
+# PC D: three copies of one repo's kind, each one commit behind: a clean one, one with a changed file, one a session
+# on this PC is writing into (the project guard's hold). And a repo that exists on GitHub only.
+mkremote "$T/remote-held"; seed "$T/remote-held" "$T/seed-held"
+mkremote "$T/remote-edit"; seed "$T/remote-edit" "$T/seed-edit"
+mkremote "$T/remote-new"; seed "$T/remote-new" "$T/seed-new"
+mkdir -p "$T/D/clones" "$T/D/state/projects-held"
+q git clone -q "$T/remote-board" "$T/D/clones/board"
+q git clone -q "$T/remote-clean" "$T/D/clones/demo-clean"
+q git clone -q "$T/remote-held" "$T/D/clones/demo-held"
+q git clone -q "$T/remote-edit" "$T/D/clones/demo-edit"
+for n in clean held edit; do
+  ( cd "$T/seed-$n" && q git pull -q; echo more > "more-$n.txt" && q git add . && q git commit -q -m "the other PC's work" && q git push -q )
+  q git -C "$T/D/clones/demo-$n" fetch -q origin
+done
+echo changed >> "$T/D/clones/demo-edit/a.txt"
+"$PY" -c "import json, sys, time; json.dump({'session': 's', 'since': time.time(), 'last': time.time()}, open(sys.argv[1], 'w'))" "$TP/D/state/projects-held/demo-held.json"
+printf 'board = %s\nmachine_name = PCD\nrole = DEV\n' "$TP/D/clones/board" > "$T/D/lanes.conf"
+LIST="[[\"demo-new\", \"$TP/remote-new\"], [\"demo-clean\", \"$TP/remote-clean\"]]"
+out=$(LANES_STATE_DIR="$TP/D/state" LANES_LEVEL_REPOS="$LIST" LANES_CONFIG="$TP/D/lanes.conf" "$PY" "$TOOL" level 2>&1)
+assert_contains "1 copy brought level with GitHub: demo-clean (1)" "$out" "the clean copy that was behind is brought level"
+[ -f "$T/D/clones/demo-clean/more-clean.txt" ] && ok "its files are GitHub's now" || fail "the clean copy was not moved"
+[ ! -f "$T/D/clones/demo-edit/more-edit.txt" ] && ok "a copy with a changed file is left alone" || fail "a copy with a changed file was moved"
+[ ! -f "$T/D/clones/demo-held/more-held.txt" ] && ok "a project a session is writing into is left alone" || fail "a held project was moved"
+assert_contains "new on GitHub, copied to this PC: demo-new" "$out" "a repo this PC had no copy of is copied over"
+[ -f "$T/D/clones/demo-new/a.txt" ] && ok "and it is a real copy" || fail "the new repo was not cloned"
+out=$(LANES_STATE_DIR="$TP/D/state" LANES_LEVEL_REPOS="$LIST" LANES_CONFIG="$TP/D/lanes.conf" "$PY" "$TOOL" level 2>&1)
+assert_contains "every copy that could be brought level with GitHub already is" "$out" "a second run finds nothing to do"
 
 [ "$FAILED" = "0" ] && echo "handover-fixture: ALL PASSED" || { echo "handover-fixture: FAILED"; exit 1; }

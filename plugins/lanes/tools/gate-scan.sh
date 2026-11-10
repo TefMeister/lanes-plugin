@@ -245,7 +245,10 @@ while IFS= read -r f; do
   # widened to fit the practice rather than the practice
   # policed to fit the format. `odate` below takes the FIRST date on the line, so a suffix never
   # affected the staleness comparison. Still required: "OPEN (", a real YYYY-MM-DD, and "):".
-  n_open=$(printf '%s\n' "$body" | grep -cE '^OPEN[[:space:]]*\([0-9]{4}-[0-9]{2}-[0-9]{2}[^)]*\):' || true)
+  # 0.107.0: the text after the date may itself hold brackets ("OPEN (2026-11-07, 17:1x: REBUILD (LAYERS 1-3)
+  # INSTALLED):"). The old pattern stopped at the first ")" and called the line malformed, so two of the three most
+  # worked-on boards dropped out of every count for days; anything up to a "):" on the line is the heading now.
+  n_open=$(printf '%s\n' "$body" | grep -cE '^OPEN[[:space:]]*\([0-9]{4}-[0-9]{2}-[0-9]{2}.*\):' || true)
   n_any=$(printf '%s\n' "$body" | grep -cE '^OPEN' || true)
   if [ "$n_open" -eq 0 ]; then
     if [ "$n_any" -gt 0 ]; then
@@ -259,13 +262,16 @@ while IFS= read -r f; do
     printf '  %-28s %s OPEN blocks (must be exactly one)\n' "$proj" "$n_open" >> "$VIOL"
   fi
 
-  hit=$(printf '%s\n' "$body" | grep -nE '^OPEN[[:space:]]*\([0-9]{4}-[0-9]{2}-[0-9]{2}[^)]*\):' | head -1)
+  hit=$(printf '%s\n' "$body" | grep -nE '^OPEN[[:space:]]*\([0-9]{4}-[0-9]{2}-[0-9]{2}.*\):' | head -1)
   ln=${hit%%:*}
   odate=$(printf '%s' "$hit" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1)
 
   rows=0
+  done_rows=0 # rows marked [DONE] that still sit inside the block
   used=0      # lines the block takes up, rows and their wrapped lines (the staleness check skips them)
-  if printf '%s' "$hit" | grep -qE ':[[:space:]]*none[[:space:]]*$'; then
+  # 0.107.0: "none", then anything ("none (paused for now)."): ten paused boards were written that way on one day
+  # and each was flagged "no rows" at every session start since.
+  if printf '%s' "$hit" | grep -qE '\):[[:space:]]*none([^[:alnum:]]|$)'; then
     printf '%s\n' "$proj" >> "$IDLE"
   else
     while IFS= read -r row; do
@@ -300,6 +306,13 @@ while IFS= read -r f; do
         "VR USER"|"VR USER "*)     base=VR-USER ;;
         *) base=${tag%% *} ;;
       esac
+      # 0.107.0: a finished row left inside the block, marked [DONE]. It is not open work and not a mistyped tag:
+      # it is skipped, and the board gets ONE line asking to move such rows out (one board had three "bad tag"
+      # lines at every start, which taught everyone to skip the whole list).
+      if [ "$base" = "DONE" ] || [ "$upper" = "DONE" ]; then
+        done_rows=$((done_rows+1))
+        continue
+      fi
       case "$base" in
         PD|USER|FLAT|VR-CLAUDE|VR-USER) ;;
         VR) printf '  %-28s [VR] alone is no longer a tag - use [VR CLAUDE] (hardware connected, nobody present) or [VR USER] (a person must be using it)\n' "$proj" >> "$VIOL"
@@ -321,6 +334,9 @@ while IFS= read -r f; do
     done < <(printf '%s\n' "$body" | tail -n +$((ln+1)))
     if [ "$rows" -eq 0 ]; then
       printf '  %-28s OPEN block has no rows (write ": none" if idle)\n' "$proj" >> "$VIOL"
+    fi
+    if [ "$done_rows" -gt 0 ]; then
+      printf '  %-28s %s finished [DONE] row(s) still inside OPEN: move them below the block (not counted)\n' "$proj" "$done_rows" >> "$VIOL"
     fi
     # 2026-11-05: done lines put INSIDE the OPEN block ended it early, and every row below
     # them silently dropped off the board. Same for a row wrapped onto a second line.
