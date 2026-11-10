@@ -32,6 +32,16 @@ SHOT_FILES = ("screenshot.png", "screenshot.bmp", "screenshot.jpg", "screenshot.
 SHOT_SETTLE_S = 0.3                           # the picture file is still being written for a moment after it appears
 SHOT_POLL_S = 0.1
 SHOT_FRESH_SLACK_S = 0.5                      # a picture this much older than the request still counts (clock grain)
+# From v1.7 (seen with 1.7.1 on the home PC, 2026-11-10) the simulator answers a request that carries a capture_id with
+# screenshot_status.<id>.json and screenshot.<id>.bmp, and no longer writes screenshot.png: VR Bench got no pictures.
+SHOT_STATUS_ID = "screenshot_status.{}.json"
+SHOT_FILE_ID = "screenshot.{}.bmp"
+
+# 2026-11-10 (home PC, Fallout: New Vegas): the next run was started while the last copy was still closing; two
+# FalloutNV.exe ran at once and neither answered a polite close for over a minute. A start now waits this long for
+# the last copy to go, then refuses.
+GAME_GONE_WAIT_S = 60
+GAME_GONE_POLL_S = 1.0
 
 INPUT_VERSION = 1
 REPLACE_RETRIES = 50                          # the reader may hold the file open at the instant of the swap

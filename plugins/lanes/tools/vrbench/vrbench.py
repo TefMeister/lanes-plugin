@@ -12,7 +12,8 @@ from a file this tool writes. Design: docs/specs/2026-10-17-vr-bench-design.md.
     python vrbench.py start <exe | game>
                                       switch the layer on for the next run of that game, registered for its bitness
                                       only (a game name: `vrbench_exe.<game> = <path>` in lanes.conf, else the one
-                                      program in its `builds_app.<game>` folder)
+                                      program in its `builds_app.<game>` folder). Waits up to a minute for a copy
+                                      of the game still running from the last run to close, then refuses.
     python vrbench.py stop            switch it off again and take it out of the OpenXR layer list
     python vrbench.py profile         note this PC's specs, OpenXR runtimes, headset and tier (light | full)
     python vrbench.py learn <project> [--minutes 60] [--stage vr_head,vr_hands,vr_body] [--tier light|full]
@@ -79,6 +80,7 @@ def start(target):
     import vb_layer
     try:
         exe = vb_layer.resolve_exe(target)
+        vb_layer.wait_gone(exe)      # never a second copy beside one still closing (2026-11-10)
         bits = vb_layer.start(exe)
     except (LookupError, ValueError, OSError) as e:
         print(f"VR Bench: could not switch on: {e}")

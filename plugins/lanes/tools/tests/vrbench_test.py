@@ -194,6 +194,38 @@ class VrBenchTest(unittest.TestCase):
         self.assertFalse(ok)
         self.assertLess(time.time() - t0, 1.0)
 
+    def test_screenshot_from_the_v17_simulator(self):
+        """2026-11-10: simulator 1.7.1 answers a request with a capture_id by screenshot.<id>.bmp and
+        screenshot_status.<id>.json, and writes no screenshot.png; VR Bench must take that picture (and tidy it)"""
+        import threading
+        from PIL import Image
+        d = vb_settings.SIM_DATA_DIR
+        req = os.path.join(d, vb_settings.SHOT_REQ)
+
+        def runtime():
+            end = time.time() + 3
+            while time.time() < end:
+                try:
+                    with open(req) as f:
+                        cid = json.load(f)["capture_id"]
+                except (OSError, ValueError, KeyError):
+                    time.sleep(0.02)
+                    continue
+                os.remove(req)
+                Image.new("RGB", (64, 32), (200, 30, 30)).save(os.path.join(d, f"screenshot.{cid}.bmp"))
+                with open(os.path.join(d, f"screenshot_status.{cid}.json"), "w") as f:
+                    json.dump({"capture_id": cid, "width": 64, "height": 32}, f)
+                return
+
+        t = threading.Thread(target=runtime)
+        t.start()
+        out = os.path.join(TMP, "v17.png")
+        ok = vb_sim.screenshot(out, timeout_s=3)
+        t.join()
+        self.assertTrue(ok)
+        self.assertEqual(Image.open(out).size, (64, 32))
+        self.assertEqual([n for n in os.listdir(d) if n.startswith("screenshot.") or n.startswith("screenshot_status.")], [])
+
     def test_run_folder_and_stage_record(self):
         run = vb_run.Run.new("x")
         self.assertTrue(os.path.isdir(run.folder))
@@ -432,6 +464,23 @@ class VrBenchTest(unittest.TestCase):
         vb_layer.register(64)
         vb_layer.start(fake_exe("g32b.exe", 0x14c))
         self.assertEqual(vb_layer.registered(), [vb_layer.manifest_for(32)])
+
+    def test_start_refuses_while_the_game_still_runs(self):
+        """2026-11-10: two FalloutNV.exe ran at once; a start waits for the last copy, then refuses and switches nothing"""
+        import vrbench
+        real = vb_layer.running
+        vb_layer.running = lambda exe: [4242]
+        keep, vb_settings.GAME_GONE_WAIT_S = vb_settings.GAME_GONE_WAIT_S, 0
+        try:
+            self.assertEqual(vrbench.start(fake_exe("still.exe", 0x14c)), 1)
+        finally:
+            vb_layer.running, vb_settings.GAME_GONE_WAIT_S = real, keep
+        self.assertEqual(vb_layer.registered(), [])
+        self.assertFalse(os.path.exists(vb_settings.ENABLED_FILE))
+
+    def test_running_finds_a_real_program(self):
+        self.assertIn(os.getpid(), vb_layer.running(sys.executable))
+        self.assertEqual(vb_layer.running("no-such-game-0451.exe"), [])
 
     def test_stop_unregisters_and_disables(self):
         vb_layer.start(fake_exe("g64.exe", 0x8664))

@@ -10,6 +10,8 @@ LANES_VRBENCH_FAKEREG=<json file> stands in for the registry in tests.
 """
 import json
 import os
+import subprocess
+import time
 
 import vb_settings as S
 
@@ -141,6 +143,35 @@ def stop():
 
 
 # ---- which exe a game name means ---------------------------------------------------------------------------------
+class StillRunning(ValueError):
+    """the game's program is still running from the last run; nothing was switched on"""
+
+
+def running(exe):
+    """process ids of every running program with this exe's file name (tasklist; no extra packages)"""
+    name = os.path.basename(exe)
+    r = subprocess.run(["tasklist", "/fi", f"IMAGENAME eq {name}", "/fo", "csv", "/nh"], capture_output=True, text=True)
+    pids = []
+    for line in r.stdout.splitlines():
+        cells = [c.strip('"') for c in line.split('","')]
+        if len(cells) > 1 and cells[0].lower() == name.lower() and cells[1].isdigit():
+            pids.append(int(cells[1]))
+    return pids
+
+
+def wait_gone(exe, wait_s=None):
+    """wait up to wait_s for every copy of the game's program to close; StillRunning naming them if one stays"""
+    wait_s = S.GAME_GONE_WAIT_S if wait_s is None else wait_s
+    end = time.time() + wait_s
+    pids = running(exe)
+    while pids and time.time() < end:
+        time.sleep(S.GAME_GONE_POLL_S)
+        pids = running(exe)
+    if pids:
+        raise StillRunning(f"{os.path.basename(exe)} is still running (process {', '.join(map(str, pids))}) after "
+                           f"{int(wait_s)} s: close it first (a second copy would fight the first); nothing was switched on")
+
+
 def resolve_exe(target):
     """an exe path as given; else `vrbench_exe.<game>` in lanes.conf; else the only exe in `builds_app.<game>`"""
     if os.path.isfile(target):

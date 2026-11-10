@@ -8,6 +8,7 @@ import math
 import os
 import subprocess
 import time
+import uuid
 
 import vb_settings as S
 
@@ -40,8 +41,17 @@ def sweep(on, yaw_amp_deg=0.0, freq_hz=0.0, data_dir=None):
                                   "roll_amp_deg": 0.0, "freq_hz": float(freq_hz)}, data_dir or S.SIM_DATA_DIR)
 
 
+def _save_picture(src, out_png):
+    from PIL import Image   # only needed once a picture exists
+    os.makedirs(os.path.dirname(os.path.abspath(out_png)), exist_ok=True)
+    with Image.open(src) as im:
+        im.convert("RGB").save(out_png)
+
+
 def screenshot(out_png, timeout_s=5.0, data_dir=None):
-    """ask the simulator for both eyes and save them as a PNG; False when no picture came within timeout_s"""
+    """ask the simulator for both eyes and save them as a PNG; False when no picture came within timeout_s.
+    One request serves both simulator versions: from v1.7 it carries a capture_id and the answer is
+    screenshot.<id>.bmp beside screenshot_status.<id>.json (taken and removed here); older ones write screenshot.png."""
     data_dir = data_dir or S.SIM_DATA_DIR
     outs = [os.path.join(data_dir, n) for n in S.SHOT_FILES]
     for o in outs:
@@ -49,16 +59,29 @@ def screenshot(out_png, timeout_s=5.0, data_dir=None):
             os.remove(o)
         except OSError:
             pass
+    capture_id = uuid.uuid4().hex
+    status = os.path.join(data_dir, S.SHOT_STATUS_ID.format(capture_id))
+    picture = os.path.join(data_dir, S.SHOT_FILE_ID.format(capture_id))
     t0 = time.time()
-    if not _command(S.SHOT_REQ, {"timestamp": t0, "eye": "both", "include_ui": True, "requested_by": "vrbench"}, data_dir):
+    if not _command(S.SHOT_REQ, {"capture_id": capture_id, "eye": "both", "layer": "all", "after_sync": 0,
+                                 "timestamp": t0, "include_ui": True, "requested_by": "vrbench"}, data_dir):
         return False
     while time.time() - t0 < timeout_s:
+        if os.path.exists(status) and os.path.exists(picture):
+            time.sleep(S.SHOT_SETTLE_S)
+            try:
+                _save_picture(picture, out_png)
+            finally:
+                for p in (status, picture):
+                    try:
+                        os.remove(p)
+                    except OSError:
+                        pass
+            return True
         for o in outs:
             if os.path.exists(o) and os.path.getmtime(o) >= t0 - S.SHOT_FRESH_SLACK_S:
                 time.sleep(S.SHOT_SETTLE_S)
-                from PIL import Image   # only needed once a picture exists
-                os.makedirs(os.path.dirname(os.path.abspath(out_png)), exist_ok=True)
-                Image.open(o).convert("RGB").save(out_png)
+                _save_picture(o, out_png)
                 return True
         time.sleep(S.SHOT_POLL_S)
     return False
