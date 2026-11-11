@@ -291,7 +291,8 @@ def light():
             if answer and answer.get("status") == REFUSED:
                 refused.append("%s (%s)" % (name, answer.get("why", "?")))
             elif d:
-                waiting.append(name)
+                why = (answer or {}).get("why", "") if (answer or {}).get("status") == NOT_YET else ""
+                waiting.append(name + (" (%s)" % why if why else ""))   # e.g. the full scan goes first (0.110.0)
             else:
                 git(["fetch", "-q", "origin"], repo)               # perhaps uploaded since: look again, level
                 _, count = git(["rev-list", "--count", "@{u}..HEAD"], repo)
@@ -385,11 +386,29 @@ def done(f, label_path, bundle):
             shutil.move(p, os.path.join(f["done"], os.path.basename(p)))
 
 
+def scan_hold():
+    """one line while a full scan holds this PC (tools/scan_priority.py, 0.110.0), else "" """
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import scan_priority
+        return scan_priority.holding_line()
+    except Exception:  # noqa: BLE001
+        return ""
+
+
 def receive():
     f = folders()
     todo = labels(f["outbox"])
     if not todo:
         print("parcel: no parcel is waiting")
+        return 0
+    held = scan_hold()
+    if held:                                                       # the full scan goes first: parcels wait, in order
+        for label_path, d in todo:
+            prior = read_json(os.path.join(f["receipts"], d["id"] + ".json"))
+            if not d.get("direct") and not (prior and (prior.get("status") == REFUSED or prior.get("why") == held)):
+                receipt(f, d, NOT_YET, held)
+        print("parcel: %d parcel(s) wait: %s" % (len(todo), held))
         return 0
     lock = os.path.join(os.path.dirname(f["outbox"]), "receive.lock")
     try:

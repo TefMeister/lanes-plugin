@@ -261,3 +261,12 @@ role = DEV
 # parcel_watch = 60
 # keeper_wake = on                  # on the Keeper PC: arriving work starts the Keeper's round by itself (0.109.0)
 # parcel_skip = <a project that never goes by parcel>, ...
+
+# The full scan goes first (0.110.0; PROTOCOL section 48): while it runs on this PC, every other session saves and
+# waits, and hand-overs wait in order. Which runs have that priority (default: the scan and each of its parts):
+# scan_priority = on
+# scan_priority_jobs = fullscan, gd, gr, sr, od, gu, ch, gs
+
+# Installs with no Yes click (0.110.0; PROTOCOL section 49). Windows. Needs `quiet_install.py setup` once per PC
+# (that one time asks for a Yes click). Off = programs install the ordinary way; one that asks is skipped and listed.
+# quiet_installs = on

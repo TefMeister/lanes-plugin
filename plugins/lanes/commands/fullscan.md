@@ -17,6 +17,16 @@ and Gold Digger parts to that project.
 ## 0. Rules
 
 - **Never launch, drive or close an app**, in any part.
+- **The full scan goes first on this PC** (0.110.0, extra `scan_priority`; the maintainer: the other sessions "save
+  safely ... then stop and let the fullscan run until it's finished before starting work again"). Nothing to do
+  here: while this run holds its lock, every other session on this PC is told to finish its step, save and wait
+  (ten minutes later anything but a save is refused), hand-overs from the other PC wait in order, and all of them
+  carry on by themselves when this run ends. So **give the lock back at the very end, also when the run stops early**
+  (`clash.py release fullscan`): until then the others wait. A session found mid-save when a part starts is given
+  its ten minutes: if a part finds unsaved changes of another session in a tree it must write, wait for them.
+- **No install may leave the run hanging at a Windows Yes click** (0.110.0): PC programs are installed only through
+  `quiet_install.py run` (see `/gu` step 5). With the extra `quiet_installs` set up there is no click at all; without
+  it, an install that asks is skipped and listed for the person in the report.
 - **Each part keeps its own rules and its own clone root**, exactly as when it runs alone. This command only sets the
   order. Parts run one after another, never side by side, so two parts never share a tree at the same moment.
 - **Run each part by following its own command**, through the Skill tool: the person's own short command when this

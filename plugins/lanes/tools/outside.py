@@ -193,8 +193,12 @@ def needs(t):
             wid = n[len("winget:"):]
             listed = subprocess.run(["winget", "list", "--id", wid, "-e"], capture_output=True, text=True)
             if wid.lower() not in (listed.stdout or "").lower():
-                run(["winget", "install", "--id", wid, "-e", "--accept-package-agreements",
-                     "--accept-source-agreements", "--silent"])
+                quiet = os.path.join(os.path.dirname(os.path.abspath(__file__)), "quiet_install.py")
+                if os.name == "nt" and os.path.isfile(quiet):       # 0.110.0: no Yes click when its task is set up,
+                    subprocess.run([sys.executable, quiet, "run", "winget:" + wid])   # and never a wait for ever
+                else:
+                    run(["winget", "install", "--id", wid, "-e", "--accept-package-agreements",
+                         "--accept-source-agreements", "--silent"])
                 notes.append(f"installed {wid}")
         else:
             notes.append(f"needs {n}")

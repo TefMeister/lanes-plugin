@@ -99,6 +99,14 @@ Five sections (the fifth only points at `/lanes:od`). If one is empty because no
    pins, not code** (0.73.2): on 2026-10-16 `mcp` 1.29 → 2.3 passed it while removing `FastMCP`, which a debugger's
    MCP server imports. After a major jump, import-test every Python MCP server listed in `~/.claude.json` (and any
    tool the jump touches); one that fails puts the package back.
+   **Install PC programs through the quiet installer** (0.110.0; the maintainer: "many times i cannot actually be
+   present to click yes"): `python "${CLAUDE_PLUGIN_ROOT}/tools/quiet_install.py" run winget:<Id> [winget:<Id> ...]
+   --upgrade` (leave `--upgrade` out for a new install; `winget:<Id>@<version>` for one version). With the extra
+   `quiet_installs` set up on this PC it needs no Windows Yes click; without it the program is installed the ordinary
+   way, and one that sits at a Yes click is stopped after 15 minutes, marked SKIPPED and listed under "FOR THE
+   PERSON". Never start `winget install` or `winget upgrade` directly: that is what leaves a run hanging. Pass the
+   skipped ones on in the report. When `quiet_install.py status` says the task is not set up, say so once, with the
+   one thing to type (`quiet_install.py setup`, one Yes click, once per PC).
    **Test build before keeping a build-critical update** (0.83.0; asked for by the maintainer: "is there a way to
    make our work VS Build Tools future proof? and any other program or tool we use", then "filter it to things
    that can actually break things and not simple win-zip"). Only when `features.py is-on update_safety` exits 0

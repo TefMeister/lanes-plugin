@@ -14,7 +14,7 @@ SHELLS = ("Bash", "PowerShell")
 
 def guards_for(data):
     tool = data.get("tool_name", "")
-    out = []
+    out = [("scan-priority.py", [])]   # FIRST (0.110.0): the full scan goes first; it is also the scan's heartbeat
     if data.get("agent_id") and (tool in EDITS or tool == "Bash"):
         out.append(("reader-guard.py", []))
     if tool in SHELLS:

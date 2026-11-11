@@ -331,6 +331,14 @@ def cmd_putback(item):
     if fake_versions() is not None:
         print("would run: " + " ".join(argv))
         return 0
+    if argv[0] == "winget":                     # 0.110.0: no Yes click when the quiet-install task is set up
+        try:
+            import quiet_install
+            if quiet_install.ready()[0]:
+                argv = [sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "quiet_install.py"),
+                        "run", "winget:%s@%s" % (parse_item(item)[1], version), "--force"]
+        except Exception:  # noqa: BLE001 - the ordinary way still works
+            pass
     print(f"Putting {item} back to {version} ...")
     r = subprocess.run(argv, capture_output=True, text=True, timeout=CHECK_TIMEOUT_S, encoding="utf-8",
                        errors="replace")

@@ -178,6 +178,20 @@ FEATURES = {
                        "opened only while there is a job for it; the end of a write-up is one light line "
                        "instead of the close-out box",
                "link": GH + "docs/TWO-PCS.md"},
+    "scan_priority": {"label": "The full scan goes first", "set": "checkup",
+                      "what": "while the full scan (or one of its parts run alone) is going on a PC, every other "
+                              "session there is told to finish its step, save and wait, and is called back when the "
+                              "scan has ended; ten minutes after being told, anything but a save is refused. "
+                              "Hand-overs from the other PC wait in order and are uploaded afterwards",
+                      "link": PROTO_LINK + "48-the-full-scan-goes-first-01100-2026-11-11"},
+    "quiet_installs": {"label": "Installs with no Yes click", "set": "tools", "ask_on_update": True,
+                       "what": "one Yes click, once per PC, makes a Windows task that installs and updates programs "
+                               "from the Windows package catalogue with administrator rights, so the weekly tool "
+                               "check and the full scan never sit waiting at a Yes click nobody is there to give; the "
+                               "task can do nothing else, and an install that would still ask is skipped and listed. "
+                               "The trade: any program running under your login can then have a catalogue program "
+                               "installed without the click",
+                       "link": PROTO_LINK + "49-installs-with-no-yes-click-01100-2026-11-11"},
     "collector": {"label": "Always-on collector", "set": "checkup",
                   "what": "every launch of a project game, flat or VR, with or without a session, is collected "
                           "quietly while it runs (the program's and the graphics card's load, memory and "

@@ -411,8 +411,7 @@ UPTMP=$(mktemp -d)
   cd work
   mkdir -p plugins/lanes/.claude-plugin
   echo '{"name":"lanes","version":"9.9.0"}' > plugins/lanes/.claude-plugin/plugin.json
-  printf '%s
-' '# Changes' '' '- **9.9.0** (2099-01-01): the newest thing.' '- **9.8.0** (2099-01-01): an older thing.' '- **0.0.1** (2000-01-01): ancient.' > plugins/lanes/CHANGELOG.md
+  printf '%s\n' '# Changes' '' '- **9.9.0** (2099-01-01): the newest thing.' '- **9.8.0** (2099-01-01): an older thing.' '- **0.0.1** (2000-01-01): ancient.' > plugins/lanes/CHANGELOG.md
   git add -A && git -c user.name=t -c user.email=t@t commit -q -m "lanes 9.9.0: test" && git push -q origin HEAD:main 2>/dev/null
   git -C "$UPTMP/remote.git" symbolic-ref HEAD refs/heads/main
   cd .. && git clone -q remote.git market 2>/dev/null
@@ -817,21 +816,17 @@ fi
 
 echo "features.py - the extras a new install chooses at setup; an update keeps them on (0.82.0)"
 if out=$(bash "$HERE/features-fixture.sh" 2>&1); then
-  ok "$(printf '%s
-' "$out" | tail -n 1)"
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
 else
-  printf '%s
-' "$out" | grep FAIL
+  printf '%s\n' "$out" | grep FAIL
   fail "features-fixture.sh failed"
 fi
 
 echo "engine-mcp.py - the two look-inside-the-game servers; the game half in and out exactly (0.82.0)"
 if out=$(bash "$HERE/engine-mcp-fixture.sh" 2>&1); then
-  ok "$(printf '%s
-' "$out" | tail -n 1)"
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
 else
-  printf '%s
-' "$out" | grep FAIL
+  printf '%s\n' "$out" | grep FAIL
   fail "engine-mcp-fixture.sh failed"
 fi
 
@@ -875,6 +870,22 @@ else
   fail "keeper_test.py failed"
 fi
 
+echo "scan_priority.py - the full scan goes first: other sessions save and wait, hand-overs wait (0.110.0)"
+if out=$("$PY" "$HERE/scan_priority_test.py" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "scan_priority_test.py failed"
+fi
+
+echo "quiet_install.py - installs with no Yes click: what an order may carry, the runner's refusals (0.110.0)"
+if out=$("$PY" "$HERE/quiet_install_test.py" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "quiet_install_test.py failed"
+fi
+
 echo "git_leftovers.py - a save cut off half-way is named for what it left (two-PC test 4, 2026-11-01)"
 if out=$("$PY" "$HERE/git_leftovers_test.py" 2>&1); then
   ok "$(printf '%s\n' "$out" | tail -n 1)"
@@ -909,31 +920,25 @@ fi
 
 echo "gu.py - the weekly tool check (0.67.0)"
 if out=$(bash "$HERE/gu-fixture.sh" 2>&1); then
-  ok "$(printf '%s
-' "$out" | tail -n 1)"
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
 else
-  printf '%s
-' "$out" | grep FAIL
+  printf '%s\n' "$out" | grep FAIL
   fail "gu-fixture.sh failed"
 fi
 
 echo "gd.py - Gold Digger shelves and the full scan's reminder (0.88.0)"
 if out=$(bash "$HERE/gd-fixture.sh" 2>&1); then
-  ok "$(printf '%s
-' "$out" | tail -n 1)"
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
 else
-  printf '%s
-' "$out" | grep FAIL
+  printf '%s\n' "$out" | grep FAIL
   fail "gd-fixture.sh failed"
 fi
 
 echo "ch.py - code health: the working copy, no-caller code, drifted twins (0.89.0)"
 if out=$(bash "$HERE/ch-fixture.sh" 2>&1); then
-  ok "$(printf '%s
-' "$out" | tail -n 1)"
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
 else
-  printf '%s
-' "$out" | grep FAIL
+  printf '%s\n' "$out" | grep FAIL
   fail "ch-fixture.sh failed"
 fi
 
@@ -952,31 +957,25 @@ fi
 echo "compact.py - the early summary that loses nothing (0.63.0)"
 grep -q 'compact-hook.py pre' "$HERE/../../hooks/hooks.json" && grep -q '"PreCompact"' "$HERE/../../hooks/hooks.json"   && grep -q '"matcher": "compact"' "$HERE/../../hooks/hooks.json"   && ok "hooks.json runs the summary checkpoint before and after a summary" || fail "hooks.json is missing the compact hooks"
 if out=$(bash "$HERE/compact-fixture.sh" 2>&1); then
-  ok "$(printf '%s
-' "$out" | tail -n 1)"
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
 else
-  printf '%s
-' "$out" | grep FAIL
+  printf '%s\n' "$out" | grep FAIL
   fail "compact-fixture.sh failed"
 fi
 
 echo "session-log.py - every session summary kept, one folder per project (0.44.0)"
 if out=$(bash "$HERE/session-log-fixture.sh" 2>&1); then
-  ok "$(printf '%s
-' "$out" | tail -n 1)"
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
 else
-  printf '%s
-' "$out" | grep FAIL
+  printf '%s\n' "$out" | grep FAIL
   fail "session-log-fixture.sh failed"
 fi
 
 echo "handover.py - the handover light: is it safe to carry on from the other PC? (0.39.0)"
 if out=$(bash "$HERE/handover-fixture.sh" 2>&1); then
-  ok "$(printf '%s
-' "$out" | tail -n 1)"
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
 else
-  printf '%s
-' "$out" | grep FAIL
+  printf '%s\n' "$out" | grep FAIL
   fail "handover-fixture.sh failed"
 fi
 
@@ -1019,21 +1018,17 @@ rm -rf "$PGD"
 
 echo "collector.py - every launch of a project game is collected while it runs and shelved when it closes (lanes-next)"
 if out=$("$PY" "$HERE/collector_test.py" 2>&1); then
-  ok "$(printf '%s
-' "$out" | tail -n 1)"
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
 else
-  printf '%s
-' "$out" | grep FAIL
+  printf '%s\n' "$out" | grep FAIL
   fail "collector_test.py failed"
 fi
 
 echo "rider.py - the BeG0nE rider lives through a held file, a broken filer and a failed pass; game=? is never a folder"
 if out=$("$PY" "$HERE/rider_test.py" 2>&1); then
-  ok "$(printf '%s
-' "$out" | tail -n 1)"
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
 else
-  printf '%s
-' "$out" | grep FAIL
+  printf '%s\n' "$out" | grep FAIL
   fail "rider_test.py failed"
 fi
 
@@ -1058,25 +1053,20 @@ fi
 echo
 echo "clash.py - what must not run at the same time is kept apart, on one PC and across both (lanes-next)"
 if out=$("$PY" "$HERE/clash_test.py" 2>&1); then
-  ok "$(printf '%s
-' "$out" | tail -n 1)"
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
 else
-  printf '%s
-' "$out" | grep FAIL
+  printf '%s\n' "$out" | grep FAIL
   fail "clash_test.py failed"
 fi
-if out=$("$PY" "$TOOLS/clash.py" audit 2>&1); then ok "$out"; else printf '%s
-' "$out"; fail "clash.py audit"; fi
+if out=$("$PY" "$TOOLS/clash.py" audit 2>&1); then ok "$out"; else printf '%s\n' "$out"; fail "clash.py audit"; fi
 if out=$("$PY" "$TOOLS/clash.py" doc --check 2>&1); then ok "$out"; else fail "$out"; fi
 
 echo
 echo "endwork.py + briefcache.py - the end helper's turn file, and a start-up check that waits for its fresh result (0.107.0)"
 if out=$("$PY" "$HERE/endwork_test.py" 2>&1); then
-  ok "$(printf '%s
-' "$out" | tail -n 1)"
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
 else
-  printf '%s
-' "$out" | grep FAIL
+  printf '%s\n' "$out" | grep FAIL
   fail "endwork_test.py failed"
 fi
 

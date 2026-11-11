@@ -436,6 +436,13 @@ def wake_keeper(pull=False):
     A window opened by hand is never typed into: a person may be typing there."""
     if not wake_on():
         return {"ok": True, "asked": False, "why": "off"}
+    try:                                                           # the full scan goes first (0.110.0): no round beside it
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import scan_priority
+        if scan_priority.holding_line():
+            return {"ok": True, "asked": False, "why": "the full scan is running"}
+    except Exception:  # noqa: BLE001
+        pass
     count = round_wanted(pull)
     st = read_state()
     if count <= 0:

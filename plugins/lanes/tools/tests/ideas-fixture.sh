@@ -27,6 +27,9 @@ mkdir -p "$I/inbox" "$I/pages" "$R/proj-a" "$R/proj-b" "$R/proj-c" "$R/proj-froz
 git -C "$I" init -q
 printf 'display_name = Tester\nideas_skip = proj-frozen\n' > "$T/lanes.conf"
 export LANES_CONFIG="$T/lanes.conf" LANES_IDEAS="$I" LANES_ROOT="$R" LANES_BOARD="$B"
+# 0.110.0: its own state folder too. Without it the fixture read this PC's real clash locks, and a lock left by a
+# session that was cut off ("filing ideas is running on this PC") failed twenty checks here that had nothing wrong.
+export LANES_STATE_DIR="$T/state"
 for p in proj-a proj-b proj-frozen; do printf '# %s\n\nOPEN (2026-01-01): none\n' "$p" > "$B/status/$p.md"; done
 printf '# proj-c\n\n\xe2\x8f\xb8\xef\xb8\x8f **PAUSED 2026-01-01:** someone else is making it\n' > "$B/status/proj-c.md"
 printf -- '- **\xe2\x8f\xb8\xef\xb8\x8f PAUSED once, long ago** - resumed since\n' >> "$B/status/proj-b.md"

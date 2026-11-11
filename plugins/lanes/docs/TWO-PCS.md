@@ -94,6 +94,18 @@ The Keeper PC switched off: the building PC says so at session start, carries on
 session is opened on the same PC only while there is a job for it (`keeper.py ask`, `/lanes:keeper`,
 `keeper.py close`). PROTOCOL §47.
 
+## While the full scan runs, and installs with nobody there (0.110.0, optional: `scan_priority`, `quiet_installs`)
+
+- **The full scan goes first** on the PC it runs on. Every other session there is told to finish its step, save and
+  wait, and is called back when the scan has ended; ten minutes after being told, anything but a save is refused.
+  The building PC is not held: it keeps working and handing over, the Keeper leaves those parcels alone until the
+  scan has ended and then uploads them in order, and the building PC's light line says "waiting for the Keeper (the
+  full scan ... is running on the Keeper)". PROTOCOL section 48.
+- **Installs with no Yes click.** A full scan left running with nobody at the PC used to stop at the first Windows
+  "Yes" prompt of an install. `quiet_install.py setup`, one Yes click once per PC, makes a Windows task that installs
+  and updates programs from the Windows package catalogue, and nothing else; without it an install that asks is
+  skipped and listed for the person. PROTOCOL section 49.
+
 ## Which channel for what
 
 | Need | Channel |

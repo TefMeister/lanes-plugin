@@ -11,12 +11,15 @@ uploading, on a second PC or, with one PC, in a session that is *"opened and clo
 session the building session opened on this PC (`keeper_mode = this_pc`). **Never the session that builds**: it hands
 over (`parcel.py send`) and asks (`keeper.py ask`), and that is all it does.
 
-**The Keeper writes no code and launches nothing.** It reads, checks, uploads and keeps the shop window right. A fault
-it finds in code is reported to the session that builds in one line (and on the fault list when there is one); it is
-never repaired here.
+**The Keeper's round writes no code and launches nothing.** It reads, checks, uploads and keeps the shop window
+right. A fault it finds in code is reported to the session that builds in one line (and on the fault list when there
+is one); the round never repairs it by itself. (A person may still ask a session on the Keeper PC to write code, for
+example to change the plugin itself: that session shows a short plan and waits for a yes first, every time.)
 
 ## The round
 
+0. **While a full scan runs on this PC, there is no round** (0.110.0, extra `scan_priority`): hand-overs wait and
+   are uploaded when it has ended, and this session waits like every other (the notice says how).
 1. `python "${CLAUDE_PLUGIN_ROOT}/tools/parcel.py" receive` (two PCs; the doorman also does this by itself every
    minute, so usually nothing waits). A refused parcel is NOT forced: its receipt already tells the other side why.
 2. `python "${CLAUDE_PLUGIN_ROOT}/tools/keeper.py" round` and work down its four lists:

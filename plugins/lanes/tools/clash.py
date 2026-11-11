@@ -180,6 +180,7 @@ ROWS = {
     "hook:skill-lane-guard.py": free("is itself a guard (the same checks when a skill is started)"),
     "hook:update-hold-guard.py": free("is itself a guard (holds Lanes updates during a test)"),
     "hook:clash-guard.py": free("is itself a guard (this one)"),
+    "hook:scan-priority.py": free("is itself a guard (the full scan goes first)"),
     "hook:reader-guard.py": free("is itself a guard (the /lm helper reads, never writes)"),
     "hook:repo-guard.py": free("is itself a guard (new repos private)"),
     "hook:privacy-hook.py": free("is itself a guard (no login, home paths or e-mail on GitHub)"),
@@ -191,6 +192,11 @@ ROWS = {
     # tools
     "tool:clash.py": free("is itself the guard"), "tool:fullscan_lock.py": free("is itself a guard (the full scan's)"),
     "tool:hold.py": free("is itself a guard (holds Lanes updates)"), "tool:lane-claim.sh": job("lane"),
+    "tool:scan_priority.py": free("is itself a guard (the full scan goes first); each session has its own note"),
+    "tool:quiet_install.py": free("each order is its own file in the task's queue, and the one Windows task works "
+                                  "them one after another"),
+    "tool:quiet-install": free("the two files the Windows task and its one-time setup run; started only through "
+                               "quiet_install.py"),
     "tool:privacy-guard.py": free("is itself a guard; only reads what is about to be committed"),
     "tool:release.sh": job("release"), "tool:scrub-scan.py": part("release"),
     "tool:update-check.py": part("update"), "tool:uninstall.py": part("uninstall"), "tool:theme.py": part("theme"),
@@ -239,6 +245,8 @@ ROWS = {
     "tool:parcel.py": free("one sealed file per hand-over; receiving holds a lock, so two never unpack at once"),
     "tool:doorman.py": free("opens and closes windows; its uploads go through parcel.py's lock"),
     "feature:update_hold": free("is itself a guard"), "feature:privacy_guard": free("is itself a guard"),
+    "feature:scan_priority": free("is itself a guard"),
+    "feature:quiet_installs": free("orders queue up for one Windows task, which works them one after another"),
     "feature:update_safety": part("gu"), "feature:gold_digger": part("gd"), "feature:code_health": part("ch"),
     "feature:out_of_date": part("od"),
     "feature:talk_rule": RULE, "feature:straight_talk": RULE, "feature:tools_rule": RULE,

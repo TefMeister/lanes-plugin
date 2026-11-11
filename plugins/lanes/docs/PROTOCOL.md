@@ -1893,3 +1893,59 @@ modding and another ones are being opened and closed when needed"*. Optional: `k
 - **Session start** (`hooks/keeper-brief`): the Keeper PC off or unreachable is said in one line at the top of the
   first reply (it is normally always on); work carries on and hand-overs wait.
 
+## 48. The full scan goes first (0.110.0, 2026-11-11)
+
+Asked for by the maintainer: *"add a guard to the fullscan command and all the commands it has in it, to have
+priority - so that when a session is already working on something on Keeper pc and Developer pc is modding stuff,
+then Keeper pc will save safely what it's working on, but then stop and let the fullscan run until it's finished
+before starting work again"*, and for the other PC: *"it should be safe for Developer pc to just queue up saved files
+for Keeper pc, without Keeper PC doing anything with them until fullscan has finished."* On or off: `scan_priority`.
+
+The clash guard (section 45) keeps two scans, or a scan and one of its own parts, apart. It says nothing to a session
+that is simply at work when the scan starts, and the scan tidies, saves and publishes the same files. This is that
+missing half. `tools/scan_priority.py`, `hooks/scan-priority.py` (run first among the tool guards).
+
+- **Who has priority.** The full scan and each command it runs inside itself, also when one is run alone:
+  `scan_priority_jobs = fullscan, gd, gr, sr, od, gu, ch, gs` (the default). It is read from the lock the clash guard
+  already takes on this PC when the command is typed.
+- **The scan's own session** passes untouched; each of its tool calls is its heartbeat.
+- **Every other session on that PC:** at its first tool call it is told once (and reminded every few minutes) to
+  finish the step it is in, save it, tell the person in one line that it waits, start `scan_priority.py wait` as a
+  background command and end its turn. Ten minutes after being told, an edit or a command that is not a save is
+  refused; saving (git add, commit, push, a hand-over), looking and the wait itself always pass. When the scan ends
+  the wait returns, the session is called back, pulls, and carries on where it stopped.
+- **Hand-overs wait.** `parcel.py receive` answers "not yet: the full scan is running on the Keeper" and leaves the
+  parcels where they are; the building PC's `parcel.py status` and light line say so in words, so it does not read as
+  a fault. The doorman starts no round meanwhile. When the scan has ended they are uploaded in order, by themselves.
+  The other PC is not held: it keeps working and handing over.
+- **A scan whose window died** holds nobody for long: with no tool call from its session for 45 minutes it counts as
+  ended (its clash lock alone would last 12 hours).
+- **The person's word:** `scan_priority.py lift` lets the other sessions work beside this one run. A session never
+  runs it for itself.
+- It never fails closed: an error in the guard lets everything through.
+
+## 49. Installs with no Yes click (0.110.0, 2026-11-11)
+
+Asked for by the maintainer: *"is there any way to bypass the uac prompts, because many times i cannot actually be
+present to click yes on them myself and that just leaves things hanging while fullscan is running"*, then *"building
+a one time windows task with admin rights that Lanes uses for installs, that sounds like a solution"*. Windows.
+On or off: `quiet_installs` (asked on an update too, because of the trade below).
+
+- **Once per PC, one Yes click:** `quiet_install.py setup` makes a folder in ProgramData that only administrators can
+  change, copies `tools/quiet-install/runner.ps1` into it and registers the Windows task "Lanes quiet install": run
+  with the highest rights, as the person logged on, started by hand only.
+- **Every install after that:** `quiet_install.py run winget:<Id>[@<version>] ... [--upgrade] [--force]` writes a small
+  order into the folder's queue, starts the task (starting one's own task asks nothing) and prints one line per
+  program. `/gu`, the full scan, `gu_guard.py putback` and `outside.py` install PC programs only this way.
+- **What the task can do: one thing.** Install or upgrade a package id from the official winget catalogue, optionally
+  at one version. The runner builds the command line itself; an order cannot carry a program, a path or a switch, ids
+  and versions may only hold letters, digits and `. + _ -`, and winget is taken from its own protected install folder.
+  So the task is not a way to run anything else as administrator. **The trade:** any program already running under the
+  person's login can have a catalogue program installed without the click. Switching the extra off, or
+  `quiet_install.py uninstall` (one Yes click), takes that back.
+- **Nothing hangs, set up or not.** Without the task, `run` installs the ordinary way but stops an install still going
+  after 15 minutes (most likely a Yes click nobody is there for), marks it SKIPPED and lists it under "FOR THE PERSON".
+  A program only its maker's own installer offers is not handled; it is listed for the person.
+- **After a Lanes update that changes the runner,** `status` says setup is wanted again (one Yes click): the task keeps
+  running the copy that was checked in at setup, never a newer file by itself.
+- `quiet_install.py probe` proves the task answers with administrator rights without installing anything.
