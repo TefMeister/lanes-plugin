@@ -170,6 +170,14 @@ FEATURES = {
                            "never works from week-old notes; a copy with unsaved work, or one a session is "
                            "writing into, is never touched",
                    "link": GH + "docs/TWO-PCS.md"},
+    "keeper": {"label": "A Keeper for GitHub (one PC or two)", "set": "everyday", "ask_on_update": True,
+               "what": "the session that builds never uploads: it saves its steps and hands them over, and a "
+                       "Keeper uploads them, keeps the front page, the index and the downloads right and runs "
+                       "the regular check-ups; the Keeper is a second PC (always linked, a small always-on "
+                       "program uploads with no session) or, on one PC, a background upload plus a session "
+                       "opened only while there is a job for it; the end of a write-up is one light line "
+                       "instead of the close-out box",
+               "link": GH + "docs/TWO-PCS.md"},
     "collector": {"label": "Always-on collector", "set": "checkup",
                   "what": "every launch of a project game, flat or VR, with or without a session, is collected "
                           "quietly while it runs (the program's and the graphics card's load, memory and "

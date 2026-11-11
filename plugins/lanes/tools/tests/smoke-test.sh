@@ -867,6 +867,14 @@ else
   fail "catalog_test.py failed"
 fi
 
+echo "keeper.py, parcel.py, doorman.py - the Keeper: hand-overs, one PC and two, regular jobs, the queue (0.108.0)"
+if out=$("$PY" "$HERE/keeper_test.py" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "keeper_test.py failed"
+fi
+
 echo "git_leftovers.py - a save cut off half-way is named for what it left (two-PC test 4, 2026-11-01)"
 if out=$("$PY" "$HERE/git_leftovers_test.py" 2>&1); then
   ok "$(printf '%s\n' "$out" | tail -n 1)"

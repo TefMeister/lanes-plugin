@@ -18,6 +18,7 @@ you have at the start of every session: *what can I actually do right now?*
 | `/sr` | Sweep Research | Research across all projects, kept in one shared library. |
 | `/gs` | Good-standing Sweep | Hygiene check: are notes tagged, and are hand-offs being picked up? |
 | `/od` | Out of Date | Makes sure everything you published on GitHub is as new as the work behind it: rebuilds and publishes downloads older than their program, gives a tool with no download one, and brings descriptions, front pages and the tool and skills pages up to date. Runs before `/gu`. |
+| `/keeper` | Keeper | The Keeper's round. With the Keeper extra on, the session that builds never uploads: it saves its steps and hands them over. The Keeper (a second PC, or a helper session on the same PC that is opened only while there is a job) uploads them, then brings the front page, the index and the downloads up to date and runs the regular check-ups. |
 | `/gu` | GitHub Update | The weekly tool check: brings your tools up to date both ways, flags new releases of outside tools and feeds lessons into the tools. |
 | `/gd` | Gold Digger | Reads the logs and reports every run leaves behind, shelf by shelf (camera, guns, jitter, menus...), and hands the few new facts to the notes. Every run's logs are kept on those shelves by themselves. |
 | `/ch` | Code health | Re-reads your own tools with the Inspector on and tidies only what cannot change how they work, after saving a working copy of everything to GitHub and a backup folder. |
@@ -309,7 +310,7 @@ any project. Expect changes: `/lanes:update` tells you what is new and never ins
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.107.1`, public, in daily use |
+| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.108.0`, public, in daily use |
 
 ## Modding games?
 

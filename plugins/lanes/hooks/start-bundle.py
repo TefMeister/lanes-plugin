@@ -27,7 +27,8 @@ TOTAL_BUDGET_S = 50        # stop starting new parts after this, so the hook its
 # off by their own limits (owed-brief 16 of 16 recent starts on the dev PC, privacy-rule 14, ideas-brief 8,
 # update-nudge 5); alone they take 3-8 s each. After them, every `start_part = <command>` line in lanes.conf runs
 # (with bash, the same hook input on stdin), so a PC's own start-up scripts join the queue instead of the crowd.
-SLOW_PARTS = [("owed-brief", []), ("privacy-rule", []), ("ideas-brief", []), ("update-nudge", [])]
+SLOW_PARTS = [("owed-brief", []), ("privacy-rule", []), ("ideas-brief", []), ("update-nudge", []),
+              ("keeper-brief", [])]
 SLOW_PART_TIMEOUT_S = 40
 SLOW_TOTAL_BUDGET_S = 300  # the slow group runs in the background since 0.107.0 (below), so it may take its time
 # 0.107.0: `slow` no longer runs the group itself. It starts `slow-run` in the background (tools/briefcache.py), waits

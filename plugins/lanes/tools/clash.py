@@ -230,6 +230,14 @@ ROWS = {
     "feature:project_guard": free("is itself a guard"),
     "feature:keep_level": free("only fast-forwards a copy with no work of its own and no session writing into it; "
                                "the end helper runs one end at a time on a PC"),
+    "feature:keeper": free("hand-overs are one sealed file each and are taken one at a time (parcel.py holds a "
+                           "lock while it receives); the Keeper alone writes the front page, the index and the "
+                           "activity log while the extra is on"),
+    "hook:keeper-brief": READ_ONLY,
+    "command:keeper": free("the Keeper's round: one Keeper, and receiving holds its own lock"),
+    "tool:keeper.py": free("each queued job is its own file; the jobs list is appended to, one line a time"),
+    "tool:parcel.py": free("one sealed file per hand-over; receiving holds a lock, so two never unpack at once"),
+    "tool:doorman.py": free("opens and closes windows; its uploads go through parcel.py's lock"),
     "feature:update_hold": free("is itself a guard"), "feature:privacy_guard": free("is itself a guard"),
     "feature:update_safety": part("gu"), "feature:gold_digger": part("gd"), "feature:code_health": part("ch"),
     "feature:out_of_date": part("od"),

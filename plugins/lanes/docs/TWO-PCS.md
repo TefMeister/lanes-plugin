@@ -67,6 +67,33 @@ no copy of. With `keep_level = on` in `lanes.conf`, the helper that runs after e
 
 `python tools/handover.py level` does the same by hand and says what it moved.
 
+## The Keeper: one PC builds, the other keeps GitHub (0.108.0, optional: `keeper`)
+
+The split that needs the least attention: **one PC does all the building** (code, apps, games, tests) and never
+uploads; **the other is the Keeper**: it uploads what was handed over, keeps the front page, the index and the
+downloads right, runs the regular check-ups, and tells the building PC in one line when something is wrong.
+
+Set it up in this order (each step is proven before the next):
+
+1. **The Keeper PC:** in `lanes.conf`: `keeper = on`, `keeper_mode = other_pc`, `keeper_role = keeper`,
+   `doorman_allow = <the building PC's private-link address>`, `doorman_shortcut = <the Desktop's terminal icon>`,
+   `parcel_root = <its normal clone root>`, `parcel_watch = 60`, `transfer = <the synced folder>`. Then
+   `python tools/doorman.py install` (a Startup shortcut, no administrator needed) and, once, the firewall line it
+   prints, in an administrator window.
+2. **The building PC:** `keeper = on`, `keeper_mode = other_pc`, `keeper_role = developer`,
+   `doorman_peer = <the Keeper PC's private-link address>`, `transfer = <the synced folder>`. Check:
+   `python tools/doorman.py status`.
+3. One real hand-over: commit something small, `python tools/parcel.py send <project>`, and within a minute or two
+   `python tools/parcel.py light` says everything is on GitHub. The building PC did not push.
+
+What travels where: saved steps go through the synced folder as sealed parcels (never a working folder); opening and
+closing sessions goes over the private link; jobs for the Keeper session and the regular-jobs list live on the board.
+The Keeper PC switched off: the building PC says so at session start, carries on, and the parcels wait.
+
+**With one PC** the same extra works with `keeper_mode = this_pc`: uploads run in the background, and a Keeper
+session is opened on the same PC only while there is a job for it (`keeper.py ask`, `/lanes:keeper`,
+`keeper.py close`). PROTOCOL §47.
+
 ## Which channel for what
 
 | Need | Channel |

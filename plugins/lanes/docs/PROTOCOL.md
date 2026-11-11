@@ -1854,3 +1854,41 @@ words; twelve had faded. This version turns the ones that matter most into check
 - Retired: `/pt` (the two-PC test replaced it) and `tools/obs-autorec.py` (automatic recording ended 2026-10-16; the
   uninstaller still takes an old Startup shortcut away).
 - On or off: `reply_check`, `rest_reminder` (set "Everyday helpers").
+
+## 47. The Keeper: one session builds, the Keeper keeps GitHub right (0.108.0, 2026-11-11)
+
+The maintainer, 2026-11-11: the PC that builds *"can work on mods uninterrupted"*; the other *"is responsible only
+for maintaining the neatness and correctness of github ... must be the one responsible for uploading anything"*;
+and then *"this needs to go into lanes as a two pc option or a 1 pc option - where opening one session works on
+modding and another ones are being opened and closed when needed"*. Optional: `keeper` (features.py), with
+`keeper_mode = other_pc | this_pc` and, on two PCs, `keeper_role = developer | keeper`.
+
+- **The session that builds never pushes a project.** It commits, then `python tools/parcel.py send <project>`
+  (`--all` for every project in the clone root; `--note "<one sentence>"` when something moved forward: that
+  sentence is what the Keeper writes on the front page; no note means no news). The board repo is not a project: both
+  sides use it live and it is pushed directly, as before. `parcel_skip = <project>, ...` keeps a project out.
+- **Two PCs.** A parcel is a git bundle plus a label, written into `<transfer>/parcels/outbox/`; the label is written
+  last and carries the bundle's fingerprint, so a half-synced file is never opened. `tools/doorman.py` on the Keeper
+  PC (started at logon by `doorman.py install`; `parcel_watch = 60`) runs `parcel.py receive` when a parcel waits:
+  the copy in `parcel_root` is fast-forwarded and pushed with its usual hooks, and a receipt is written to
+  `parcels/receipts/`. Not a fast-forward, or a push that fails: REFUSED with the reason, the Keeper's copy put back,
+  nothing forced; the other side pulls and sends again.
+- **The doorman's door.** It listens only on the private link's address and answers only `doorman_allow`; the link
+  itself proves who calls, so there is no password to leak. Five fixed verbs: status, list, open (the one configured
+  terminal shortcut, the new window named so two never share a name), close (types the session's own exit command
+  into a process that must be a terminal session; never kills; the desktop app's processes of the same name are not
+  sessions), receive. `doorman.py ensure` opens a session on the Keeper PC when none is open.
+- **One PC.** `parcel.py send` starts the push in the background from the working copy and writes the same receipt.
+  `keeper.py ask "<job>"` queues a job and opens ONE Keeper session on the same PC (`doorman.py open --local`);
+  `keeper.py close` closes it politely when it is done. Nothing listens on a network.
+- **The Keeper's round** (`/lanes:keeper`, `keeper.py round`): jobs handed over, what was uploaded since the last
+  round with each note, refused hand-overs, regular jobs due. The Keeper writes no code and launches nothing; it owns
+  the front-page row, the index and the activity log while the extra is on (one writer per file).
+- **Regular jobs** (`<board>/keeper/jobs.tsv`, `done.tsv`): a due job is printed at the start of every building
+  session with the exact thing to type, every session until `keeper.py done <job>`. Saying it does not stop it.
+- **The end of a write-up** on the side that builds: the one line printed by `parcel.py light`, pasted unchanged, in
+  place of the close-out box (§5); the gate and model lines stay, as plain lines. A light line that is not the plain
+  "everything this PC saved is on GitHub" is also said in words.
+- **Session start** (`hooks/keeper-brief`): the Keeper PC off or unreachable is said in one line at the top of the
+  first reply (it is normally always on); work carries on and hand-overs wait.
+

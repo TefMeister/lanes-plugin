@@ -247,3 +247,16 @@ role = DEV
 # games_record = /path/to/a/private/repo/installed
 # game_dir.my-project = /path/to/a/game/no/store/knows    (one per project, per PC)
 # game_exe.my-project = Bin/Game.exe                      (its main program, relative to that folder)
+
+# The Keeper (0.108.0, extra `keeper`): one session builds and never uploads; the Keeper uploads and keeps GitHub
+# right. Two PCs (other_pc) or one (this_pc). docs/TWO-PCS.md has the order to set it up.
+# keeper = on
+# keeper_mode = other_pc            # or this_pc
+# keeper_role = developer           # or keeper (two PCs only)
+# doorman_peer = <the Keeper PC's private-link address>          # on the PC that builds
+# doorman_allow = <the building PC's private-link address>       # on the Keeper PC
+# doorman_shortcut = <the Desktop's terminal icon, a .lnk>       # on the Keeper PC (one PC: on this PC)
+# doorman_name = Keeper link
+# parcel_root = <the Keeper PC's normal clone root>
+# parcel_watch = 60
+# parcel_skip = <a project that never goes by parcel>, ...

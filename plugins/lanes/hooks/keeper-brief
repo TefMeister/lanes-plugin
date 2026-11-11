@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# SessionStart part (0.108.0): the Keeper. On the side that builds: is the Keeper PC there (said loudly when it is
+# off), which of its regular jobs are due (with the exact thing to type, every session until done), which hand-over
+# was refused. Silent when the extra is off, on the Keeper's own side, and on every failure path.
+#
+# LANES_KEEPER=0 turns it off.
+set -uo pipefail
+[ "${LANES_KEEPER:-1}" = "0" ] && exit 0
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+EMIT="${SCRIPT_DIR}/emit_context.py"
+[ -f "${PLUGIN_ROOT}/tools/keeper.py" ] && [ -f "$EMIT" ] || exit 0
+
+PY=""
+for cand in python3 python py; do
+  command -v "$cand" >/dev/null 2>&1 || continue
+  "$cand" -c "" >/dev/null 2>&1 || continue
+  PY="$cand"; break
+done
+[ -n "$PY" ] || exit 0
+
+"$PY" "${PLUGIN_ROOT}/tools/features.py" is-on keeper >/dev/null 2>&1 || exit 0
+"$PY" "${PLUGIN_ROOT}/tools/keeper.py" brief 2>/dev/null | "$PY" "$EMIT"
+exit 0
