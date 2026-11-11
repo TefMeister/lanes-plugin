@@ -199,6 +199,31 @@ def main():
     check(r.returncode == 0 and not os.listdir(os.path.join(T, "state-pc2", "clash")), "its end gives the forced lock back")
     on("pc1"); C.release(c1, "fullscan")
 
+    # 0.111.1: a look-only step (od.py scan) inside a session holds the job only while it runs
+    probe = ("import os, sys; sys.path.insert(0, %r); import clash; clash.step('od', while_running=%s); "
+             "print(len([n for n in os.listdir(clash.LOCAL_DIR) if n.endswith('.lock')]))")
+
+    def look(while_running, session):
+        e = dict(env, CLAUDE_CODE_SESSION_ID=session)
+        return subprocess.run([sys.executable, "-c", probe % (TOOLS, while_running)], capture_output=True, text=True, env=e)
+
+    def held_od():
+        on("pc2")
+        return [r for r in C.local_locks() if r["job"] == "od"]
+
+    r = look(True, "S9")
+    check(r.returncode == 0 and r.stdout.strip() == "1", "a look-only step holds Out of Date while it runs ...")
+    check(not held_od() and not any(x["job"] == "od" for x in C.remote_locks(c2["board"])),
+          "... and gives it back when it ends, here and on GitHub (the session keeps nothing)")
+    on("pc2"); C.take(c2, "od", session="S9")
+    r = look(True, "S9")
+    check(r.returncode == 0 and len(held_od()) == 1 and held_od()[0]["session"] == "S9",
+          "when the session's /od already holds it, the look-only step passes and leaves that lock alone")
+    on("pc2"); C.release(c2, "od")
+    r = look(False, "S9")
+    check(r.returncode == 0 and len(held_od()) == 1, "an ordinary step still holds the job for the session")
+    on("pc2"); C.release(c2, "od")
+
     print("clash guard: %s" % ("all checks pass" if not fails else "%d check(s) FAILED" % fails))
     return 1 if fails else 0
 

@@ -569,18 +569,32 @@ class hold:
         return False
 
 
-def step(name, project=ALL):
+def held_by(name, project, session):
+    """True when this session already holds the job on this PC (its typed command's hook took it)."""
+    project = project or ALL
+    return bool(session) and any(r["job"] == name and r["project"] == project and r.get("session", "") == session
+                                 for r in local_locks())
+
+
+def step(name, project=ALL, while_running=False):
     """A guarded job's own tool step holds the job itself (0.103.0, Run 5 B8): asked for in plain words, or done by
     hand without the skill, the job used to pass the prompt guard and run beside another. Inside a session (its id is
     in the environment) it holds the job for that session, as the typed command's hook would have, and passes at once
     when the hook already did; outside one it holds only while the tool runs. Blocked: prints the one line, exits 1.
-    The guard switched off or broken: the tool just runs."""
+    The guard switched off or broken: the tool just runs.
+
+    while_running (0.111.1): a step that only LOOKS (`od.py scan`) holds the job only while it runs, also inside a
+    session, unless that session's command already holds it. Run by hand on the Keeper PC 2026-11-11, the look-only scan
+    kept the Out of Date lock for the rest of the session, and the full-scan priority held a Developer PC hand-over
+    behind it until the lock was given back by hand."""
     try:
         import features
         if not features.is_on("clash_guard"):
             return
         session = os.environ.get("CLAUDE_CODE_SESSION_ID", "")
-        if not session:
+        if while_running and held_by(name, project, session):
+            return
+        if not session or while_running:
             h = hold(name, project)
             h.__enter__()
             import atexit

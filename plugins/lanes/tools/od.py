@@ -156,13 +156,14 @@ def scan(as_json):
 
 
 def _clash_step(job, project="all"):
-    """hold this tool's job against a clash (clash.step, 0.103.0)"""
+    """hold this tool's job against a clash (clash.step, 0.103.0). The scan only looks, so only while it runs
+    (0.111.1): the /od command's own hook holds the job for the edits that follow."""
     try:
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         import clash
     except Exception:  # noqa: BLE001
         return
-    clash.step(job, project)
+    clash.step(job, project, while_running=True)
 
 
 def main(argv):
