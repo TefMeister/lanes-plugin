@@ -259,4 +259,5 @@ role = DEV
 # doorman_name = Keeper link
 # parcel_root = <the Keeper PC's normal clone root>
 # parcel_watch = 60
+# keeper_wake = on                  # on the Keeper PC: arriving work starts the Keeper's round by itself (0.109.0)
 # parcel_skip = <a project that never goes by parcel>, ...

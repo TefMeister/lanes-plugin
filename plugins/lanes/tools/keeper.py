@@ -25,6 +25,8 @@ THE SESSION THAT BUILDS (the developer side)
 THE KEEPER (a session on the Keeper PC, or the Keeper session on this PC): /lanes:keeper runs these
     python keeper.py round [--mark]   the work list: queued jobs, what was uploaded since the last round (with each
                                       hand-over's note), regular jobs due. --mark: this round is done
+    python keeper.py wanted [--pull]  one line: how many things wait for a round (what the doorman asks before
+                                      it starts a round by itself)
     python keeper.py finish <file>    a queued job is done (moved to queue/done, saved)
     python keeper.py done <job>       a regular job was done today (the reminders stop until it is due again)
     python keeper.py jobs             the regular jobs, when each was last done, when it is due
@@ -352,6 +354,25 @@ def cmd_round(mark):
     return 0
 
 
+def wanted(pull=False):
+    """what waits for a round: queued jobs + uploads that carry a front-page sentence since the last round"""
+    if pull:
+        refresh()
+    since = state().get("last_round", "")
+    jobs = [n for n in os.listdir(os.path.join(home(), "queue")) if n.endswith(".md")]
+    f = P.folders()
+    cutoff = time.time() - ROUND_SHOWS_DAYS * 86400
+    notes = [r for p, r in P.labels(f["receipts"]) if r.get("status") == P.ON_GITHUB and r.get("when", "") > since
+             and r.get("note") and os.path.getmtime(p) > cutoff]
+    return len(jobs), len(notes)
+
+
+def cmd_wanted(pull):
+    jobs, notes = wanted(pull)
+    print("%d  (%d queued job(s), %d upload(s) with a sentence for the front page)" % (jobs + notes, jobs, notes))
+    return 0
+
+
 def cmd_close():
     if mode() != "this_pc":
         print("keeper: only the one-PC mode closes Keeper sessions from here; on two PCs use doorman.py close <pid>")
@@ -383,6 +404,8 @@ def main(argv):
         return cmd_finish(argv[1])
     if verb == "round":
         return cmd_round("--mark" in argv)
+    if verb == "wanted":
+        return cmd_wanted("--pull" in argv)
     if verb == "close":
         return cmd_close()
     if verb == "mode":

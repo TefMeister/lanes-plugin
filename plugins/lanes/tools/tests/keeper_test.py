@@ -184,6 +184,9 @@ check(rc == 1 and "job is queued" in out and "not reachable" in out, "a job is q
 rc, out = tool(KEEPER, ["round"], DEV)
 check("refresh the front page row of proj" in out and "Uploaded since the last round" in out, "the round lists the queued job")
 check("the menu opens in the headset" in out, "the round shows each upload's note")
+rc, out = tool(KEEPER, ["wanted"], DEV)
+check(rc == 0 and "1 queued job(s)" in out and "0 upload(s)" not in out and not out.startswith("0"),
+      "what waits for a round is counted: the queued job and the uploads with a sentence")
 queued = [n for n in os.listdir(p("board", "keeper", "queue")) if n.endswith(".md")]
 rc, out = tool(KEEPER, ["finish", queued[0]], DEV)
 check(rc == 0 and os.path.isfile(p("board", "keeper", "queue", "done", queued[0])), "a finished job leaves the queue")
@@ -191,6 +194,9 @@ rc, out = tool(KEEPER, ["brief"], DEV)
 check("THE KEEPER PC IS OFF" in out and "ONE line" in out, "session start says loudly when the Keeper PC is off")
 rc, out = tool(KEEPER, ["brief"], KEEP)
 check(out == "", "the Keeper's own side prints nothing at its start")
+tool(KEEPER, ["round", "--mark"], DEV)
+rc, out = tool(KEEPER, ["wanted"], DEV)
+check(rc == 0 and out.startswith("0"), "after a round nothing waits")
 
 # ----- which processes are sessions -----
 os.environ["LANES_STATE_DIR"] = p("state-unit")
@@ -204,6 +210,47 @@ D.processes = lambda: {
 }
 check(D.session_pids() == [21, 41], "only terminal sessions count: not the desktop app, not a session's helper")
 check(D.clean_name('Keeper; "link" & more') == "Keeper link  more", "a window's name cannot carry command characters")
+
+# ----- the wake (0.109.0): a round is started by the doorman itself, never typed into a window opened by hand -----
+check(not D.should_ask(0, None, 100.0), "nothing waits: no round is asked for")
+check(D.should_ask(1, None, 100.0), "something waits and nothing was asked: a round is asked for")
+check(not D.should_ask(1, {"at": 90.0, "count": 1}, 100.0), "a round already asked for is not asked for twice")
+check(D.should_ask(2, {"at": 90.0, "count": 1}, 100.0), "more arrived since: asked again")
+check(D.should_ask(1, {"at": 0.0, "count": 1}, D.WAKE_AGAIN_S + 1.0), "asked long ago and still waiting: asked again")
+check(sorted(D.TYPED.values()) == ["/exit", "/lanes:keeper"], "only two fixed texts can ever be typed into a session")
+
+KEEPER_CONF = {"keeper": "on", "keeper_mode": "other_pc", "keeper_role": "keeper"}
+D.conf = lambda: dict(KEEPER_CONF)
+check(D.wake_on(), "the wake is on for the Keeper PC")
+D.conf = lambda: dict(KEEPER_CONF, keeper_role="developer")
+check(not D.wake_on(), "and off on the PC that builds")
+D.conf = lambda: dict(KEEPER_CONF, keeper_wake="off")
+check(not D.wake_on(), "and off when keeper_wake = off")
+D.conf = lambda: dict(KEEPER_CONF)
+
+waiting, opened, typed, sessions = [2], [], [], []
+D.round_wanted = lambda pull=False: waiting[0]
+D.list_sessions = lambda: list(sessions)
+D.open_session = lambda name="", first="": (opened.append(first), {"ok": True, "pid": 77})[1]
+
+
+class Ran:
+    returncode, stdout, stderr = 0, "", ""
+
+
+D.subprocess.run = lambda args, **kw: (typed.append(args[-3:]), Ran())[1]
+r = D.wake_keeper()
+check(r.get("asked") and opened == ["/lanes:keeper"] and not typed, "no link window: one is opened that starts with the round")
+r = D.wake_keeper()
+check(not r.get("asked") and len(opened) == 1, "the same waiting work does not open a second window")
+sessions[:] = [{"pid": 5, "by_doorman": False, "name": ""}, {"pid": 77, "by_doorman": True, "name": "Keeper link"}]
+waiting[0] = 3
+r = D.wake_keeper()
+check(r.get("asked") and typed == [["_type", "77", "round"]] and len(opened) == 1,
+      "a link window is open: the round is typed into it, never into the window opened by hand")
+waiting[0] = 0
+r = D.wake_keeper()
+check(not r.get("asked") and "round_asked" not in D.read_state(), "the round done: the doorman forgets it asked")
 
 print()
 print("keeper_test.py: %s" % ("all passed" if not fails else "%d FAILED" % fails))

@@ -70,6 +70,10 @@ DEFAULT_NAME = "Keeper link"
 PRIVATE_LINK_PREFIX = "100."            # the private link's addresses (100.64.0.0/10)
 PRIVATE_LINK_RANGE = "100.64.0.0/10"
 EXIT_TEXT = "/exit"
+ROUND_TEXT = "/lanes:keeper"             # the only other text ever typed: the Keeper's round
+TYPED = {"exit": EXIT_TEXT, "round": ROUND_TEXT}
+WAKE_QUEUE_EVERY_S = 300.0              # how often the board is looked at for a queued job
+WAKE_AGAIN_S = 3600.0                   # a round asked for and still not done is asked for again after this
 OPEN_WAIT_S = 30.0                      # how long a new session may take to appear
 RECEIVE_WAIT_S = 900.0                  # a big parcel's upload may take this long
 CLOSE_WAIT_S = 60.0                     # how long /exit (with its end steps) may take
@@ -218,7 +222,9 @@ def clean_name(name):
     return re.sub(r"[^A-Za-z0-9 _-]", "", name or "").strip()[:40]
 
 
-def open_session(name=""):
+def open_session(name="", first=""):
+    """first: only ROUND_TEXT is ever passed on (the new window starts with the Keeper's round)"""
+    first = ROUND_TEXT if first == ROUND_TEXT else ""
     c = conf()
     lnk = expand(c.get("doorman_shortcut", os.path.join(HOME, "Desktop", "Lanes.lnk")))
     if not os.path.isfile(lnk):
@@ -240,6 +246,8 @@ def open_session(name=""):
         head = args[:m.start()].strip()
         tail = re.sub(r'\s--remote-control(\s+("[^"]*"|[^-\s]\S*))?', "", m.group(2) or "")
         cmd = '"%s" %s claude%s --remote-control "%s"' % (target, head, tail, name)
+        if first:
+            cmd += ' "%s"' % first
         subprocess.Popen(cmd, cwd=sc.get("dir") or None, creationflags=DETACHED_PROCESS)
         named = True
     else:
@@ -373,13 +381,86 @@ def watch_parcels():
     if every <= 0:
         return
     log("watching for parcels every %d s" % every)
+    if wake_on():
+        log("a hand-over with a sentence or a queued job starts the Keeper's round by itself")
+    looked = 0.0
     while True:
         time.sleep(every)
         try:
+            took = False
             if parcels_waiting():
                 receive_parcels()
+                took = True
+            board_due = time.time() - looked > WAKE_QUEUE_EVERY_S
+            if took or board_due:
+                if board_due:
+                    looked = time.time()
+                wake_keeper(pull=board_due)
         except Exception as e:                                             # the watcher must outlive one bad parcel
             log("parcel watcher: %r" % (e,))
+
+
+# ----- the wake: a hand-over with a front-page sentence, or a queued job, starts the Keeper's round by itself -----
+def wake_on():
+    c = conf()
+
+    def on(key, default):
+        return c.get(key, default).strip().lower() in ("on", "yes", "true", "1")
+    return (on("keeper", "off") and on("keeper_wake", "on") and c.get("keeper_mode", "other_pc").strip() == "other_pc"
+            and c.get("keeper_role", "developer").strip() == "keeper")
+
+
+def round_wanted(pull=False):
+    """how many things wait for a round (keeper.py wanted): queued jobs + uploads with a sentence since the last round"""
+    tool = os.path.join(os.path.dirname(os.path.abspath(__file__)), "keeper.py")
+    if not os.path.isfile(tool):
+        return 0
+    py = os.path.join(os.path.dirname(sys.executable), "python.exe")
+    p = subprocess.run([py if os.path.isfile(py) else sys.executable, tool, "wanted"] + (["--pull"] if pull else []),
+                       capture_output=True, text=True, timeout=RECEIVE_WAIT_S, creationflags=CREATE_NO_WINDOW)
+    first = (p.stdout or "").split()
+    return int(first[0]) if first and first[0].isdigit() else 0
+
+
+def should_ask(count, asked, now):
+    """ask for a round? Nothing waits: no. Never asked, more waits than when asked, or asked long ago: yes."""
+    if count <= 0:
+        return False
+    if not asked:
+        return True
+    return count > asked.get("count", 0) or now - asked.get("at", 0) > WAKE_AGAIN_S
+
+
+def wake_keeper(pull=False):
+    """when a round is wanted: type the round into the window the doorman opened, or open one that starts with it.
+    A window opened by hand is never typed into: a person may be typing there."""
+    if not wake_on():
+        return {"ok": True, "asked": False, "why": "off"}
+    count = round_wanted(pull)
+    st = read_state()
+    if count <= 0:
+        if st.pop("round_asked", None) is not None:
+            write_state(st)
+        return {"ok": True, "asked": False, "count": 0}
+    if not should_ask(count, st.get("round_asked"), time.time()):
+        return {"ok": True, "asked": False, "count": count}
+    mine = [s for s in list_sessions() if s["by_doorman"]]
+    if mine:
+        p = subprocess.run([sys.executable, os.path.abspath(__file__), "_type", str(mine[0]["pid"]), "round"],
+                           capture_output=True, text=True, creationflags=CREATE_NO_WINDOW)
+        ok, how = p.returncode == 0, "typed the round into pid %d" % mine[0]["pid"]
+        if not ok:
+            how = "could not type the round into pid %d: %s" % (mine[0]["pid"], (p.stdout + p.stderr).strip())
+    else:
+        r = open_session("", first=ROUND_TEXT)
+        ok = bool(r.get("ok"))
+        how = "opened pid %s with the round" % r.get("pid") if ok else "could not open a window: %s" % r.get("error")
+    log("wake: %d thing(s) wait for a round; %s" % (count, how))
+    if ok:
+        st = read_state()
+        st["round_asked"] = {"at": time.time(), "count": count}
+        write_state(st)
+    return {"ok": ok, "asked": ok, "count": count, "how": how}
 
 
 # ----- the doorman itself -----
@@ -559,7 +640,7 @@ def main(argv):
     argv = [a for a in argv if a != "--local"]
     verb = argv[0] if argv else ""
     if verb == "_type":                                   # the helper close_session starts; not for people
-        problem = type_into(int(argv[1]), EXIT_TEXT)
+        problem = type_into(int(argv[1]), TYPED.get(argv[2] if len(argv) > 2 else "exit", EXIT_TEXT))
         if problem:
             print(problem)
         return 1 if problem else 0
@@ -597,11 +678,12 @@ def main(argv):
         if not r.get("ok"):
             print("LINK: the other PC is not reachable (%s). Carry on; hand-overs wait." % r.get("error", "?"))
             return 1
-        if r["sessions"]:
-            print("LINK: %s is there with %d session(s) open." % (r.get("machine"), r["sessions"]))
+        own = [s for s in call("/list").get("sessions", []) if s.get("by_doorman")]
+        if own:
+            print("LINK: %s is there, its link window is open (%d session(s) in all)." % (r.get("machine"), r["sessions"]))
             return 0
         o = call("/open", {"name": ""})
-        print("LINK: %s had no session open; opened one (pid %s)." % (r.get("machine"), o.get("pid")) if o.get("ok")
+        print("LINK: %s had no link window open; opened one (pid %s)." % (r.get("machine"), o.get("pid")) if o.get("ok")
               else "LINK: %s is there but a session could not be opened (%s)." % (r.get("machine"), o.get("error")))
         return 0 if o.get("ok") else 1
     print(__doc__)

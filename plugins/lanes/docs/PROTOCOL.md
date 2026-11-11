@@ -1877,7 +1877,8 @@ modding and another ones are being opened and closed when needed"*. Optional: `k
   itself proves who calls, so there is no password to leak. Five fixed verbs: status, list, open (the one configured
   terminal shortcut, the new window named so two never share a name), close (types the session's own exit command
   into a process that must be a terminal session; never kills; the desktop app's processes of the same name are not
-  sessions), receive. `doorman.py ensure` opens a session on the Keeper PC when none is open.
+  sessions), receive. `doorman.py ensure` opens the link window on the Keeper PC whenever the doorman's own is not open (0.109.0: whatever other windows are open there).
+- **The round starts by itself (0.109.0).** After a hand-over with a sentence is uploaded, and every five minutes for a queued job (`keeper.py wanted`), the doorman opens a link window that starts with `/lanes:keeper`, or types that into the link window it opened earlier. Never into a window a person opened; once per batch of work, again when more arrives or after an hour. `keeper_wake = off` switches it off.
 - **One PC.** `parcel.py send` starts the push in the background from the working copy and writes the same receipt.
   `keeper.py ask "<job>"` queues a job and opens ONE Keeper session on the same PC (`doorman.py open --local`);
   `keeper.py close` closes it politely when it is done. Nothing listens on a network.
