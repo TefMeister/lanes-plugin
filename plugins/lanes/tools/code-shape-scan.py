@@ -22,6 +22,11 @@ USAGE
   Only tracked files are scanned. A repo can exclude paths with a `.code-shape-ignore` file at its
   root (one fnmatch pattern per line, # for comments). Files that say they are generated in their
   first lines are skipped - fix the generator, not its output.
+
+  Every copy of the builds store (`builds =` in lanes.conf, matched by its GitHub address, so a copy
+  in any lane folder counts) is skipped: it keeps old builds, not source to tidy. 2026-11-11: with it
+  copied into the /gs folder, 471 of 490 "near the Lua limit" and 731 of 783 "over the hard limit"
+  lines were saved builds. `--include-builds` scans it anyway.
 """
 import argparse
 import fnmatch
@@ -54,6 +59,37 @@ DEFINITION_RE = re.compile(
     r"local\s+[A-Z][A-Z0-9_]*\s*=|[A-Z][A-Z0-9_]*\s*[:=]|\.set\s|readonly\s)")
 COMMENT_PREFIX = {".lua": "--", ".py": "#", ".sh": "#", ".ps1": "#"}
 STRING_RE = re.compile(r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'')
+
+
+def conf_get(key):
+    """One setting from lanes.conf (the same reader as builds.py), or ""."""
+    paths = [os.environ["LANES_CONFIG"]] if os.environ.get("LANES_CONFIG") else [
+        os.path.expanduser("~/.claude/lanes.conf"), os.path.expanduser("~/.config/lanes/lanes.conf")]
+    pat = re.compile(r"^\s*" + re.escape(key) + r"\s*=\s*(.*?)\s*(?:\s#.*)?$")
+    for path in paths:
+        if not os.path.isfile(path):
+            continue
+        with open(path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                m = pat.match(line.rstrip("\r\n"))
+                if m and not line.lstrip().startswith("#"):
+                    return m.group(1).strip().strip('"').strip("'")
+    return ""
+
+
+def origin_url(repo):
+    try:
+        out = subprocess.run(["git", "-C", repo, "remote", "get-url", "origin"], capture_output=True, text=True,
+                             encoding="utf-8", errors="replace").stdout.strip()
+    except OSError:
+        return ""
+    return out.lower().removesuffix(".git").rstrip("/")
+
+
+def builds_store_url():
+    """The builds store's GitHub address, so every copy of it can be skipped; "" when none is set."""
+    store = os.environ.get("LANES_BUILDS", "") or conf_get("builds")
+    return origin_url(store) if store and os.path.isdir(store) else ""
 
 
 def git_repos(root):
@@ -143,7 +179,10 @@ def main():
     ap.add_argument("--hard", type=int, default=HARD_LINES)
     ap.add_argument("--nums", type=int, default=LOOSE_NUMS)
     ap.add_argument("--all", action="store_true", help="list every LOOSE-NUMS file, not just the worst")
+    ap.add_argument("--include-builds", action="store_true", help="scan copies of the builds store too")
     args = ap.parse_args()
+    store = "" if args.include_builds else builds_store_url()
+    skipped_store = 0
 
     rows = []
     for root in args.roots:
@@ -151,6 +190,9 @@ def main():
             print(f"code-shape-scan: not a directory: {root}", file=sys.stderr)
             return 2
         for repo in git_repos(root):
+            if store and origin_url(repo) == store:
+                skipped_store += 1
+                continue
             patterns = ignore_patterns(repo)
             for rel in tracked_files(repo):
                 ext = os.path.splitext(rel)[1].lower()
@@ -176,6 +218,8 @@ def main():
     print(f"code-shape-scan: {counts['LUA-LOCALS']} near the Lua locals limit, {counts['OVER-HARD']} over "
           f"{args.hard} lines, {counts['OVER-SOFT']} over {args.soft}, {counts['LOOSE-NUMS']} with "
           f">= {args.nums} loose numbers")
+    if skipped_store:
+        print(f"  ({skipped_store} copy/copies of the builds store skipped: saved builds, not source; --include-builds scans them)")
     shown_nums = 0
     for kind, value, name, notes in rows:
         if kind == "LOOSE-NUMS":

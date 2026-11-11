@@ -750,7 +750,7 @@ def main(argv):
         print(__doc__)
         return 0
     cmd, rest = argv[0], argv[1:]
-    if cmd in ("digest", "sifted", "fullscan-done"):     # Gold Digger itself, not the shelving every session does
+    if cmd in ("digest", "sifted"):     # Gold Digger itself, not the shelving every session does, nor the stamp after a run
         _clash_step("gd")
     quiet = "--quiet" in rest
     rest = [a for a in rest if a != "--quiet"]

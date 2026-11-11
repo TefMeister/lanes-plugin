@@ -496,7 +496,7 @@ def main(argv):
         print(__doc__)
         return 0
     cmd = argv[0]
-    if cmd in ("scan", "done"):
+    if cmd == "scan":  # the stamp after a run takes no lock (2026-11-11: it took the lock again right after the full scan gave it back)
         _clash_step("gu")
     if cmd == "scan":
         return scan("--json" in argv)

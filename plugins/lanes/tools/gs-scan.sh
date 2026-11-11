@@ -34,8 +34,10 @@ read_conf() {
   local key="$1" conf v=""
   for conf in "${LANES_CONFIG:-}" "$HOME/.claude/lanes.conf" "$HOME/.config/lanes/lanes.conf"; do
     [ -n "$conf" ] && [ -f "$conf" ] || continue
+    # A note after the value ("expected_repos = 50  # why") is cut off, as builds.py does: until 2026-11-11 it
+    # stayed on, the number test below failed with "integer expected" and the partial-estate guard never ran.
     v=$(sed -n "s/^[[:space:]]*$key[[:space:]]*=[[:space:]]*//p" "$conf" | head -1 |
-        sed 's/[[:space:]]*$//; s/^"//; s/"$//')
+        sed 's/[[:space:]][[:space:]]*#.*$//; s/[[:space:]]*$//; s/^"//; s/"$//; s/\r$//')
     [ -n "$v" ] && break
   done
   printf '%s' "$v"
@@ -109,9 +111,31 @@ case "$SINCE" in
   [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) SINCE="${SINCE}T00:00:00" ;;
 esac
 
+# Copies of the builds store (`builds =`, matched by GitHub address) hold saved builds, not notes: the
+# text searches below skip them (2026-11-11: one copied into this folder made every search read it).
+# SEARCH_DIRS = every top-level entry but those copies, written "./name" so hits read exactly as a search of "."
+# did. (Not grep's --exclude-dir: that matches a folder of that name at ANY depth, a game's own builds/ too.)
+SKIPPED_STORE=""
+_su=""
+_store="${LANES_BUILDS:-$(read_conf builds)}"
+if [ -n "$_store" ] && [ -d "$_store" ]; then
+  _su="$(git -C "$_store" remote get-url origin 2>/dev/null | tr 'A-Z' 'a-z')"; _su="${_su%.git}"
+fi
+SEARCH_DIRS=()
+for d in * .[!.]*; do
+  [ -e "$d" ] || continue
+  if [ -n "$_su" ] && [ -d "$d/.git" ]; then
+    _u="$(git -C "$d" remote get-url origin 2>/dev/null | tr 'A-Z' 'a-z')"
+    if [ "${_u%.git}" = "$_su" ]; then SKIPPED_STORE="$SKIPPED_STORE $d"; continue; fi
+  fi
+  SEARCH_DIRS+=("./$d")
+done
+[ "${#SEARCH_DIRS[@]}" -eq 0 ] && SEARCH_DIRS=(.)
+
 echo "==================================================================="
 echo " /gs mechanical scan   root=$ROOT"
 echo " delta since: $SINCE"
+[ -n "$SKIPPED_STORE" ] && echo " skipped as copies of the builds store:$SKIPPED_STORE"
 TMPF8=$(mktemp 2>/dev/null || echo "${TMPDIR:-/tmp}/gs8.$$")
 echo "==================================================================="
 
@@ -123,7 +147,7 @@ echo "==================================================================="
 # reported "clean" for every game repo until this was fixed 2026-09-01. Using find
 # keeps it correct if the layout ever moves again.
 inbox_dirs() {
-  find . -type d -name inbox -not -path "*/.git/*" 2>/dev/null | sed "s|^./||" | sort
+  find "${SEARCH_DIRS[@]}" -type d -name inbox -not -path "*/.git/*" 2>/dev/null | sed "s|^./||" | sort
 }
 
 #
@@ -454,8 +478,14 @@ while IFS= read -r hit; do
     offv_mention=$((offv_mention+1))
   fi
   offv=$((offv+1))
-done < <(grep -rnoE '`\[[a-zA-Z][a-zA-Z0-9_-]*' --include=*.md . 2>/dev/null |
-         grep -Ev "$VOCABDOCS" | sed 's/`\[/|/')
+done < <(grep -rnoE '`\[[a-zA-Z][a-zA-Z0-9_-]*' --include=*.md "${SEARCH_DIRS[@]}" 2>/dev/null |
+         grep -Ev "$VOCABDOCS" | sed 's/`\[/|/' |
+         # The loop's first two tests (an exact vocabulary name: skip; no confidence-claiming stem: skip), done
+         # here in ONE pass. 2026-11-11: 18,000 hits each started two small programs in the loop, 4.5 of the
+         # scan's minutes; the loop now sees only the few dozen candidates. The tests inside stay as they were.
+         awk -F'|' '{ n = $NF }
+           n ~ /^(verified-live|verified-numerically|compile-verified|measured|inferred-static|reported|hypothesis|disproved)$/ { next }
+           tolower(n) ~ /verif|measur|infer|report|hypoth|disprov|confirm|observ|validat|proven|establish/ { print }')
 if [ "$offv" -eq 0 ]; then
   echo "  (none - every tag name is in the vocabulary)"
 else
@@ -491,9 +521,9 @@ echo "--- 4. claims worth a second look (n=1, or verified with no date) ---"
 # Excluding them is the difference between a useful check and pure noise.
 DEFN='CONVENTIONS\.md|game-mod-rules\.md|inbox/README\.md|PLAYBOOK\.md'
 {
-  grep -rnE '\[verified-live[^]]*n=1' --include=*.md . 2>/dev/null |
+  grep -rnE '\[verified-live[^]]*n=1' --include=*.md "${SEARCH_DIRS[@]}" 2>/dev/null |
     grep -Ev "$DEFN" | head -20 | sed 's/^/  n=1:     /'
-  grep -rnE '\[verified-live\]' --include=*.md . 2>/dev/null |
+  grep -rnE '\[verified-live\]' --include=*.md "${SEARCH_DIRS[@]}" 2>/dev/null |
     grep -Ev "$DEFN" | head -10 | sed 's/^/  undated: /'
 } > /tmp/gs_weak.txt 2>/dev/null
 if [ -s /tmp/gs_weak.txt ]; then cat /tmp/gs_weak.txt; else echo "  (none)"; fi
@@ -642,56 +672,68 @@ fi
 echo
 echo "--- 8. lane attribution of commits since $SINCE ---"
 tot8=0; tagged8=0; crosslane=""; unattr=0
+# 2026-11-11: this used to ask git two questions PER COMMIT (its message, then its files) and then read the whole
+# list once PER FILE: about 25 of the scan's 33 minutes over 960 commits. Now ONE `git log` per repo gives each
+# commit's message and files together (a "@@C" line, the message, a "@@E" line, then its files), and ONE awk pass
+# groups them. Same rules, same output.
+# --name-status, not --name-only: an inbox drop is ADDED by one lane and
+# DELETED by another BY DESIGN (create-only + drain), so the status letter is
+# what separates the estate's own protocol from a real cross-lane write.
 for d in */; do
   [ -d "$d/.git" ] || continue
   r="${d%/}"
-  # one line per commit: <sha> <TAB> <lane or "?">
-  while IFS= read -r sha; do
-    [ -z "$sha" ] && continue
-    tot8=$((tot8+1))
-    lane=$(git -C "$r" log -1 --format=%B "$sha" 2>/dev/null |
-           grep -oiE '^Lane:[[:space:]]*.*' | head -1 | sed 's/^[Ll]ane:[[:space:]]*//')
-    [ -n "$lane" ] && tagged8=$((tagged8+1))
-    # --name-status, not --name-only: an inbox drop is ADDED by one lane and
-    # DELETED by another BY DESIGN (create-only + drain), so the status letter is
-    # what separates the estate's own protocol from a real cross-lane write.
-    while IFS= read -r fl; do
-      [ -z "$fl" ] && continue
-      st=${fl%%	*}; pth=${fl#*	}
-      [ -z "$pth" ] && continue
-      printf '%s	%s	%s
-' "$r/$pth" "${lane:-?}" "${st%%[0-9]*}"
-    done < <(git -C "$r" show --name-status --format= "$sha" 2>/dev/null)
-  done < <(git -C "$r" log --since="$SINCE" --format=%H 2>/dev/null)
+  git -C "$r" log --since="$SINCE" --format='@@C%n%B%n@@E' --name-status 2>/dev/null |
+    awk -v R="$r" '
+      $0 == "@@C" { if (open) print "C\t" (lane == "" ? "?" : lane); open = 1; inmsg = 1; lane = ""; next }
+      $0 == "@@E" { inmsg = 0; next }
+      inmsg {
+        # the first line starting "Lane:" in any case; the word itself cut when written Lane: or lane:
+        if (lane == "" && tolower($0) ~ /^lane:/) { lane = $0; sub(/^[Ll]ane:[ \t]*/, "", lane) }
+        next
+      }
+      index($0, "\t") {
+        st = $0; sub(/\t.*/, "", st); pth = $0; sub(/^[^\t]*\t/, "", pth)
+        if (pth == "") next
+        sub(/[0-9].*/, "", st)
+        print "F\t" R "/" pth "\t" (lane == "" ? "?" : lane) "\t" st
+      }
+      END { if (open) print "C\t" (lane == "" ? "?" : lane) }'
 done > "$TMPF8" 2>/dev/null
-# group by file; a file written under two DIFFERENT non-"?" lanes is the finding
-while IFS= read -r f; do
-  lanes=$(awk -F'	' -v F="$f" '$1==F && $2!="?" {print $2}' "$TMPF8" | sort -u)
-  n=$(printf '%s
-' "$lanes" | grep -c . )
-  anyq=$(awk -F'	' -v F="$f" '$1==F && $2=="?" {print}' "$TMPF8" | head -1)
-  # An inbox path touched by two lanes is the create-only protocol working: the
-  # author ADDs, the owner DELETEs when draining. Only a MODIFY by a second lane
-  # breaks the rule, so that is the only inbox case worth reporting. Found on
-  # check 8's first real firing: /gr added a drop at
-  # 17:30, /pd drained it at 17:46, and the check called the estate's own
-  # designed workflow a cross-lane write. Pinned by the fixture.
-  case "$f" in
-    */inbox/*|inbox/*)
-      if ! awk -F'	' -v F="$f" '$1==F && $3=="M" {found=1} END{exit !found}' "$TMPF8"; then
-        n=1
-      fi
-      ;;
-  esac
-  if [ "$n" -gt 1 ]; then
-    crosslane="$crosslane  $f
-$(printf '%s
-' "$lanes" | sed 's/^/      /')
+tot8=$(grep -c '^C	' "$TMPF8")
+tagged8=$(( tot8 - $(grep -c '^C	?$' "$TMPF8") ))
+# group by file; a file written under two DIFFERENT non-"?" lanes is the finding.
+# An inbox path touched by two lanes is the create-only protocol working: the
+# author ADDs, the owner DELETEs when draining. Only a MODIFY by a second lane
+# breaks the rule, so that is the only inbox case worth reporting. Found on
+# check 8's first real firing: /gr added a drop at
+# 17:30, /pd drained it at 17:46, and the check called the estate's own
+# designed workflow a cross-lane write. Pinned by the fixture.
+grouped=$(awk -F'\t' '
+  $1 == "F" {
+    p = $2; cnt[p]++
+    if ($3 == "?") q[p] = 1
+    else if (!((p, $3) in seen)) { seen[p, $3] = 1; nl[p]++; L[p, nl[p]] = $3 }
+    if ($4 == "M") m[p] = 1
+  }
+  END {
+    for (p in cnt) {
+      if (cnt[p] < 2) continue
+      n = nl[p] + 0
+      if ((p ~ /\/inbox\// || p ~ /^inbox\//) && !(p in m)) n = 1
+      if (n > 1) {
+        k = nl[p]
+        for (i = 1; i <= k; i++) s[i] = L[p, i]
+        for (i = 2; i <= k; i++) { v = s[i]; j = i - 1; while (j >= 1 && s[j] > v) { s[j + 1] = s[j]; j-- } s[j + 1] = v }
+        out = ""
+        for (i = 1; i <= k; i++) out = out "\t" s[i]
+        print "X\t" p out
+      } else if (p in q) print "U\t" p
+    }
+  }' "$TMPF8" | LC_ALL=C sort -t'	' -k2,2)
+unattr=$(printf '%s\n' "$grouped" | grep -c '^U	')
+crosslane=$(printf '%s\n' "$grouped" | awk -F'\t' '$1 == "X" { print "  " $2; for (i = 3; i <= NF; i++) print "      " $i }')
+[ -n "$crosslane" ] && crosslane="$crosslane
 "
-  elif [ -n "$anyq" ]; then
-    unattr=$((unattr+1))
-  fi
-done < <(awk -F'	' '{print $1}' "$TMPF8" | sort | uniq -d)
 if [ "$tot8" -eq 0 ]; then
   echo "  (no commits in the window)"
 else

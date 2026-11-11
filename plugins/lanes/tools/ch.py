@@ -310,7 +310,7 @@ def _clash_step(job, project="all"):
 
 def main(argv):
     cmd = argv[1] if len(argv) > 1 else "scan"
-    if cmd in ("backup", "scan", "done"):
+    if cmd in ("backup", "scan"):  # the stamp after a run takes no lock (2026-11-11: it took the lock again right after the full scan gave it back)
         _clash_step("ch")
     if cmd == "repos":
         print("\n".join(repos()) or "No repos: add `ch_repo = <clone>` (or `ours =`) lines to lanes.conf.")

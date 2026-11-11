@@ -28,15 +28,16 @@ set -uo pipefail
 MODE=""
 case "${1:-}" in
   --check|--fix) MODE="${1#--}"; shift ;;
-  *) echo "usage: root-sync.sh --check|--fix [ROOT]" >&2; exit 2 ;;
+  *) echo "usage: root-sync.sh --check|--fix [--with-builds] [ROOT]" >&2; exit 2 ;;
 esac
+if [ "${1:-}" = "--with-builds" ]; then LANES_SYNC_BUILDS=1; shift; fi
 
 read_conf() {
   local key="$1" conf v=""
   for conf in "${LANES_CONFIG:-}" "$HOME/.claude/lanes.conf" "$HOME/.config/lanes/lanes.conf"; do
     [ -n "$conf" ] && [ -f "$conf" ] || continue
     v=$(sed -n "s/^[[:space:]]*$key[[:space:]]*=[[:space:]]*//p" "$conf" | head -1 |
-        sed 's/[[:space:]]*$//; s/^"//; s/"$//; s/\r$//')
+        sed 's/[[:space:]][[:space:]]*#.*$//; s/[[:space:]]*$//; s/^"//; s/"$//; s/\r$//')
     [ -n "$v" ] && break
   done
   printf '%s' "$v"
@@ -60,9 +61,37 @@ if [ -n "$LANE_ROOTS" ]; then
     else echo "root-sync: lane root $r does not exist - skipped" >&2; fi
   done
 else
-  for suffix in pd gr sr gs; do
-    [ -d "$ROOT-$suffix" ] && ROOTS+=("$ROOT-$suffix")
+  # ROOT may itself be a lane folder (`root` named the /gs folder on one PC, 2026-11-11, and the sync then
+  # looked for "...-gs-pd" and said "nothing to compare" while four sibling folders existed). Work from the
+  # base name, so the live folder and the lane folders beside it are found from any of them. The /gu and /gd
+  # folders are recognised but not filled: they hold only what those jobs use.
+  BASE="$ROOT"
+  for suffix in pd gr sr gs gu gd; do
+    case "$ROOT" in *-"$suffix") BASE="${ROOT%-"$suffix"}" ;; esac
   done
+  if [ "$BASE" != "$ROOT" ]; then
+    ROOTS=()
+    [ -d "$BASE" ] && ROOTS+=("$BASE")
+    for suffix in pd gr sr gs; do
+      [ -d "$BASE-$suffix" ] && ROOTS+=("$BASE-$suffix")
+    done
+  else
+    for suffix in pd gr sr gs; do
+      [ -d "$ROOT-$suffix" ] && ROOTS+=("$ROOT-$suffix")
+    done
+  fi
+fi
+
+# The builds store (`builds =`) keeps saved builds, not notes or source: copying it into every lane folder
+# took over 25 minutes on 2026-11-11 and made each scan read it. Its copies are left where they are and it is
+# not spread further; `--with-builds` (or LANES_SYNC_BUILDS=1) spreads it anyway.
+STORE_URL=""
+if [ "${LANES_SYNC_BUILDS:-0}" != 1 ]; then
+  store="${LANES_BUILDS:-$(read_conf builds)}"
+  if [ -n "$store" ] && [ -d "$store" ]; then
+    STORE_URL="$(git -C "$store" remote get-url origin 2>/dev/null | tr 'A-Z' 'a-z')"
+    STORE_URL="${STORE_URL%.git}"
+  fi
 fi
 
 if [ "${#ROOTS[@]}" -lt 2 ]; then
@@ -83,6 +112,10 @@ done
 missing=0; added=0; failed=0
 for name in $(printf '%s\n' "${!SOURCE[@]}" | sort); do
   src="${SOURCE[$name]}/$name"
+  if [ -n "$STORE_URL" ]; then
+    u="$(git -C "$src" remote get-url origin 2>/dev/null | tr 'A-Z' 'a-z')"
+    [ "${u%.git}" = "$STORE_URL" ] && continue
+  fi
   for r in "${ROOTS[@]}"; do
     [ -e "$r/$name" ] && continue
     missing=$((missing + 1))

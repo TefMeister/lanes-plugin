@@ -243,6 +243,16 @@ assert_contains "LUA-LOCALS" "$out" "a Lua file with 170 top-level locals is fla
 assert_contains "LOOSE-NUMS" "$out" "inline numbers are flagged"
 assert_not_contains "gen.c" "$out" "a file that says it is generated is skipped"
 assert_not_contains "archive/old.c" "$out" "archived code is skipped"
+# A copy of the builds store holds saved builds, not source (2026-11-11: 731 false "over the hard limit").
+(
+  cd "$CSTMP" && mkdir -p roots && git init -q --bare store.git && git clone -q store.git roots/store 2>/dev/null &&
+  cd roots/store && { for i in $(seq 1 1600); do echo "int s$i;"; done; } > saved.c && git add saved.c >/dev/null 2>&1
+) >/dev/null 2>&1
+out=$(LANES_CONFIG=/nonexistent LANES_BUILDS="$CSTMP/roots/store" "$PY" "$TOOLS/code-shape-scan.py" "$CSTMP/roots" 2>&1)
+assert_not_contains "saved.c" "$out" "a copy of the builds store is skipped"
+assert_contains "builds store skipped" "$out" "and the skip is said, not silent"
+out=$(LANES_CONFIG=/nonexistent LANES_BUILDS="$CSTMP/roots/store" "$PY" "$TOOLS/code-shape-scan.py" --include-builds "$CSTMP/roots" 2>&1)
+assert_contains "saved.c" "$out" "--include-builds scans it after all"
 rm -rf "$CSTMP"
 
 echo "setup: the scan reports every catalog tool, and the first-run offer is made once per machine"
@@ -562,6 +572,20 @@ rm -rf "$RSTMP/clones/no-remote"
 out=$(env "${RSENV[@]}" bash "$TOOLS/root-sync.sh" --check 2>&1); rc=$?
 [ $rc -eq 0 ] && ok "after --fix, --check is clean" || fail "still missing after --fix: $out"
 assert_contains "all 3 clone roots hold all 3 repos" "$out" "and says so in plain words"
+# 2026-11-11: `root` named a LANE folder on one PC, and the sync looked for "<lane>-pd" and compared nothing.
+out=$(env LANES_CONFIG=/nonexistent LANES_ROOT="$RSTMP/clones-gr" bash "$TOOLS/root-sync.sh" --check 2>&1); rc=$?
+assert_contains "all 3 clone roots hold all 3 repos" "$out" "started from a lane folder, it still finds the live folder and its siblings"
+# The builds store is not spread into lane folders (it took 25 minutes and made every scan read it).
+(
+  cd "$RSTMP" || exit 1
+  git init -q --bare remote-store.git
+  git clone -q remote-store.git clones/store 2>/dev/null
+  (cd clones/store && echo b > f && git add f && git -c user.name=t -c user.email=t@t commit -q -m init && git push -q origin HEAD 2>/dev/null)
+) >/dev/null 2>&1
+out=$(env LANES_CONFIG=/nonexistent LANES_ROOT="$RSTMP/clones" LANES_BUILDS="$RSTMP/clones/store" bash "$TOOLS/root-sync.sh" --check 2>&1)
+assert_not_contains "clones-pd/store" "$out" "the builds store is not listed as missing from the lane folders"
+out=$(env LANES_CONFIG=/nonexistent LANES_ROOT="$RSTMP/clones" LANES_BUILDS="$RSTMP/clones/store" bash "$TOOLS/root-sync.sh" --check --with-builds 2>&1)
+assert_contains "MISSING  $RSTMP/clones-pd/store" "$out" "--with-builds spreads it after all"
 rm -rf "$RSTMP"
 
 echo "the newest CHANGELOG line matches plugin.json (every version bump must say what changed)"
@@ -925,6 +949,16 @@ else
   printf '%s\n' "$out" | grep FAIL
   fail "gu-fixture.sh failed"
 fi
+
+echo "gs-scan.sh - invented tags (3b) and which lane wrote each file (8, made fast in 0.111.0)"
+for fx in gs-scan-3b-fixture.sh gs-scan-8-fixture.sh; do
+  if out=$(bash "$HERE/$fx" </dev/null 2>&1); then
+    ok "$fx: $(printf '%s\n' "$out" | tail -n 1)"
+  else
+    printf '%s\n' "$out" | grep -E "FAIL|MISSING|SHOULD NOT"
+    fail "$fx failed"
+  fi
+done
 
 echo "gd.py - Gold Digger shelves and the full scan's reminder (0.88.0)"
 if out=$(bash "$HERE/gd-fixture.sh" 2>&1); then
