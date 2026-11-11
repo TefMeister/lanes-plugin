@@ -37,7 +37,6 @@ def write(path, text):
 def main():
     t = tempfile.mkdtemp(prefix="autosave-")
     bare, a, b = (os.path.join(t, n) for n in ("remote.git", "a", "b"))
-    env_cfg = ["-c", "user.name=t", "-c", "user.email=t@example.invalid", "-c", "core.hooksPath=" + os.path.join(t, "nohooks")]
     subprocess.run(["git", "init", "-q", "--bare", "-b", "main", bare], check=True)
     subprocess.run(["git", "clone", "-q", bare, a], check=True, capture_output=True)
     for r in (a,):

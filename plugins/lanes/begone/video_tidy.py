@@ -23,7 +23,6 @@ Switched on or off with `begone_video_tidy` (features.py). The rider runs `tidy`
 """
 import csv
 import glob
-import json
 import os
 import sys
 import time

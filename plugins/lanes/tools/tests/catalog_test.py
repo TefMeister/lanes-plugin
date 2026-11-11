@@ -43,7 +43,7 @@ def main():
     import gu_texts as gt
     t = tempfile.mkdtemp()
     try:
-        kit = repo(t, "kit", {"TOOLKIT.md": "# Tools\n\n### Hand Freeze\n### `pe-inspect.ps1`\n",
+        repo(t, "kit", {"TOOLKIT.md": "# Tools\n\n### Hand Freeze\n### `pe-inspect.ps1`\n",
                               "tools/pe-inspect.ps1": "x", "tools/send-key.ps1": "x", "tools/README.md": "x"})
         freeze = repo(t, "hand-freeze-vr", {"README.md": "v1"})
         for i in range(gt.CATALOG_STALE_COMMITS):

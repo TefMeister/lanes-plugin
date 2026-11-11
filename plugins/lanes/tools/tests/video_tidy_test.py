@@ -50,7 +50,7 @@ def main():
         at = lambda days, h=12: int((now - days * 86400) * 1000) + (h - 12) * 3600 * 1000
         old_day = video(rec, "game-a", "begone_old.mp4", at(3), at(3) + 60000)
         last_day = video(rec, "game-a", "begone_new.mp4", at(1), at(1) + 60000)
-        stale = video(rec, "game-b", "begone_stale.mp4", at(20), at(20) + 60000)
+        video(rec, "game-b", "begone_stale.mp4", at(20), at(20) + 60000)
         fresh = video(rec, "game-c", "begone_fresh.mp4", at(5), at(5) + 60000)
         running = video(rec, "game-c", "begone_running.mp4", at(0))
         waits = video(rec, "game-d", "begone_waits.mp4", at(30), at(30) + 600000)
