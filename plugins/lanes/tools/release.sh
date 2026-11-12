@@ -108,3 +108,16 @@ git push -q || stop "push failed"
 git tag "v$VERSION" && git push -q origin "v$VERSION" || stop "could not push the tag"
 gh release create "v$VERSION" --verify-tag --latest --title "$VERSION" --notes "$NOTES" || stop "the tag is pushed but the GitHub Release failed; run: gh release create v$VERSION --verify-tag --latest"
 echo "Published lanes $VERSION"
+
+# 0.113.1: a test copy that is not the public one (2026-11-12: 0.112.0 was released on the test copy alone and called
+# public). With `release_public = <the public copy's folder>` in lanes.conf, the last line names the step still to do.
+CONF="${LANES_CONFIG:-$HOME/.claude/lanes.conf}"
+PUB=$(sed -n 's/^release_public *= *//p' "$CONF" 2>/dev/null | head -n 1 | tr -d '\r')
+if [ -n "$PUB" ] && [ -d "$PUB" ]; then
+  HERE_TOP=$(git rev-parse --show-toplevel 2>/dev/null)
+  PUB_TOP=$(git -C "$PUB" rev-parse --show-toplevel 2>/dev/null)
+  if [ -n "$PUB_TOP" ] && [ "$HERE_TOP" != "$PUB_TOP" ]; then
+    echo "NEXT: this was the test copy. The public copy is NOT released yet: carry $VERSION's changes into it"
+    echo "      (plugins/lanes and the two version spots), commit there, and run tools/release.sh $VERSION there."
+  fi
+fi

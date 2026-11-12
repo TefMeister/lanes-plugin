@@ -822,6 +822,14 @@ else
   fail "scan-snapshot-fixture.sh failed"
 fi
 
+echo "obs-rec.py - the working-video recorder: no needless video reset, one start at a time (0.113.1)"
+if out=$(python "$HERE/obs_rec_test.py" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "obs_rec_test.py failed"
+fi
+
 echo "menu-o-matic - replaying and recording menu routes (0.29.0)"
 if out=$(bash "$HERE/menu-o-matic-fixture.sh" 2>&1); then
   ok "$(printf '%s\n' "$out" | tail -n 1)"

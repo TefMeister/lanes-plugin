@@ -264,6 +264,9 @@ role = DEV
 # keeper_wake = on                  # on the Keeper PC: arriving work starts the Keeper's round by itself (0.109.0)
 # parcel_skip = <a project that never goes by parcel>, ...
 
+# release_public = <the public copy's folder>   # only where Lanes is built on a test copy: release.sh then
+#                                              # names the public release still to do (0.113.1)
+
 # The full scan goes first (0.110.0; PROTOCOL section 48): while it runs on this PC, every other session saves and
 # waits, and hand-overs wait in order. Which runs have that priority (default: the scan and each of its parts):
 # scan_priority = on

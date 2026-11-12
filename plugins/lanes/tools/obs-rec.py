@@ -73,6 +73,12 @@ _transfer = lanes_conf("transfer")
 REC_ROOT = lanes_conf("recordings") or (os.path.join(_transfer, "Videos") if _transfer else
                                         os.path.join(os.path.expanduser("~"), "Videos", "Lanes recordings"))
 STATE = os.path.join(os.path.expandvars("%LOCALAPPDATA%"), "obs-rec-state.json")
+# One start at a time (0.113.1, 2026-11-12): two game starts overlapped on the Developer PC and two `start`s reset
+# OBS's video together; OBS 33.0.1 crashed inside obs_reset_video. A second start waits for the first to finish.
+START_LOCK = os.path.join(os.path.expandvars("%LOCALAPPDATA%"), "obs-rec-start.lock")
+START_LOCK_WAIT_S = 180     # the most a second start waits for the first (a first start may have to start OBS)
+START_LOCK_STALE_S = 300    # a lock this old is left over from a start that was cut off
+START_LOCK_POLL_S = 1
 PROFILE = COLLECTION = "claude-tests"
 SCENE = "Game"
 VIDEO_W, VIDEO_H, FPS = 1280, 720, 60   # 60 fps
@@ -106,6 +112,50 @@ def load_state():
 
 def save_state(s):
     json.dump(s, open(STATE, "w"), indent=1)
+
+def take_start_lock(path=None, wait_s=None, stale_s=None, poll_s=None):
+    """hold the one-start-at-a-time lock; True when held, False when another start kept it past `wait_s`"""
+    path = path or START_LOCK
+    wait_s = START_LOCK_WAIT_S if wait_s is None else wait_s
+    stale_s = START_LOCK_STALE_S if stale_s is None else stale_s
+    poll_s = START_LOCK_POLL_S if poll_s is None else poll_s
+    deadline = time.time() + wait_s
+    while True:
+        try:
+            fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            with os.fdopen(fd, "w") as f:
+                f.write("%d %d\n" % (os.getpid(), int(time.time())))
+            return True
+        except FileExistsError:
+            try:
+                if time.time() - os.path.getmtime(path) > stale_s:
+                    os.remove(path)          # left over from a start that was cut off
+                    continue
+            except OSError:
+                continue                     # it went away meanwhile: try again
+        if time.time() >= deadline:
+            return False
+        time.sleep(poll_s)
+
+
+def free_start_lock(path=None):
+    try:
+        os.remove(path or START_LOCK)
+    except OSError:
+        pass
+
+
+def video_wanted():
+    return {"fps_numerator": FPS, "fps_denominator": 1, "base_width": VIDEO_W, "base_height": VIDEO_H,
+            "output_width": VIDEO_W, "output_height": VIDEO_H}
+
+
+def video_differs(cur):
+    """does OBS's current video setup (GetVideoSettings) differ from ours? Resetting OBS's video when nothing changes
+    is what crashed it (0.113.1): only a real change is sent."""
+    want = video_wanted()
+    return any(getattr(cur, k, None) != v for k, v in want.items())
+
 
 def obs_running():
     out = subprocess.run(["tasklist", "/fi", "imagename eq obs64.exe", "/nh"], capture_output=True, creationflags=NO_WINDOW, text=True).stdout
@@ -218,8 +268,9 @@ def ensure_setup(cl, state):
                            ("SimpleOutput", "RecQuality", "Small"), ("SimpleOutput", "RecFormat2", "hybrid_mp4"),
                            ("Output", "FilenameFormatting", "%CCYY-%MM-%DD_%hh-%mm-%ss")]:
         cl.set_profile_parameter(cat, name, val)
-    cl.set_video_settings(numerator=FPS, denominator=1, base_width=VIDEO_W, base_height=VIDEO_H,
-                          out_width=VIDEO_W, out_height=VIDEO_H)
+    if video_differs(cl.get_video_settings()):
+        cl.set_video_settings(numerator=FPS, denominator=1, base_width=VIDEO_W, base_height=VIDEO_H,
+                              out_width=VIDEO_W, out_height=VIDEO_H)
     scenes = [s["sceneName"] for s in cl.get_scene_list().scenes]
     if SCENE not in scenes:
         cl.create_scene(SCENE)
@@ -293,6 +344,17 @@ def split_target(t):
     return exe, (want or None)
 
 def cmd_start(exe, label, project, cls=None, also=None):
+    if not take_start_lock():
+        print(f"CLASH GUARD: another recorder start has been running for over {START_LOCK_WAIT_S // 60} min, so this "
+              "one does not start (two at once crashed OBS on 2026-11-12). Look at OBS, then: obs-rec.py status")
+        sys.exit(1)
+    try:
+        _start(exe, label, project, cls, also)
+    finally:
+        free_start_lock()
+
+
+def _start(exe, label, project, cls=None, also=None):
     state = load_state()
     # The clash guard (tools/clash.py, 2026-11-05): OBS records one thing at a time. A second start used to re-point
     # the running recording at another window and folder, so a clip asked for by hand took over the BeG0nE recording.
@@ -563,4 +625,6 @@ def main():
     elif a[0] == "status": print(json.dumps(load_state(), indent=1))
     else: sys.exit(__doc__)
 
-main()
+
+if __name__ == "__main__":
+    main()
