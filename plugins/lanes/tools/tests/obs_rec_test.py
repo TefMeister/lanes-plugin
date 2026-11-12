@@ -89,6 +89,25 @@ check("if not take_start_lock():" in src and "free_start_lock()" in src.split("d
       "cmd_start holds the lock around the whole start and frees it afterwards")
 check('if __name__ == "__main__":' in src, "the tool runs only when started, so it can be tested")
 
+# ----- 0.113.2: a crashed OBS with its box up is closed and started again by the next start -----
+ran, popened = [], []
+R.obs_running = lambda: not ran           # running until taskkill ran
+R.obs_stuck = lambda: False               # not the "Crash Detected" question
+R.crash_boxes = lambda: ["OBS has crashed!"]
+R.clear_crash_marks = lambda: None
+R.connect = lambda: "client"
+R.time = SimpleNamespace(sleep=lambda s: None, time=time.time, strftime=time.strftime, localtime=time.localtime)
+R.subprocess = SimpleNamespace(run=lambda a, **k: ran.append(a), Popen=lambda a, **k: popened.append(a))
+st = {}
+cl = R.ensure_obs(st)
+check(any("taskkill" in a[0] for a in ran), "an OBS showing \"OBS has crashed!\" is closed before the start goes on")
+check(len(popened) == 1 and st.get("we_started_obs") and cl == "client", "and started fresh, then reached")
+ran.clear(); popened.clear()
+R.crash_boxes = lambda: []
+R.obs_running = lambda: True
+R.ensure_obs({})
+check(not ran and not popened, "a healthy OBS is left alone")
+
 print()
 print("obs_rec_test.py: %s" % ("all passed" if not fails else "%d FAILED" % fails))
 sys.exit(1 if fails else 0)

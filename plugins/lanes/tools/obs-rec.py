@@ -195,7 +195,9 @@ def clear_crash_marks():
                 pass
 
 def ensure_obs(state):
-    if obs_running() and obs_stuck():   # only waiting on the crash question, so recording nothing: start it again
+    # only waiting on the crash question, or crashed with its box up (0.113.2: "OBS has crashed!" after the 13:00 crash on
+    # 2026-11-12 sat there an hour, and every start in between found an OBS that could not answer): start it again
+    if obs_running() and (obs_stuck() or crash_boxes()):
         subprocess.run(["taskkill", "/f", "/im", "obs64.exe"], capture_output=True, creationflags=NO_WINDOW)
         time.sleep(2)
     if not obs_running():
