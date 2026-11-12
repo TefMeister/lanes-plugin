@@ -806,6 +806,22 @@ else
   fail "builds-fixture.sh failed"
 fi
 
+echo "switch_off.py - the PC switches off only when every session has finished and saved (0.112.0)"
+if out=$(bash "$HERE/switch-off-fixture.sh" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "switch-off-fixture.sh failed"
+fi
+
+echo "scan_snapshot.py - the full scan's snapshot before and after, and what changed (0.113.0)"
+if out=$(bash "$HERE/scan-snapshot-fixture.sh" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "scan-snapshot-fixture.sh failed"
+fi
+
 echo "menu-o-matic - replaying and recording menu routes (0.29.0)"
 if out=$(bash "$HERE/menu-o-matic-fixture.sh" 2>&1); then
   ok "$(printf '%s\n' "$out" | tail -n 1)"

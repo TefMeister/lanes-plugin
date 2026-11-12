@@ -24,13 +24,17 @@ THE SESSION THAT BUILDS (the developer side)
 
 THE KEEPER (a session on the Keeper PC, or the Keeper session on this PC): /lanes:keeper runs these
     python keeper.py round [--mark]   the work list: queued jobs, what was uploaded since the last round (with each
-                                      hand-over's note), regular jobs due. --mark: this round is done
+                                      hand-over's note), regular jobs due. --mark: this round is done. One round at a
+                                      time: another window's round running stops it with exit 3 (0.112.0)
     python keeper.py wanted [--pull]  one line: how many things wait for a round (what the doorman asks before
                                       it starts a round by itself)
     python keeper.py finish <file>    a queued job is done (moved to queue/done, saved)
     python keeper.py done <job>       a regular job was done today (the reminders stop until it is due again)
     python keeper.py jobs             the regular jobs, when each was last done, when it is due
     python keeper.py jobs add <name> <every days> "<what to type>" "<what it is>"
+    python keeper.py developer "<name>"   two PCs, on the Keeper PC: open a window named <name> on the Developer PC (its
+                                      doorman, `doorman_peer` here) for a job only that PC can do; message it the job by
+                                      that name, and close it with `doorman.py close <pid>` when it reports done (0.113.0)
 
 WHERE: `<board>/keeper/` when lanes.conf names a board repo (both PCs read it; every change is committed and
 pushed, only its own files staged), else the Lanes state folder. jobs.tsv = the regular jobs, done.tsv = when each
@@ -316,7 +320,49 @@ def cmd_finish(name):
     return 0
 
 
+ROUND_LOCK = os.path.join(D.STATE_DIR, "keeper-round.lock")
+ROUND_LOCK_MIN = 60          # a round cut off (window closed) frees itself after this long
+MIN_S = 60                      # seconds in a minute
+
+
+def round_running():
+    """the round lock held by ANOTHER session, fresh, as a dict; else None. 0.112.0: on 2026-11-11 two Keeper windows
+    ran a round at the same time on the Keeper PC; one front-page edit failed because the other had made it, and its
+    `--mark` still ran."""
+    try:
+        with open(ROUND_LOCK, encoding="utf-8") as f:
+            d = json.load(f)
+    except (OSError, ValueError):
+        return None
+    me = os.environ.get("CLAUDE_CODE_SESSION_ID", "")
+    if time.time() - float(d.get("at", 0)) >= ROUND_LOCK_MIN * MIN_S or (me and d.get("session") == me):
+        return None
+    return d
+
+
+def take_round_lock():
+    os.makedirs(D.STATE_DIR, exist_ok=True)
+    with open(ROUND_LOCK + ".tmp", "w", encoding="utf-8") as f:
+        json.dump({"session": os.environ.get("CLAUDE_CODE_SESSION_ID", ""), "since": time.strftime("%H:%M"),
+                   "at": time.time()}, f)
+    os.replace(ROUND_LOCK + ".tmp", ROUND_LOCK)
+
+
 def cmd_round(mark):
+    other = round_running()
+    if other:
+        print("ANOTHER KEEPER ROUND IS RUNNING in another window (since %s, session %s). This window does nothing "
+              "this time: that round covers the same work, and two at once trip over each other's front-page edits. "
+              "Say so in one line and stop. (A round that was cut off frees itself %d minutes after it started.)"
+              % (other.get("since", "?"), (other.get("session") or "?")[:8], ROUND_LOCK_MIN))
+        return 3
+    if mark:
+        try:
+            os.remove(ROUND_LOCK)
+        except OSError:
+            pass
+    else:
+        take_round_lock()
     refresh()
     st = state()
     since = st.get("last_round", "")
@@ -368,8 +414,28 @@ def wanted(pull=False):
 
 
 def cmd_wanted(pull):
+    if round_running():                                            # the doorman must not start a second one
+        print("0  (a Keeper round is running now)")
+        return 0
     jobs, notes = wanted(pull)
     print("%d  (%d queued job(s), %d upload(s) with a sentence for the front page)" % (jobs + notes, jobs, notes))
+    return 0
+
+
+def cmd_developer(name):
+    """0.113.0, asked for by the person 2026-11-11: "if you need developer pc to do stuff, please open a new window just
+    for that". The doorman serves on the Developer PC too (`doorman.py install` there, `doorman_allow` = this PC);
+    `doorman_peer` here names it. The window gets only a name: the job goes to it as a message, never typed in."""
+    if role() != "keeper":
+        print("keeper: only the Keeper PC opens windows on the Developer PC")
+        return 1
+    name = D.clean_name(name) or "Keeper job"
+    r = D.call("/open", {"name": name})
+    if not r.get("ok"):
+        print("keeper: could not open a window on the Developer PC: %s" % r.get("error", "?"))
+        return 1
+    print("keeper: opened '%s' on the Developer PC (pid %s). Message it the job by that name; when it reports done, "
+          "close it: doorman.py close %s" % (r.get("name") or name, r.get("pid"), r.get("pid")))
     return 0
 
 
@@ -408,6 +474,8 @@ def main(argv):
         return cmd_wanted("--pull" in argv)
     if verb == "close":
         return cmd_close()
+    if verb == "developer" and len(argv) > 1:
+        return cmd_developer(" ".join(argv[1:]))
     if verb == "mode":
         print("%s (%s)" % (mode(), role()))
         return 0

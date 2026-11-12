@@ -175,6 +175,40 @@ hasnt "$T" "$out" "check: no folder path in the originals line"
 out=$(pc pc2 vanilla proj --fill); has "this PC's copy of the original" "$out" "vanilla --fill saves it on the other PC"
 out=$(pc pc1 restore proj "$((10#$FNUM))" --yes); has "original app file(s) put back" "$out" "restore puts back an original a removed folder of ours held"
 
+echo "a build kept on this PC (--no-push) no longer blocks the next pull (0.111.2)"
+# 2026-11-12, Developer PC: Silent Hill 2 b006 saved with --no-push left an untracked folder and an INDEX.md row,
+# and every later which / result / snap stopped at "cannot pull with rebase: You have unstaged changes".
+git -C "$T/pc2" pull -q --rebase 2>/dev/null
+SRC2="$T/kept-src"; mkdir -p "$SRC2"; echo v-kept > "$SRC2/mod.dll"
+out=$(pc pc2 snap proj "kept here" --note "saved on this PC only" --source "$SRC2" --no-push)
+has "kept on this PC only" "$out" "snap --no-push says the build stays on this PC for now"
+KNUM=$(echo "$out" | grep -o 'b[0-9]\{3\} - kept' | head -1 | grep -o '[0-9]\{3\}')
+out=$(pc pc2 check); has "saved on this PC only, not on GitHub yet" "$out" "check: names the build kept on this PC"
+has "builds.py push" "$out" "check: says how to send it up"
+hasnt "$T" "$out" "check: no folder path in that line"
+SRC3="$T/other-src"; mkdir -p "$SRC3"; echo v-other > "$SRC3/mod.dll"
+out=$(pc pc1 snap proj "pc1 meanwhile" --note "the other PC takes the same number" --source "$SRC3")
+has "b$KNUM - pc1 meanwhile" "$out" "meanwhile the other PC saves a build with the same number"
+out=$(pc pc2 which proj)
+hasnt "unstaged changes" "$out" "which: no longer stopped by the kept build"
+has "kept on this PC until now, sent up" "$out" "which: sends the kept build up first"
+has "github: pushed" "$out" "the kept build is pushed"
+has "kept here" "$(git -C "$T/remote.git" log --format=%s -3)" "the kept build is on GitHub"
+git -C "$T/pc1" pull -q --rebase 2>/dev/null
+dups=$(ls "$T/pc1/proj" | grep -o '^v1.0.0-b[0-9]*' | sort | uniq -d)
+[ -z "$dups" ] && ok "the kept build moved to a free number" || fail "the kept build moved to a free number ($dups)"
+rows=$(grep -c "kept here" "$T/pc1/proj/INDEX.md"); [ "$rows" = "1" ] && ok "the index lists the kept build once" \
+                                                                      || fail "the index lists the kept build once ($rows)"
+has "saved on this PC only" "$(grep 'kept here' "$T/pc1/proj/INDEX.md")" "its row keeps the note from CHANGES.md"
+[ -z "$(git -C "$T/pc2" status --porcelain)" ] && ok "the store is clean afterwards" || fail "the store is clean afterwards"
+out=$(pc pc2 push); has "every saved build is on GitHub" "$out" "push: says when nothing is kept"
+echo "a hand edit" >> "$T/pc2/proj/PROJECT.conf"
+out=$(pc pc2 result proj 1 "still fine")
+has "no saved build explains" "$out" "a change no build explains: the tool stops and says so"
+has "proj/PROJECT.conf" "$out" "and names the file"
+has "git stash" "$out" "and says what to do with it"
+git -C "$T/pc2" checkout -q -- proj/PROJECT.conf
+
 echo
 [ "$FAILED" -eq 0 ] && echo "builds-fixture: $N checks, 0 failed" || echo "builds-fixture: FAILURES above ($N checks)"
 exit "$FAILED"

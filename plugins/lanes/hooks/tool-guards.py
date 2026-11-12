@@ -19,7 +19,7 @@ def guards_for(data):
         out.append(("reader-guard.py", []))
     if tool in SHELLS:
         out += [("inspector-hook.py", []), ("repo-guard.py", []), ("update-hold-guard.py", []),
-                ("privacy-hook.py", [])]
+                ("privacy-hook.py", []), ("switch-off-guard.py", [])]   # 0.112.0: no bare shutdown
     if tool in EDITS:
         out.append(("project-guard.py", []))   # one session edits a game's files at a time (0.106.1)
     if tool in ("Read", "Grep") or tool in SHELLS:

@@ -23,7 +23,10 @@ need to save all the collected data in the MEGA transfer folder so both pc's can
                                                 --against, only what the older run did not have
     python gd.py digest <game> [<shelf>]        the unread copies, each against EVERY earlier copy of the same kind:
                                                 only lines nothing before had (warnings first), the copies that
-                                                are only repeats counted and skipped; tables show their bad minutes
+                                                are only repeats counted and skipped; tables show their bad minutes;
+                                                a crash dump shows its crash record (code, module+offset, Steam
+                                                already unloaded?), and a rotated log counts as the same log
+    python gd.py also <game> <older name>       read the shelves of an older name of this game as part of it
     python gd.py nudge                          one session-start line when the full scan is a week old
     python gd.py fullscan-done                  stamp a /lanes:fullscan run on this PC
 
@@ -168,21 +171,55 @@ def read_tsv(path):
         return []
 
 
-def index(game):
-    """Every item either PC shelved for this game, as dicts, oldest first."""
-    rows = []
-    for p in glob.glob(os.path.join(game_dir(game), "INDEX-*.tsv")):
+def also_names(game):
+    """older shelf names of this game (0.112.0): The Darkness was shelved as `darknessrecomp`, the program's name, until
+    2026-11-10, so its run history was split in two. `gd.py also the-darkness-vr darknessrecomp` reads both as one;
+    nothing is moved or renamed. One ALSO-<PC>.txt per PC, like every other file here."""
+    out = []
+    for p in sorted(glob.glob(os.path.join(game_dir(game), "ALSO-*.txt"))):
         for r in read_tsv(p):
-            if len(r) >= len(INDEX_COLS):
-                rows.append(dict(zip(INDEX_COLS, r)))
+            name = safe_game(r[0]) if r and r[0].strip() else ""
+            if name and name != safe_game(game) and name not in out:
+                out.append(name)
+    return out
+
+
+def index(game):
+    """Every item either PC shelved for this game (and under its older names), as dicts, oldest first."""
+    rows = []
+    for name in [safe_game(game)] + also_names(game):
+        for p in glob.glob(os.path.join(root(), name, "INDEX-*.tsv")):
+            for r in read_tsv(p):
+                if len(r) >= len(INDEX_COLS):
+                    row = dict(zip(INDEX_COLS, r))
+                    if name != safe_game(game):
+                        row["item"] = "../%s/%s" % (name, row["item"])
+                    rows.append(row)
     return sorted(rows, key=lambda r: (r["when"], r["id"]))
 
 
 def sifted_ids(game):
     out = set()
-    for p in glob.glob(os.path.join(game_dir(game), "SIFTED-*.tsv")):
-        out.update(r[0] for r in read_tsv(p) if r)
+    for name in [safe_game(game)] + also_names(game):
+        for p in glob.glob(os.path.join(root(), name, "SIFTED-*.tsv")):
+            out.update(r[0] for r in read_tsv(p) if r)
     return out
+
+
+def cmd_also(game, old):
+    if safe_game(old) == safe_game(game):
+        print("gd: that is the same name")
+        return 1
+    if not os.path.isdir(game_dir(old)):
+        print(f"gd: no shelves named {safe_game(old)}")
+        return 1
+    if safe_game(old) in also_names(game):
+        print(f"{safe_game(old)} is already read as part of {safe_game(game)}")
+        return 0
+    append(os.path.join(game_dir(game), f"ALSO-{pc_name()}.txt"), [safe_game(old)])
+    print(f"{safe_game(game)} now also reads the shelves named {safe_game(old)} "
+          f"({sum(1 for r in index(game) if r['item'].startswith('../'))} item(s)); nothing was moved")
+    return 0
 
 
 def append(path, cols):
@@ -522,6 +559,11 @@ def fold(path, against=None):
     if not os.path.isfile(path):
         print(f"gd: no such file or shelf item: {path}")
         return 1
+    import gd_dump
+    if gd_dump.is_dump(path):
+        print(f"# {os.path.basename(path)}: a crash dump")
+        print("\n".join(gd_dump.summary(path)))
+        return 0
     lines = read_lines(path)
     table = None if against else read_table(lines)
     if table:
@@ -560,15 +602,29 @@ def shelved_order(row):
     return row["when"], int(m.group(1)) if m else 1
 
 
+ROTATED = re.compile(r"[_.]\d+(?:\.\d+)*(?=\.(?:log|txt|dmp|mdmp)$)|(?<=\.log)\.\d+$", re.I)
+
+
 def item_kind(item):
-    """what kind of file a shelf item is: its name without the shelving stamp and dates, so copies group together."""
-    return INNER_STAMP.sub("#", STAMP.sub("", os.path.basename(item)))
+    """what kind of file a shelf item is: its name without the shelving stamp and dates, so copies group together.
+    0.112.0: numbers that only count (a log's rotation and build number, `darknessrecomp_024.9.log`; a dump's process
+    number, `game.exe.15088.dmp`; `x.log.3`) go too: 221 rotated Darkness logs were 221 kinds, never compared."""
+    return ROTATED.sub("#", INNER_STAMP.sub("#", STAMP.sub("", os.path.basename(item))))
 
 
 def new_lines(path, seen):
     """(lines of this copy no earlier copy had, is it a table); `seen` grows. A table's news is its bad minutes."""
     import contextlib
     import io
+    import gd_dump
+    if gd_dump.is_dump(path):     # 0.112.0: its crash record, never its raw memory; a dump read like a table: in full
+        new = []
+        for ln in gd_dump.summary(path):
+            s = shape(ln)
+            if s not in seen:
+                seen.add(s)
+                new.append(ln.strip())
+        return (new if any(ln.startswith("crash") or ln.startswith("not a") for ln in new) else []), True
     try:
         lines = read_lines(path)
     except OSError:
@@ -800,6 +856,8 @@ def main(argv):
         return fold(rest[0], against)
     if cmd == "digest" and rest:
         return digest(rest[0], rest[1] if len(rest) > 1 else None)
+    if cmd == "also" and len(rest) == 2:
+        return cmd_also(rest[0], rest[1])
     if cmd == "nudge":
         return nudge()
     if cmd == "fullscan-done":

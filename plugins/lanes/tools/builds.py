@@ -12,6 +12,7 @@
     builds.py restore <project> <N> [--yes] [--why "..."]  put build N back into the app folder
     builds.py back    <project> <N> "<why>"                the app folder went back to build N ON PURPOSE
     builds.py check                                        session start: silent unless a folder drifted
+    builds.py push                                         send up builds kept on this PC (--no-push, cut off)
     builds.py vanilla <project> PATH [PATH ...] [--fill]   save the app's ORIGINAL file(s) before changing them
     builds.py vanilla-restore <project> [--yes]            take ours out, put the originals back: the plain app
 
@@ -153,10 +154,101 @@ def git(root, *args, check=True):
 
 
 def pull(root):
+    """Every command's first pull. A build kept on this PC (`snap --no-push`, or a snap cut off before its push)
+    used to block every later pull with "cannot pull with rebase: You have unstaged changes" (2026-11-12, Developer
+    PC: Silent Hill 2 b006 local only, two results that could not be written). Now such a build is finished first:
+    taken out of the list, the pull done, renumbered if the other PC took its number, listed again, sent up."""
     if os.environ.pop("LANES_BUILDS_TEST_SKIP_FIRST_PULL", ""):   # tests only: act as if the other PC
         return                                                    # pushed between our pull and our push
+    pending, other = local_changes(root)
+    if other:
+        shown = "\n".join(f"  {p}" for p in other[:OTHER_SHOWN])
+        more = f"\n  ... and {len(other) - OTHER_SHOWN} more" if len(other) > OTHER_SHOWN else ""
+        sys.exit("builds.py: the builds store holds changes that no saved build explains, so it cannot take the "
+                 f"other PC's builds:\n{shown}{more}\nLook at them first (git status in the builds store). Wanted: "
+                 "commit and push them there. Not wanted: `git stash` there (kept, can be brought back). Then run "
+                 "this again.")
+    if pending:
+        send_pending(root, pending)
+    elif has_upstream(root):
+        pull_raw(root)
+
+
+def pull_raw(root):
     if has_upstream(root):
         git(root, "pull", "--rebase", "--quiet")
+
+
+BUILD_DIR_RE = re.compile(r"^v[\w.]+-b\d{3,} - ")
+OTHER_SHOWN = 12
+
+
+def local_changes(root):
+    """({project: [build name, ...]}, [other path, ...]) for what the builds store holds that is not committed.
+
+    A pending build is a build folder git does not know yet; its row added to the project's INDEX.md belongs to it.
+    A changed tracked file (a row removed or edited, a hand edit) is `other`: it is what stops a pull, and the tool
+    never commits what it cannot explain. Other new files (a PROJECT.conf from `init`, HELD.txt) never stop a pull
+    and go up with the project's next build, as before."""
+    r = git(root, "status", "--porcelain", "-z", "--untracked-files=all", check=False)
+    pending, other, index_changed = {}, [], set()
+    for entry in r.stdout.split("\0"):
+        if len(entry) < 4:
+            continue
+        code, path = entry[:2], entry[3:]
+        parts = path.split("/")
+        if code == "??":
+            hit = next((i for i, part in enumerate(parts[1:-1], 1) if BUILD_DIR_RE.match(part)), None)
+            if hit is not None:
+                name = "/".join(parts[1:hit + 1])
+                names = pending.setdefault(parts[0], [])
+                if name not in names:
+                    names.append(name)
+            continue
+        if code.strip() == "M" and len(parts) == 2 and parts[1] == "INDEX.md":
+            index_changed.add(parts[0])
+            continue
+        other.append(path)
+    for project in sorted(index_changed):
+        diff = git(root, "diff", "-U0", "--", f"{project}/INDEX.md", check=False).stdout.splitlines()
+        removed = [ln for ln in diff if ln.startswith("-") and not ln.startswith("---")]
+        added = [ln[1:] for ln in diff if ln.startswith("+") and not ln.startswith("+++")]
+        names = pending.get(project, [])
+        if removed or not all(any(ln.startswith(f"| {n} |") for n in names) for ln in added):
+            other.append(f"{project}/INDEX.md")
+    for names in pending.values():
+        names.sort(key=lambda n: int(re.search(r"-b(\d{3,}) - ", n).group(1)))
+    return pending, other
+
+
+def changes_field(build_dir, label):
+    try:
+        with open(os.path.join(build_dir, "CHANGES.md"), encoding="utf-8") as f:
+            m = re.search(rf"^- \*\*{re.escape(label)}:\*\* (.*)$", f.read(), re.M)
+    except OSError:
+        return ""
+    return m.group(1).strip() if m else ""
+
+
+def send_pending(root, pending):
+    """Finish every build kept on this PC: its INDEX.md row goes, the pull runs, then each build is moved to a free
+    number if needed, listed again and pushed - the same way `snap` handles the other PC saving first."""
+    for project in pending:
+        if git(root, "ls-files", "--", f"{project}/INDEX.md", check=False).stdout.strip():
+            git(root, "checkout", "--", f"{project}/INDEX.md")
+        elif os.path.isfile(os.path.join(root, project, "INDEX.md")):
+            os.remove(os.path.join(root, project, "INDEX.md"))
+    pull_raw(root)
+    for project, names in pending.items():
+        conf = read_project(root, project)
+        for name in names:
+            bdir = os.path.join(root, project, name)
+            when, note = changes_field(bdir, "When"), changes_field(bdir, "What changed and why")
+            result = changes_field(bdir, "Result")
+            result = "" if result == NOT_TESTED else result
+            name = move_to_free_number(root, project, conf, name)
+            name, state = save_build(root, project, conf, name, when, note, result)
+            print(f"kept on this PC until now, sent up: {project} {name} (github: {state})")
 
 
 def has_upstream(root):
@@ -316,7 +408,7 @@ def commit_and_push(root, project, message):
     for _ in range(PUSH_TRIES):
         if push_now(root):
             return "pushed"
-        pull(root)
+        pull_raw(root)
     return "NOT PUSHED - run `git push` in the builds repo"
 
 
@@ -350,8 +442,13 @@ def save_build(root, project, conf, name, when, note, result, push=True):
     for _ in range(PUSH_TRIES):
         write_index_row(root, project, conf, name, when, note, result)
         if not push:
-            return name, "not committed (--no-push)"
+            return name, ("kept on this PC only (--no-push); the next builds.py command that reaches GitHub, or "
+                          "`builds.py push`, sends it up")
+        kept = local_changes(root)[0].get(project, [])           # read before `add`: staged, they look different
         git(root, "add", "--", project)
+        for other in kept:                                       # another build kept on this PC goes up by itself
+            if other != name:
+                git(root, "reset", "--quiet", "--", f"{project}/{other}")
         git(root, "commit", "--quiet", "-m", f"{project}: {name}")
         if not has_remote(root):
             return name, "committed (no remote)"
@@ -362,7 +459,7 @@ def save_build(root, project, conf, name, when, note, result, push=True):
             git(root, "checkout", "--", index_rel)
         else:
             os.remove(os.path.join(root, index_rel))
-        pull(root)
+        pull_raw(root)
         name = move_to_free_number(root, project, conf, name)
     return name, "NOT PUSHED - run `git push` in the builds repo"
 
@@ -443,6 +540,15 @@ def cmd_result(a):
         f.write("\n".join(rows) + "\n")
     print(f"result recorded for {name}")
     print(f"github: {commit_and_push(root, a.project, f'{a.project}: result for {name}')}")
+
+
+def cmd_push(_a):
+    """Send up every build kept on this PC (0.111.2); with nothing kept, just take the other PC's builds."""
+    root = builds_root()
+    pending, _ = local_changes(root)
+    pull(root)
+    if not pending:
+        print("nothing kept on this PC: every saved build is on GitHub")
 
 
 def cmd_list(a):
@@ -587,6 +693,14 @@ def cmd_check(_a):
             pass
     named = local_app_keys()
     msgs = []
+    pending, other = local_changes(root)
+    for project, names in sorted(pending.items()):
+        shown = ", ".join(n.rpartition("/")[2].partition(" - ")[0] for n in names)
+        msgs.append(f"- {project}: {shown} saved on this PC only, not on GitHub yet: `builds.py push` sends "
+                    f"{'them' if len(names) > 1 else 'it'} up (any builds.py command that reaches GitHub also does).")
+    if other:
+        msgs.append(f"- the builds store holds {len(other)} change(s) no saved build explains, so it cannot take the "
+                    "other PC's builds: `builds.py push` names them and says what to do.")
     for project in sorted(os.listdir(root)):
         if not os.path.isfile(os.path.join(root, project, "PROJECT.conf")):
             continue
@@ -811,6 +925,8 @@ def main():
     p.set_defaults(fn=cmd_vanilla_restore)
     p = sub.add_parser("check")
     p.set_defaults(fn=cmd_check)
+    p = sub.add_parser("push")
+    p.set_defaults(fn=cmd_push)
     p = sub.add_parser("restore")
     p.add_argument("project")
     p.add_argument("number", type=int)

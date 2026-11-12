@@ -198,6 +198,41 @@ tool(KEEPER, ["round", "--mark"], DEV)
 rc, out = tool(KEEPER, ["wanted"], DEV)
 check(rc == 0 and out.startswith("0"), "after a round nothing waits")
 
+# ----- one round at a time (0.112.0): two Keeper windows ran a round together on 2026-11-11 -----
+A = dict(DEV, CLAUDE_CODE_SESSION_ID="window-a")
+B = dict(DEV, CLAUDE_CODE_SESSION_ID="window-b")
+rc, out = tool(KEEPER, ["round"], A)
+check(rc == 0 and "THE KEEPER'S ROUND" in out, "one round at a time: the first window's round runs")
+rc, out = tool(KEEPER, ["round"], B)
+check(rc == 3 and "ANOTHER KEEPER ROUND IS RUNNING" in out and "window-a"[:8] in out,
+      "a second window's round is stopped and told who runs one")
+rc, out = tool(KEEPER, ["round", "--mark"], B)
+check(rc == 3, "the second window cannot mark the other's round done")
+rc, out = tool(KEEPER, ["wanted"], B)
+check(out.startswith("0") and "running now" in out, "while a round runs, the doorman is told nothing waits")
+rc, out = tool(KEEPER, ["round"], A)
+check(rc == 0, "the same window may look at its round again")
+rc, out = tool(KEEPER, ["round", "--mark"], A)
+check(rc == 0 and "marked done" in out, "the first window marks its round done")
+rc, out = tool(KEEPER, ["round"], B)
+check(rc == 0 and "THE KEEPER'S ROUND" in out, "after it, the other window's round runs")
+lock = p("state-dev", "keeper-round.lock")
+with open(lock, encoding="utf-8") as f:
+    d = json.load(f)
+d["at"] = time.time() - 61 * 60
+with open(lock, "w", encoding="utf-8") as f:
+    json.dump(d, f)
+rc, out = tool(KEEPER, ["round"], A)
+check(rc == 0, "a round cut off an hour ago no longer stops a new one")
+tool(KEEPER, ["round", "--mark"], A)
+
+# ----- 0.113.0: the Keeper opens a window of its own on the Developer PC -----
+rc, out = tool(KEEPER, ["developer", "Keeper job"], DEV)
+check(rc == 1 and "only the Keeper PC" in out, "the Developer PC cannot open a Keeper window on itself")
+rc, out = tool(KEEPER, ["developer", "Keeper job"], KEEP)
+check(rc == 1 and "could not open a window on the Developer PC" in out and "doorman_peer" in out,
+      "with no doorman_peer the Keeper says why it cannot open the window, and opens nothing")
+
 # ----- which processes are sessions -----
 os.environ["LANES_STATE_DIR"] = p("state-unit")
 sys.path.insert(0, TOOLS)

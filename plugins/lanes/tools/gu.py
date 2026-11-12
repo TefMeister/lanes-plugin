@@ -89,6 +89,16 @@ def pair(value):
     return a.strip(), b.strip()
 
 
+def twin_pair(value):
+    """`twin = <A> | <B>` or `twin = <A> | <B> | partial` -> (a, b, partial). 0.112.0: a copy that takes only some of
+    the master's files on purpose (a library a tool carries inside it, without the master's stand-alone wrapper) was
+    reported "behind" at every weekly check (2026-11-11: 0ut-0f-f0cus inside the MCP Game Bridge, the Bridge's core
+    inside Hard Reset). `partial` compares only the files the copy has."""
+    parts = [x.strip() for x in value.split("|")]
+    partial = len(parts) > 2 and parts[-1].lower() == "partial"
+    return parts[0], (parts[1] if len(parts) > 1 else ""), partial
+
+
 def asks():
     """False when the person said /gu may update without asking (gu_ask = no)."""
     return (conf_values("gu_ask") or ["yes"])[-1].lower() not in ("no", "false", "off", "0")
@@ -203,11 +213,14 @@ def changed_at(path):
     return os.path.getmtime(path)
 
 
-def compare_twin(a, b):
+def compare_twin(a, b, partial=False):
     if not os.path.exists(a) or not os.path.exists(b):
         return {"a": a, "b": b, "error": "missing: " + (a if not os.path.exists(a) else b)}
     fa, fb = files_under(a), files_under(b)
     differ, only_a, only_b = [], sorted(set(fa) - set(fb)), sorted(set(fb) - set(fa))
+    left_out = only_a if partial else []          # a partial copy leaves these out on purpose: not a difference
+    if partial:
+        only_a = []
     newer_a = newer_b = 0
     for rel in sorted(set(fa) & set(fb)):
         if not same_text(fa[rel], fb[rel]):
@@ -216,7 +229,7 @@ def compare_twin(a, b):
                 newer_a += 1
             else:
                 newer_b += 1
-    return {"a": a, "b": b, "differ": differ, "only_a": only_a, "only_b": only_b,
+    return {"a": a, "b": b, "differ": differ, "only_a": only_a, "only_b": only_b, "left_out": left_out,
             "newer": "a" if newer_a > newer_b else ("b" if newer_b > newer_a else None)}
 
 
@@ -413,7 +426,7 @@ def scan(as_json):
     state = load_state()
     apps, clones = our_apps()
     report = {"last_run": state.get("last_run"), "apps": apps, "clones": clones,
-              "twins": [compare_twin(*pair(v)) for v in conf_values("twin")],
+              "twins": [compare_twin(*twin_pair(v)) for v in conf_values("twin")],
               "outside": outside_tools(state), "lessons": lessons(state.get("last_run"))}
     if as_json:
         print(json.dumps(report, indent=1))
@@ -436,7 +449,9 @@ def scan(as_json):
         if t.get("error"):
             print(f"   {t['a']} | {t['b']}: {t['error']}")
         elif not (t["differ"] or t["only_a"] or t["only_b"]):
-            print(f"   {os.path.basename(t['a'].rstrip('/'))}: both copies match")
+            kept = (f" (a partial copy: {len(t['left_out'])} of the master's files left out on purpose)"
+                    if t.get("left_out") else "")
+            print(f"   {os.path.basename(t['a'].rstrip('/'))}: both copies match{kept}")
         else:
             side = {"a": "the master copy", "b": "the second copy"}.get(t["newer"], "neither side clearly")
             print(f"   {os.path.basename(t['a'].rstrip('/'))}: {len(t['differ'])} differ, {len(t['only_a'])} only in "

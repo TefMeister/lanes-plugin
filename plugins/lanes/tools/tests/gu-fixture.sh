@@ -21,6 +21,8 @@ export LANES_STATE_DIR="$T/state" LANES_GU_NO_NET=1 LANES_CONFIG="$T/lanes.conf"
 mkdir -p "$T/a1" "$T/b1" "$T/a2" "$T/b2"
 printf 'x\n' > "$T/a1/f.py"; printf 'x\r\n' > "$T/b1/f.py"
 printf 'old\n' > "$T/b2/g.py"; sleep 1; printf 'new\n' > "$T/a2/g.py"; printf 'n\n' > "$T/a2/extra.py"
+# a partial copy (0.112.0): the copy carries only part of the master on purpose
+mkdir -p "$T/a3" "$T/b3"; printf 'lib\n' > "$T/a3/lib.c"; printf 'lib\n' > "$T/b3/lib.c"; printf 'w\n' > "$T/a3/wrapper.c"
 # a watched tool: release v2 out, v1 noted
 printf '{"someone/tool": {"tag_name": "v2", "name": "Faster", "published_at": "2026-10-10T00:00:00Z"}}' > "$T/rel.json"
 # one of our clones, one commit behind GitHub
@@ -37,6 +39,7 @@ printf '# game\n\n## Tool ideas\n\n- 2026-10-01: old idea\n- 2026-10-12: hold a 
 cat > "$T/lanes.conf" <<EOF
 twin = $T/a1 | $T/b1
 twin = $T/a2 | $T/b2   # a note
+twin = $T/a3 | $T/b3 | partial
 watch = Some Tool | someone/tool
 ours = $T/ours
 routes = $T/routes
@@ -48,6 +51,11 @@ out="$(LANES_GU_FAKE_RELEASES="$T/rel.json" "$PY" "$TOOL" scan)"
 js="$(LANES_GU_FAKE_RELEASES="$T/rel.json" "$PY" "$TOOL" scan --json)"
 check "matching twins say so (line endings ignored)" 'printf "%s" "$out" | grep -q "a1: both copies match"'
 check "differing twins: counts and which side changed last" 'printf "%s" "$out" | grep -q "a2: 1 differ, 1 only in the master, 0 only in the copy; changed last: the master copy"'
+check "a partial copy: the master's extra file is not a difference" 'printf "%s" "$out" | grep -q "a3: both copies match (a partial copy: 1 of the master"'
+printf 'lib2\n' > "$T/a3/lib.c"
+out3="$(LANES_GU_FAKE_RELEASES="$T/rel.json" "$PY" "$TOOL" scan)"
+check "partial: a changed shared file is still reported" 'printf "%s" "$out3" | grep -q "a3: 1 differ, 0 only in the master"'
+printf 'lib\n' > "$T/a3/lib.c"
 check "a watched tool's new release is shown with its title" 'printf "%s" "$out" | grep -q "Some Tool: v2 (2026-10-10) Faster - not noted yet, last noted v1"'
 check "our clone one commit behind GitHub" 'printf "%s" "$out" | grep -q "ours: 1 new on GitHub"'
 check "only lessons since the last run" 'printf "%s" "$out" | grep -q "hold a key" && ! printf "%s" "$out" | grep -q "old idea"'

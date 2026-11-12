@@ -22,7 +22,10 @@ example to change the plugin itself: that session shows a short plan and waits f
    are uploaded when it has ended, and this session waits like every other (the notice says how).
 1. `python "${CLAUDE_PLUGIN_ROOT}/tools/parcel.py" receive` (two PCs; the doorman also does this by itself every
    minute, so usually nothing waits). A refused parcel is NOT forced: its receipt already tells the other side why.
-2. `python "${CLAUDE_PLUGIN_ROOT}/tools/keeper.py" round` and work down its four lists:
+2. `python "${CLAUDE_PLUGIN_ROOT}/tools/keeper.py" round` and work down its four lists. **One round at a time**
+   (0.112.0): when it says ANOTHER KEEPER ROUND IS RUNNING (exit 3), say so in one line and stop; touch nothing, mark
+   nothing. Run each step on its own (never chain the front-page edit and `--mark` with `;`: a failed edit must stop
+   the mark).
    - **Jobs handed over:** do each, then `keeper.py finish <file>`.
    - **Uploaded since the last round:** for each project, look at what was uploaded (`git log` of those steps) and
      its note ("moved forward: ..."). With a note: refresh the project's front-page row (one sentence, "where it
@@ -38,6 +41,10 @@ example to change the plugin itself: that session shows a short plan and waits f
 4. `python "${CLAUDE_PLUGIN_ROOT}/tools/keeper.py" round --mark`, then the report: three or four plain lines (what
    was uploaded, what was refreshed, what is wrong, what is due). **Something wrong** is also sent to the session
    that builds as ONE line (the session list names it). Nothing wrong: stay quiet, it is working.
+
+**A job only the Developer PC can do** (two PCs, 0.113.0): `python "${CLAUDE_PLUGIN_ROOT}/tools/keeper.py" developer
+"<short name>"` opens a window of its own there (never use a window a person opened); message it the job by that name,
+and close it with `doorman.py close <pid>` once it reports done. Never while that PC's game or headset test runs.
 
 **One PC:** when the round is done and nothing waits, say so and stop; the session that builds closes this window
 (`keeper.py close`). **Two PCs:** stay open and idle; this window is the link.

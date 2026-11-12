@@ -27,5 +27,5 @@ was cut off runs out after 12 hours. Written by `tools/clash.py doc`; edit the t
 - **a game session (/lm or /ms)** (`live`): never two at once on the same PC. Why: a PC runs one game at a time: two game sessions would fight over the screen, the keys, the headset and the frame-time numbers (Tefa, 2026-11-06: several /pd at once, only one live game).
 - **/pd, /lm or /ms on one project** (`lane`): never two at once on either PC (on one project). Why: two sessions changing one game's mod at once undo each other's work. Guarded by: the live claim on the board (lane-claim.sh, the /pd lock and their hooks).
 
-Every other command, hook, tool and extra of the plugin (108 of them) has a row saying why it needs no guard;
+Every other command, hook, tool and extra of the plugin (112 of them) has a row saying why it needs no guard;
 `clash.py audit` refuses a new one without a row.

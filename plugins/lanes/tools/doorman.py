@@ -27,6 +27,8 @@ SETTINGS (~/.claude/lanes.conf; nothing secret, nothing goes to GitHub):
     doorman_allow    = <address>[, <address>]    server: the ONLY callers answered (the other PC's private-link address)
     doorman_shortcut = <path to the terminal .lnk>               server; default: Lanes.lnk on the Desktop
     doorman_name     = Keeper link               server: the name new windows get
+    doorman_minimized = on                       server: a window it opens is minimised once it appears (0.113.0;
+                                                 with Windows Terminal's tray switch on it sits by the clock)
     doorman_peer     = <address>                 client: where the other PC's doorman is
     parcel_watch     = 60                        server: look for parcels every so many seconds and take them
                                                  (tools/parcel.py receive: check, upload, receipt). 0 or absent = off.
@@ -208,6 +210,48 @@ def list_sessions():
 
 
 # ----- open -----
+TERMINAL_CLASSES = ("CASCADIA_HOSTING_WINDOW_CLASS", "ConsoleWindowClass")   # Windows Terminal, the old console
+MINIMIZE_WAIT_S = 10          # how long a new terminal window gets to appear before it is minimised
+SW_SHOWMINNOACTIVE = 7
+
+
+def terminal_windows():
+    """the top-level terminal windows on this PC, shown or hidden in the tray, as a set of window handles"""
+    if os.name != "nt":
+        return set()
+    u = ctypes.WinDLL("user32", use_last_error=True)
+    found = set()
+    proc = ctypes.WINFUNCTYPE(W.BOOL, W.HWND, W.LPARAM)
+
+    def each(hwnd, _):
+        buf = ctypes.create_unicode_buffer(64)
+        u.GetClassNameW(hwnd, buf, 64)
+        # a hidden plain console is a helper's, never a window to touch (showing it minimised would bring it out)
+        if buf.value == TERMINAL_CLASSES[0] or (buf.value in TERMINAL_CLASSES and u.IsWindowVisible(hwnd)):
+            found.add(int(hwnd))
+        return True
+    u.EnumWindows(proc(each), 0)
+    return found
+
+
+def minimize_new(before):
+    """0.113.0, asked for by the person 2026-11-11: a window Lanes opens by itself starts out of the way. Starting the
+    terminal "minimized" does not work (it came up visible, tried 2026-11-11), so the NEW terminal window is minimised
+    once it is there; with the terminal's tray switch on it then sits by the clock. Returns how many were minimised."""
+    if os.name != "nt" or conf().get("doorman_minimized", "on").strip().lower() in ("off", "no", "0", "false"):
+        return 0
+    u = ctypes.WinDLL("user32", use_last_error=True)
+    deadline = time.time() + MINIMIZE_WAIT_S
+    while time.time() < deadline:
+        new = terminal_windows() - before
+        if new:
+            for h in new:
+                u.ShowWindow(W.HWND(h), SW_SHOWMINNOACTIVE)
+            return len(new)
+        time.sleep(0.5)
+    return 0                  # it opened as a tab in a window that was already there: nothing new to minimise
+
+
 def read_shortcut(path):
     """target, arguments and start folder of a .lnk (Windows Script Host, the way Windows itself reads it)"""
     ps = ("$s=(New-Object -ComObject WScript.Shell).CreateShortcut($env:DOORMAN_LNK);"
@@ -231,6 +275,7 @@ def open_session(name="", first=""):
         return {"ok": False, "error": "no terminal shortcut at the configured place (doorman_shortcut in lanes.conf)"}
     name = clean_name(name) or clean_name(c.get("doorman_name", DEFAULT_NAME))
     before = set(session_pids())
+    windows_before = terminal_windows()
     sc = read_shortcut(lnk)
     target, args = sc.get("target", ""), (sc.get("args", "") or "").strip()
     named = False
@@ -266,8 +311,9 @@ def open_session(name="", first=""):
             st = read_state()
             st.setdefault("opened", {})[str(pid)] = {"name": name if named else "", "at": time.strftime("%Y-%m-%d %H:%M")}
             write_state(st)
-            log("opened pid %d name %r" % (pid, name if named else ""))
-            return {"ok": True, "pid": pid, "name": name if named else "", "named": named}
+            hidden = minimize_new(windows_before)
+            log("opened pid %d name %r%s" % (pid, name if named else "", ", minimised" if hidden else ""))
+            return {"ok": True, "pid": pid, "name": name if named else "", "named": named, "minimized": bool(hidden)}
         time.sleep(0.5)
     log("open: no new session appeared")
     return {"ok": False, "error": "the shortcut was started but no new Claude session appeared in %d s" % OPEN_WAIT_S}

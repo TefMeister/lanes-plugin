@@ -105,6 +105,68 @@ check "the digest counts a copy with nothing new as a repeat" 'printf "%s" "$out
 check "the digest shows only the line no earlier copy had" 'printf "%s" "$out" | grep -q "new gun found" && [ "$(printf "%s" "$out" | grep -c "start")" -eq 0 ]'
 check "the digest shows the first copy's warnings once" '[ "$(printf "%s" "$out" | grep -c "lamp missing")" -eq 1 ]'
 
+# ---- 0.112.0: rotated logs are one log, crash dumps are read as crash records, an older shelf name is joined ----
+mkdir -p "$T/rot"
+printf 'start\nall good\n' > "$T/rot/darknessrecomp_024.log"
+printf 'start\nall good\nERROR: shader 7 failed\n' > "$T/rot/darknessrecomp_024.9.log"
+printf 'start\nall good\nrun took 25 s\n' > "$T/rot/darknessrecomp_025.log"
+for f in darknessrecomp_024.log darknessrecomp_024.9.log darknessrecomp_025.log; do
+  "$PY" "$TOOL" add rot-vr "$T/rot/$f" --shelf logs >/dev/null; sleep 1
+done
+out=$("$PY" "$TOOL" digest rot-vr logs)
+check "rotated logs (name_024.9.log, name_025.log) are copies of ONE log" 'printf "%s" "$out" | grep -q "darknessrecomp#.log: 3 copies"'
+check "and only the new line of a rotated copy is shown" 'printf "%s" "$out" | grep -q "shader 7 failed" && ! printf "%s" "$out" | grep -q "all good"'
+mkdir -p "$T/dumps"
+"$PY" - "$T/dumps" <<'EOF'
+import os, struct, sys
+def dump(path, code, addr, steam_gone, thread=1):
+    names = ["C:\\Game\\game.exe", "C:\\Game\\UEVRBackend.dll"] + ([] if steam_gone else ["C:\\Game\\steam_api64.dll"])
+    gone = ["C:\\Steam\\steamclient64.dll"] if steam_gone else []
+    blobs = b""
+    def s(text):
+        nonlocal blobs
+        rva = 512 + len(blobs)
+        raw = text.encode("utf-16-le")
+        blobs += struct.pack("<I", len(raw)) + raw + b"\0\0"
+        return rva
+    mods = [(0x140000000, 0x100000, s(names[0])), (0x7FF800000000, 0x200000, s(names[1]))]
+    if not steam_gone:
+        mods.append((0x7FF900000000, 0x10000, s(names[2])))
+    unl = [(0x7FFA00000000, 0x10000, s(n)) for n in gone]
+    modlist = struct.pack("<I", len(mods)) + b"".join(struct.pack("<QIIII", b, z, 0, 0, r) + b"\0" * 84 for b, z, r in mods)
+    unlist = struct.pack("<III", 12, 24, len(unl)) + b"".join(struct.pack("<QIIII", b, z, 0, 0, r) for b, z, r in unl)
+    exc = struct.pack("<II", thread, 0) + struct.pack("<IIQQII", code, 0, 0, addr, 2, 0) + struct.pack("<15Q", 0, 0x58, *[0] * 13) + b"\0" * 8
+    body_rva = 512 + len(blobs)
+    streams, body = [], b""
+    for kind, data in ((4, modlist), (6, exc), (14, unlist)):
+        streams.append((kind, len(data), body_rva + len(body)))
+        body += data
+    head = b"MDMP" + struct.pack("<IIII", 0xA793, len(streams), 32, 0) + b"\0" * 12
+    directory = b"".join(struct.pack("<III", *x) for x in streams)
+    open(path, "wb").write((head + directory).ljust(512, b"\0") + blobs + body)
+d = sys.argv[1]
+dump(os.path.join(d, "game.exe.111.dmp"), 0xC0000005, 0x7FF800001234, False)
+dump(os.path.join(d, "game.exe.222.dmp"), 0xC0000005, 0x7FF800001234, False, thread=2)
+dump(os.path.join(d, "game.exe.333.dmp"), 0xC0000409, 0x7FF800005678, True)
+EOF
+for f in game.exe.111.dmp game.exe.222.dmp game.exe.333.dmp; do
+  "$PY" "$TOOL" add dump-vr "$T/dumps/$f" --shelf crashes >/dev/null; sleep 1
+done
+out=$("$PY" "$TOOL" digest dump-vr crashes)
+check "a dump is read as its crash record: code and module+offset" 'printf "%s" "$out" | grep -q "crash 0xC0000005 access violation.* in UEVRBackend.dll+0x1234"'
+check "an access violation says what it touched" 'printf "%s" "$out" | grep -q "reading address 0x58 (a null pointer)"'
+check "dumps of different processes are one kind" 'printf "%s" "$out" | grep -q "game.exe#.dmp: 3 copies"'
+check "the same crash again is a repeat" 'printf "%s" "$out" | grep -q "2 add something new, 1 are only repeats"'
+check "a dump says Steam was already unloaded" 'printf "%s" "$out" | grep -q "Steam was already unloaded: steamclient64.dll"'
+check "no raw memory strings from a dump" '! printf "%s" "$out" | grep -q "MDMP"'
+check "fold reads one dump the same way" '"$PY" "$TOOL" fold "$T/dumps/game.exe.333.dmp" | grep -q "crash 0xC0000409"'
+"$PY" "$TOOL" add old-name "$T/rot/darknessrecomp_024.log" --shelf logs >/dev/null
+out=$("$PY" "$TOOL" also rot-vr old-name)
+check "an older shelf name is joined, nothing moved" 'printf "%s" "$out" | grep -q "now also reads the shelves named old-name (1 item" && [ -d "$T/mega/Gold Digger/old-name" ]'
+out=$("$PY" "$TOOL" digest rot-vr logs)
+check "the digest reads the older name's items too" 'printf "%s" "$out" | grep -q "darknessrecomp#.log: 4 copies"'
+check "joining twice is said, not repeated" '"$PY" "$TOOL" also rot-vr old-name | grep -q "already read"'
+
 out=$("$PY" "$TOOL" nudge)
 check "the nudge speaks when items wait and no full scan ever ran" 'printf "%s" "$out" | grep -q "never run"'
 "$PY" "$TOOL" fullscan-done >/dev/null

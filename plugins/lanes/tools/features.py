@@ -178,6 +178,12 @@ FEATURES = {
                        "opened only while there is a job for it; the end of a write-up is one light line "
                        "instead of the close-out box",
                "link": GH + "docs/TWO-PCS.md"},
+    "shutdown_guard": {"label": "Switch off only when everything is saved", "set": "everyday",
+                       "what": "a session asked to switch the PC off when it is done uses the guarded switch-off: "
+                               "it waits while a game runs, another session is still working or holds a lock, a "
+                               "claim is held, or work is not on GitHub (or not handed to the Keeper), then switches "
+                               "off by itself; it never forces, and a bare shutdown typed by a session is refused",
+                       "link": GH + "tools/switch_off.py"},
     "scan_priority": {"label": "The full scan goes first", "set": "checkup",
                       "what": "while the full scan (or one of its parts run alone) is going on a PC, every other "
                               "session there is told to finish its step, save and wait, and is called back when the "

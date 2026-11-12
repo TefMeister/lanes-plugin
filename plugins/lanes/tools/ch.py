@@ -151,7 +151,7 @@ def vulture_findings(repo):
 def twins():
     out = []
     for v in gu.conf_values("twin"):
-        t = gu.compare_twin(*gu.pair(v))
+        t = gu.compare_twin(*gu.twin_pair(v))
         if t.get("error") or t["differ"] or t["only_a"] or t["only_b"]:
             out.append(t)
     return out

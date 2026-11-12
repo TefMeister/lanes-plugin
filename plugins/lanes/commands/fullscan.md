@@ -37,6 +37,11 @@ and Gold Digger parts to that project.
 - **A part that fails is reported and the run carries on** with the next part. It never retries in a loop.
 - Between parts, one plain line saying which part is starting, so a person glancing at the screen knows where it is.
 
+**A project's state is read from its board, never from a note (0.113.0).** Before the report says anything about a
+project's state (paused, open work, who makes its VR mod), read that project's own board lines (`status/<repo>.md`:
+OPEN, PAUSED) and WATCHING.md again; never a research note's wording or an earlier part's summary. 2026-11-07: a
+report called Far Cry 2 "to be paused" from a research note's "new released mod"; it had been paused since 2026-09-23.
+
 ## 0b. Which PC, and only one run at a time (0.101.0)
 
 When `python "${CLAUDE_PLUGIN_ROOT}/tools/features.py" is-on clash_guard` says on (exit 0), before anything else
@@ -56,6 +61,13 @@ When `python "${CLAUDE_PLUGIN_ROOT}/tools/features.py" is-on clash_guard` says o
 `python "${CLAUDE_PLUGIN_ROOT}/tools/handover.py" close`. If this PC is NOT SAVED, save that work first (the
 person's `/sp`, or commit and push in the lane root that holds it), so later parts start from GitHub's state. Note what
 the other PC last reported.
+
+## 1b. The snapshot before (0.113.0)
+
+`python "${CLAUDE_PLUGIN_ROOT}/tools/scan_snapshot.py" take before`: every copy on this PC (its step, every tracked
+file's hash, what is changed or new) and GitHub's step for each, plus the board's OPEN / PAUSED / LIVE lines and
+WATCHING.md. Taken after the save check, so "before" is what GitHub holds. About two minutes. Asked for by the person
+on 2026-11-07, so every full scan can prove what it changed and what it did not.
 
 ## 2. Shelve
 
@@ -111,7 +123,16 @@ Read-only, as always. It runs after everything above so it checks what this run 
 3. Stamp the run: `python "${CLAUDE_PLUGIN_ROOT}/tools/gd.py" fullscan-done` and `python
    "${CLAUDE_PLUGIN_ROOT}/tools/gu.py" done` and `python "${CLAUDE_PLUGIN_ROOT}/tools/ch.py" done`.
 
+## 7b. What the run changed (0.113.0)
+
+`python "${CLAUDE_PLUGIN_ROOT}/tools/scan_snapshot.py" take after`, then `python
+"${CLAUDE_PLUGIN_ROOT}/tools/scan_snapshot.py" diff`. Its sections, most important first: changes no saved step
+explains, a branch switched or history rewritten, board lines that changed, the saved steps per copy by who made them,
+GitHub moving on its own. Exit 1 means sections 1 or 2 hold something: find out which part did it before the report
+and say so plainly; never call it fine unseen.
+
 ## 8. Report
 
-The close-out box first, then one short block per part, a line or two each: what it found, what it fixed, what it
+The close-out box first, then **what the run changed** (7b) in a few lines: "nothing outside the steps listed" when
+sections 1 and 2 are empty, else each of their lines in plain words. Then one short block per part, a line or two each: what it found, what it fixed, what it
 left for a person. Anything that needs the person goes in the last section.

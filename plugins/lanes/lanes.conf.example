@@ -169,7 +169,8 @@ role = DEV
 # recordings = /path/to/your/recordings/folder
 
 # THE WEEKLY TOOL CHECK, /lanes:gu (0.67.0, PROTOCOL section 23). Each line may repeat.
-#   twin   = <master copy> | <second copy>   two copies of the same tool (file or folder) that must match
+#   twin   = <master copy> | <second copy>   two copies of the same tool (file or folder) that must match;
+#            add " | partial" when the copy carries only some of the master's files on purpose (0.112.0)
 #   watch  = <name> | <owner/repo>           someone else's tool on GitHub: say when a new release is out
 #   ours   = <clone>                         one of our own tool repos: behind or ahead of GitHub?
 #   routes = <folder>                        where each app's routes and KNOWN.md live (its Tool ideas are read)
@@ -257,6 +258,7 @@ role = DEV
 # doorman_allow = <the building PC's private-link address>       # on the Keeper PC
 # doorman_shortcut = <the Desktop's terminal icon, a .lnk>       # on the Keeper PC (one PC: on this PC)
 # doorman_name = Keeper link
+# doorman_minimized = on            # a window the doorman opens is minimised once it appears (0.113.0)
 # parcel_root = <the Keeper PC's normal clone root>
 # parcel_watch = 60
 # keeper_wake = on                  # on the Keeper PC: arriving work starts the Keeper's round by itself (0.109.0)
