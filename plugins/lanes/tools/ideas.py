@@ -343,12 +343,38 @@ def fresh_list(d):
     return sorted(files, key=order)
 
 
+def hands_over():
+    """0.113.3: with the Keeper extra on, the PC that builds never uploads a project, it hands it over (two-PC rule).
+    `sync --commit` pushed condemned-2-vr straight from the Developer PC on 2026-11-12. True on the side that builds:
+    keeper_role = developer on two PCs, or one PC (keeper_mode = this_pc), where the hand-over uploads in the
+    background. The Keeper PC itself, and a PC without the extra, still push."""
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import features
+        if not features.is_on("keeper"):
+            return False
+    except Exception:  # noqa: BLE001 - features.py missing: the extra is off
+        return False
+    if (conf_get("keeper_mode") or "other_pc").lower() == "this_pc":
+        return True
+    return (conf_get("keeper_role") or "developer").lower() == "developer"
+
+
 def git_commit(repo_path, msg):
     g = ["git", "-C", str(repo_path)]
     subprocess.run(g + ["add", "--", IDEAS_DIR], check=True)
     if subprocess.run(g + ["diff", "--cached", "--quiet"]).returncode == 0:
         return
     subprocess.run(g + ["commit", "-q", "-m", f"{msg}\n\nLane: ideas"], check=True)
+    if hands_over():
+        parcel = os.path.join(os.path.dirname(os.path.abspath(__file__)), "parcel.py")
+        r = subprocess.run([sys.executable, parcel, "send", repo_path.name], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace",
+                           env=dict(os.environ, PARCEL_ROOT=str(repo_path.parent)))
+        said = (r.stdout + r.stderr).strip().splitlines()
+        print(f"  {'handed over' if r.returncode == 0 else 'HAND-OVER FAILED'} {repo_path.name}"
+              + (f" ({said[-1]})" if said and r.returncode else ""))
+        return
     ok = subprocess.run(g + ["pull", "-q", "--rebase"]).returncode == 0 and \
         subprocess.run(g + ["push", "-q"]).returncode == 0
     print(f"  {'pushed' if ok else 'PUSH FAILED'} {repo_path.name}")

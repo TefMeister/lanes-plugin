@@ -113,5 +113,26 @@ out=$(LANES_IDEAS="$T/ideas-second" "$PY" "$TOOL" sync proj-a 2>&1)
 out=$(LANES_IDEAS="$T/ideas-second" LANES_IDEAS_NO_PULL=1 "$PY" "$TOOL" sync proj-a 2>&1)
 has "nothing new" "$out" "and is offered once"
 
+echo "sync --commit on the PC that builds (0.113.3)"
+# with the Keeper extra on and this PC the Developer side, the new step is handed over as a parcel, never pushed
+g init -q --bare "$T/proj-k-remote.git"; g -C "$T/proj-k-remote.git" symbolic-ref HEAD refs/heads/main
+mkdir -p "$R/proj-k"; g -C "$R/proj-k" init -q; printf '# k\n' > "$R/proj-k/README.md"
+g -C "$R/proj-k" add -A; g -C "$R/proj-k" commit -q -m first; g -C "$R/proj-k" branch -M main
+g -C "$R/proj-k" remote add origin "$T/proj-k-remote.git"; g -C "$R/proj-k" push -q -u origin main
+printf '# proj-k\n\nOPEN (2026-01-01): none\n' > "$B/status/proj-k.md"
+printf 'k\tproj-k\n' >> "$I/repos.tsv"
+printf '# k\n\n### Something for k\n`[raw]` `[not judged]`\nA new idea.\n' > "$I/pages/k.md"
+mkdir -p "$T/transfer"; TW=$(cygpath -m "$T/transfer" 2>/dev/null || echo "$T/transfer")
+printf 'display_name = Tester\nideas_skip = proj-frozen\nkeeper = on\nkeeper_mode = other_pc\nkeeper_role = developer\ntransfer = %s\n' \
+  "$TW" > "$T/lanes-dev.conf"
+before=$(git -C "$T/proj-k-remote.git" rev-parse main)
+out=$(LANES_CONFIG="$T/lanes-dev.conf" LANES_IDEAS_NO_PULL=1 GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@example.invalid \
+      GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@example.invalid "$PY" "$TOOL" sync proj-k --commit 2>&1)
+has "handed over proj-k" "$out" "the new step is handed over"
+[ "$(git -C "$T/proj-k-remote.git" rev-parse main)" = "$before" ] && ok "and nothing was pushed from this PC" \
+  || fail "and nothing was pushed from this PC"
+ls "$T/transfer/parcels/outbox/"proj-k__*.json >/dev/null 2>&1 && ok "a parcel for the Keeper waits in the transfer folder" \
+  || fail "a parcel for the Keeper waits in the transfer folder (got: $out)"
+
 echo
 [ "$FAILED" = 0 ] && echo "ideas-fixture: $N checks, 0 failed" || { echo "ideas-fixture: FAILED"; exit 1; }
