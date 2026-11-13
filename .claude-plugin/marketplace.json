@@ -1,15 +1,15 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "lanes-plugin",
-  "description": "A growing collection of tools, skills and programs for Claude Code, primarily meant for flat-to-VR video game modding.",
+  "description": "A collection of tools for flat-to-VR AI modding with Claude: skills, helper programs and checks for Claude Code that take a flat-screen PC game into VR, from the first look inside the game to the build you wear in the headset.",
   "owner": {
     "name": "TefMeister"
   },
   "plugins": [
     {
       "name": "lanes",
-      "description": "A growing collection of tools, skills and programs for Claude Code, primarily meant for flat-to-VR video game modding. Named session lanes, a shared work board, live-game tools and VR testing helpers.",
-      "version": "0.113.3",
+      "description": "A collection of tools for flat-to-VR AI modding with Claude: skills, helper programs and checks for Claude Code that take a flat-screen PC game into VR, from the first look inside the game to the build you wear in the headset. Among them: tools that see and drive a running game, a robot VR tester, a shared work board, and session lanes that keep several Claude sessions out of each other's way.",
+      "version": "0.113.4",
       "source": "./plugins/lanes",
       "author": {
         "name": "TefMeister"

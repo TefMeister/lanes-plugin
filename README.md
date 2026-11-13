@@ -2,7 +2,7 @@
 
 ![lanes plugin banner](assets/banner/banner.png)
 
-**A growing collection of tools, skills and programs for Claude Code, primarily meant for flat-to-VR video game modding.**
+**A collection of tools for flat-to-VR AI modding with Claude: skills, helper programs and checks for Claude Code that take a flat-screen PC game into VR, from the first look inside the game to the build you wear in the headset.**
 
 **A shared board.** One list of every job, each tagged with what it needs. It answers the question
 you have at the start of every session: *what can I actually do right now?*
@@ -310,7 +310,7 @@ any project. Expect changes: `/lanes:update` tells you what is new and never ins
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Several Claude Code sessions at once, without them treading on each other. | `0.113.3`, public, in daily use |
+| [`lanes`](plugins/lanes/) | Flat-to-VR AI modding with Claude: skills, helper programs and checks, and several sessions at once without them treading on each other. | `0.113.4`, public, in daily use |
 
 ## Modding games?
 

@@ -2,7 +2,7 @@
 
 ![lanes plugin banner](../../assets/banner/banner.png)
 
-**A growing collection of tools, skills and programs for Claude Code, primarily meant for flat-to-VR video game modding.** Among them: run several Claude Code sessions at once without them treading on each other.
+**A collection of tools for flat-to-VR AI modding with Claude: skills, helper programs and checks for Claude Code that take a flat-screen PC game into VR, from the first look inside the game to the build you wear in the headset.** Among them: run several Claude Code sessions at once without them treading on each other.
 
 Open two or three terminals, start a Claude session in each, and they will happily edit the
 same files, rebase over each other's uncommitted work, and quietly undo one another's fixes.
