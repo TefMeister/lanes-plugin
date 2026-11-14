@@ -310,7 +310,7 @@ any project. Expect changes: `/lanes:update` tells you what is new and never ins
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Flat-to-VR AI modding with Claude: skills, helper programs and checks, and several sessions at once without them treading on each other. | `0.113.5`, public, in daily use |
+| [`lanes`](plugins/lanes/) | Flat-to-VR AI modding with Claude: skills, helper programs and checks, and several sessions at once without them treading on each other. | `0.113.6`, public, in daily use |
 
 ## Modding games?
 

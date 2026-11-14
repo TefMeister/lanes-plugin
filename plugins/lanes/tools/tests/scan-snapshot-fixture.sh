@@ -73,5 +73,19 @@ git -C "$T/root/proj" commit -q --allow-empty -m "od: rewritten"
 out=$("$PY" "$TOOL" diff)
 check "a history rewrite is flagged" 'printf "%s" "$out" | grep -q "proj: history rewritten"'
 
+# 0.113.6: names with a space, and files moved in a saved step (the 2026-11-14 full scan called 7,664 such files
+# "changed with no saved step": Fallout's run folders have spaces, and an owed note moved away named only its new place)
+mkdir -p "$T/root/proj/runs/a run"; printf 'r\n' > "$T/root/proj/runs/a run/log.txt"
+git -C "$T/root/proj" add "runs/a run/log.txt" && git -C "$T/root/proj" commit -q -m "lm: a run kept"
+printf 'm\n' > "$T/root/proj/move-me.txt"; git -C "$T/root/proj" add move-me.txt && git -C "$T/root/proj" commit -q -m "pd: a note"
+"$PY" "$TOOL" take before >/dev/null; sleep 1
+git -C "$T/root/proj" mv move-me.txt moved.txt && git -C "$T/root/proj" commit -q -m "pd: moved"
+mkdir -p "$T/root/proj/runs/b run"; printf 'r\n' > "$T/root/proj/runs/b run/log.txt"
+git -C "$T/root/proj" add "runs/b run/log.txt" && git -C "$T/root/proj" commit -q -m "lm: another run kept"
+"$PY" "$TOOL" take after >/dev/null
+out=$("$PY" "$TOOL" diff)
+check "a saved file in a folder with a space is not unexplained" '! printf "%s" "$out" | grep -q "b run/log.txt.*no saved step"'
+check "a file moved in a saved step is not unexplained, old or new place" '! printf "%s" "$out" | grep -q "move-me.txt.*no saved step" && ! printf "%s" "$out" | grep -q "moved.txt.*no saved step"'
+
 echo "scan-snapshot-fixture: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

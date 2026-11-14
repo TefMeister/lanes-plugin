@@ -171,8 +171,11 @@ def diff(a_ref="before", b_ref="after"):
                 rewritten.append("%s: history rewritten (the earlier step %s is no longer behind the new one)"
                                  % (key, ra["head"][:8]))
             _, log = git(repo, "log", "--format=%h%x09%s", "%s..%s" % (ra["head"], rb["head"]))
-            _, names = git(repo, "diff", "--name-only", ra["head"], rb["head"])
-            committed = set(names.split())
+            # 0.113.6: -z and a NUL split; a plain split() broke names with spaces (Fallout's run folders), and
+            # every file pulled into them was called "changed with no saved step" (7,664 on the 2026-11-14 scan)
+            # --no-renames: a file moved in a saved step names both its old and new place (it named only the new one)
+            _, names = git(repo, "diff", "--name-only", "--no-renames", "-z", ra["head"], rb["head"])
+            committed = set(n for n in names.split("\0") if n)
             groups = {}
             for ln in log.splitlines():
                 h, _, s = ln.partition("\t")
