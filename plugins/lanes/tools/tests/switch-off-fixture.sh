@@ -25,7 +25,9 @@ hasnt(){ case "$2" in *"$1"*) fail "$3 (did NOT expect: $1)" ;; *) ok "$3" ;; es
 
 export LANES_STATE_DIR="$T/state" LANES_CONFIG="$T/lanes.conf" LANES_SWITCH_OFF_SKIP="board,games"
 printf 'shutdown_guard = on\n' > "$T/lanes.conf"
-mkdir -p "$T/state/projects-held" "$T/state/clash"
+mkdir -p "$T/state/projects-held" "$T/state/clash" "$T/lanes-sessions"
+printf 'began me 2026-11-14 10:00 +0200\ndone me 2026-11-14 10:00 +0200\ndone other 2026-11-14 10:00 +0200\n' \
+  > "$T/lanes-sessions/end-log.txt"
 OFF="$T/switched-off"
 export LANES_SWITCH_OFF_CMD="$PY -c \"open(r'$OFF','a').write('off\\n')\""
 SAVED="$PY -c \"print('everything saved')\""
@@ -38,6 +40,13 @@ out=$(LANES_SWITCH_OFF_SAVE_CMD="$SAVED" so check --session me); has "nothing st
 out=$(LANES_SWITCH_OFF_SAVE_CMD="$SAVED" so now --session me); has "switches off in" "$out" "now: switches off when clear"
 [ -f "$OFF" ] && ok "the switch-off command ran" || fail "the switch-off command ran"
 rm -f "$OFF"
+
+echo "the asking session has not run its close-out (0.113.7)"
+out=$(LANES_SWITCH_OFF_SAVE_CMD="$SAVED" so now --session fresh)
+has "close-out has not run yet" "$out" "now: refuses before the asking session's own close-out"
+[ -f "$OFF" ] && fail "nothing was switched off before the close-out" || ok "nothing was switched off before the close-out"
+printf 'done fresh 2026-11-14 10:05 +0200\n' >> "$T/lanes-sessions/end-log.txt"
+has "nothing stops it" "$(LANES_SWITCH_OFF_SAVE_CMD="$SAVED" so check --session fresh)" "check: clear once the close-out ran"
 
 echo "work not saved"
 out=$(LANES_SWITCH_OFF_SAVE_CMD="$UNSAVED" so check --session me); has "not saved: builds: 1 change" "$out" "check: names the unsaved work"
@@ -100,6 +109,14 @@ has "switch_off.py" "$(hook Bash 'shutdown /s /t 0')" "hook: points at the guard
 has "exit=2" "$(hook PowerShell 'Stop-Computer -Force')" "hook: refuses Stop-Computer"
 has "exit=2" "$(hook Bash 'shutdown.exe -r -t 30')" "hook: refuses a restart"
 has "exit=0" "$(hook Bash 'shutdown /a')" "hook: lets shutdown /a (stop a countdown) through"
+# 0.113.7: the ways that got past it (2026-11-14 02:26, the Developer PC switched off with no end steps)
+has "exit=2" "$(hook PowerShell 'shutdown /t 60 /s')" "hook: refuses the switch-off flag in second place"
+has "exit=2" "$(hook PowerShell 'shutdown /f /s /t 0')" "hook: refuses /f /s"
+has "exit=2" "$(hook PowerShell 'C:\\\\Windows\\\\System32\\\\shutdown.exe /s /t 0')" "hook: refuses a full path"
+has "exit=2" "$(hook PowerShell "Start-Process shutdown -ArgumentList '/s /t 0'")" "hook: refuses Start-Process shutdown"
+has "exit=2" "$(hook PowerShell '(Get-WmiObject Win32_OperatingSystem).Win32Shutdown(1)')" "hook: refuses the WMI switch-off"
+has "exit=0" "$(hook Bash 'python switch_off.py now --wait')" "hook: the guarded switch-off itself is let through"
+has "exit=0" "$(hook Bash 'git commit -m shutdown-guard')" "hook: a word inside another word is not a shutdown"
 has "exit=0" "$(hook Bash 'grep -n shutdown notes.md')" "hook: a word in a search is not a shutdown"
 has "exit=0" "$(hook Read 'shutdown /s')" "hook: only shell commands are looked at"
 printf 'shutdown_guard = off\n' > "$T/lanes.conf"

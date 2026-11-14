@@ -11,8 +11,20 @@ import os
 import re
 import sys
 
-BARE = re.compile(r"(?<![\w./\\-])shutdown(?:\.exe)?\s+(?:[/-](?:s|r|p|g|sg|h|hybrid)\b)"
-                  r"|\b(?:stop|restart)-computer\b|\bsystemctl\s+(?:poweroff|reboot|halt)\b", re.I)
+# 0.113.7: the shutdown word anywhere a command starts (a full path, `Start-Process shutdown`, `cmd /c`), and a
+# switch-off flag anywhere after it in the same command: `shutdown /t 60 /s` and `shutdown /f /s` were let through
+# (only a FIRST flag of /s /r ... was looked at), and on 2026-11-14 02:26 a session switched the Developer PC off
+# that way, its end steps never run.
+SHUTDOWN = re.compile(r"(?:^|(?<=[\s\"'&|;(\\/]))shutdown(?:\.exe)?(?=[\s\"']|$)([^;&|\n]*)", re.I)
+POWER_FLAG = re.compile(r"(?:^|(?<=[\s\"']))[/-](?:s|r|p|g|sg|h|hybrid|fw)(?=[\s\"']|$)", re.I)
+OTHER = re.compile(r"\b(?:stop|restart)-computer\b|\bsystemctl\s+(?:poweroff|reboot|halt)\b"
+                   r"|\bwin32shutdown(?:tracker)?\b|\bInitiateSystemShutdown(?:Ex)?\b|\bExitWindowsEx\b", re.I)
+
+
+def is_bare(cmd):
+    if OTHER.search(cmd):
+        return True
+    return any(POWER_FLAG.search(m.group(1)) for m in SHUTDOWN.finditer(cmd))
 
 
 def main():
@@ -23,7 +35,7 @@ def main():
     if data.get("tool_name") not in ("Bash", "PowerShell"):
         return
     cmd = (data.get("tool_input") or {}).get("command") or ""
-    if not BARE.search(cmd):
+    if not is_bare(cmd):
         return
     try:
         tools = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools")
@@ -36,7 +48,8 @@ def main():
     sys.stderr.write(
         "Lanes shutdown guard: a bare shutdown or restart is not used here (a PC was switched off on 2026-11-12 while "
         "another session had not saved). Use the guarded one, which switches off only once every session on this PC "
-        "has finished and saved, and waits for them if needed:\n"
+        "has finished and saved, and waits for them if needed. Run this session's close-out first (its end steps), "
+        "then:\n"
         "  python \"${CLAUDE_PLUGIN_ROOT}/tools/switch_off.py\" now --wait\n"
         "(`check` says what still stops it; `--restart` restarts instead; `cancel` takes it back.) Never work around "
         "this; if the person wants the PC off regardless, they switch it off themselves.\n")

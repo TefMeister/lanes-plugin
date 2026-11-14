@@ -23,6 +23,9 @@ WHAT STOPS IT (each named in plain words, never a folder path):
   - a live claim on the board held by this PC (/pd, /lm, /ms)
   - a clash-guard lock held on this PC by another session (a full scan, a release, a recording ...)
   - another session that wrote into a project in the last three hours and has not ended (the project guard's holds)
+  - the asking session's own close-out not run yet (0.113.7): its end steps (the save, the board, the end report)
+    happen in the close-out, and a PC switched off before them left the next start saying "the last session ended
+    without its end steps" (2026-11-13 02:14, through this guard). With --wait it waits for the close-out too.
 The asking session's own lock and holds never stop it (pass --session, or it is read from CLAUDE_CODE_SESSION_ID).
 The guard never switches off by force: when the wait runs out it gives up and leaves a line in its log.
 The hook hooks/switch-off-guard.py refuses a bare shutdown typed by a session and points here.
@@ -30,6 +33,7 @@ The hook hooks/switch-off-guard.py refuses a bare shutdown typed by a session an
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -171,9 +175,27 @@ def hold_reasons(session):
     return out
 
 
+def own_end_reasons(session):
+    """The asking session has not reached the end of its close-out (handover.py close writes 'done <session>' into
+    the end log). No session named, or no end log on this PC yet (no clone roots set up): nothing to ask for."""
+    if not session or skip("own_end"):
+        return []
+    try:
+        import handover
+        with open(handover.end_log_path(), encoding="utf-8") as f:
+            lines = f.read().splitlines()
+    except Exception:  # noqa: BLE001 - no end log yet: this PC has never written one
+        return []
+    sid = re.sub(r"[^\w\-]", "_", session)
+    if any(ln.split()[:2] == ["done", sid] for ln in lines):
+        return []
+    return ["this session's own close-out has not run yet (its end steps: the save, the board, the end report): "
+            "run it first (handover.py close), then the switch-off goes ahead"]
+
+
 def reasons(session):
     return (game_reasons() + lock_reasons(session) + hold_reasons(session) + claim_reasons()
-            + save_reasons())
+            + own_end_reasons(session) + save_reasons())
 
 
 # ---- switching off -----------------------------------------------------------------------------
