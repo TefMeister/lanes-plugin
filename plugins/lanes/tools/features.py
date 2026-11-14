@@ -160,7 +160,8 @@ FEATURES = {
     # lanes-next 2026-11-05: the clash guard took over "fullscan_guard" (the full scan's lock was its first piece).
     "clash_guard": {"label": "Clash guard", "set": "everyday",
                     "what": "things that must not run at the same time (two full scans, the full scan and one of its "
-                            "parts, two research runs on one project, two Lanes installs on one PC, two recordings) "
+                            "parts, two research runs on one project, two Lanes installs on one PC, two recordings, a "
+                            "second game, or VR Bench and Menu-o-matiC beside another session's game) "
                             "are kept apart, on one PC and across both: the second one is refused with one line saying "
                             "what is running where (docs/CLASHES.md has the whole table)",
                     "link": GH + "docs/CLASHES.md"},

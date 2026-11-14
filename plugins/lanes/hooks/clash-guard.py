@@ -34,7 +34,9 @@ def project_of(job, args):
     import clash
     if not clash.JOBS.get(job, {}).get("per_project"):
         return "all"    # 0.113.5: "/od part of /fullscan" held Out of Date on a project called "part"
-    for a in args:
+    for i, a in enumerate(args):
+        if a.lower() == "part" and [w.lower() for w in args[i + 1:i + 2]] == ["of"]:
+            break   # 0.114.0: "/gr part of /fullscan" held research on a project called "part"
         if a != "force" and not a.startswith(("-", "skip:")):
             return a
     return "all"

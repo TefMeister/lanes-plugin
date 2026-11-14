@@ -27,6 +27,7 @@ os.environ["LANES_VRBENCH_LAYER_DIR"] = os.path.join(TMP, "Programs", "VRBench")
 FAKEREG = os.path.join(TMP, "fakereg.json")
 os.environ["LANES_VRBENCH_FAKEREG"] = FAKEREG
 os.environ["LANES_CONFIG"] = os.path.join(TMP, "lanes.conf")
+os.environ["LANES_STATE_DIR"] = os.path.join(TMP, "lanes-state")   # 0.114.0: the clash guard's locks stay in here
 sys.path.insert(0, os.path.join(TOOLS, "vrbench"))
 
 import vb_settings  # noqa: E402

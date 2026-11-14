@@ -224,6 +224,61 @@ def main():
     check(r.returncode == 0 and len(held_od()) == 1, "an ordinary step still holds the job for the session")
     on("pc2"); C.release(c2, "od")
 
+    # 0.114.0: a game session's lock keeps other sessions' tools and games away; the full scan gives back its parts
+    on("pc2")
+    C.release(c2, "gr")   # the forced /gr above: its session end gave back only this PC's file (by design)
+    check(C.take(c2, "live", session="G1")[0], "a /ms session holds the game on PC2")
+    me_tool = "tool-%d" % os.getpid()
+    check(not C.take(c2, "bench", session=me_tool, owner="G2")[0],
+          "VR Bench run by ANOTHER session is refused beside that game")
+    check(not C.take(c2, "menu", session=me_tool, owner="G2")[0], "so is Menu-o-matiC run by another session")
+    check(not C.take(c2, "bench", session=me_tool)[0], "and VR Bench run outside any session")
+    ok, line = C.take(c2, "bench", session=me_tool, owner="G1")
+    check(ok, "the game session's own VR Bench runs: " + line)
+    C.release(c2, "bench")
+    ok, line = C.take(c2, "menu", session=me_tool, owner="G1")
+    check(ok, "and its own Menu-o-matiC")
+    C.release(c2, "menu")
+    start_probe = "import sys; sys.path.insert(0, %r); import clash; clash.step('live'); print('started')" % TOOLS
+
+    def bench_start(session):
+        return subprocess.run([sys.executable, "-c", start_probe], capture_output=True, text=True,
+                              env=dict(env, CLAUDE_CODE_SESSION_ID=session))
+    r = bench_start("G2")
+    check(r.returncode == 1 and "CLASH GUARD" in r.stdout and "started" not in r.stdout,
+          "VR Bench's start from another session refuses in one line (the Developer PC, 2026-11-14)")
+    r = bench_start("G1")
+    check(r.returncode == 0 and "started" in r.stdout, "from the game session itself it starts")
+    on("pc2"); C.release(c2, "live")
+    r = bench_start("G2")
+    check(r.returncode == 0 and C.held_by("live", C.ALL, "G2"),
+          "with no game running, VR Bench's start holds the game for its session")
+    on("pc2"); C.release(c2, "live")
+    hold_probe = ("import sys; sys.path.insert(0, %r); import clash\nwith clash.hold('bench'):\n    clash.step('live')\n"
+                  "print('started')" % TOOLS)
+    r = subprocess.run([sys.executable, "-c", hold_probe], capture_output=True, text=True,
+                       env=dict(env, CLAUDE_CODE_SESSION_ID="G3"))
+    check(r.returncode == 0 and "started" in r.stdout,
+          "VR Bench's own bench lock does not stop it taking the game for its session: " + r.stdout.strip()[-120:])
+    on("pc2"); C.release(c2, "live")
+    hook_env = env
+
+    def hook_run(payload):
+        return subprocess.run([sys.executable, hook], input=json.dumps(payload), capture_output=True, text=True,
+                              env=hook_env)
+    r = hook_run({"hook_event_name": "UserPromptSubmit", "prompt": "/fullscan", "session_id": "FS"})
+    r2 = hook_run({"hook_event_name": "PreToolUse", "tool_name": "Skill",
+                   "tool_input": {"skill": "gr", "args": "part of /fullscan"}, "session_id": "FS"})
+    on("pc2")
+    grs = [x for x in C.local_locks() if x["job"] == "gr"]
+    check(r.returncode == 0 and r2.returncode == 0 and [x["project"] for x in grs] == ["all"],
+          "\"/gr part of /fullscan\" is not research on a project called \"part\" (%s)" % [x["project"] for x in grs])
+    ok, line = C.release(c2, "fullscan")
+    check(ok and not [x for x in C.local_locks() if x["job"] == "gr"]
+          and not any(x["job"] == "gr" for x in C.remote_locks(c2["board"])),
+          "giving back the full scan gives back its parts, here and on GitHub: " + line)
+    check(not C.local_locks(), "nothing is left held")
+
     print("clash guard: %s" % ("all checks pass" if not fails else "%d check(s) FAILED" % fails))
     return 1 if fails else 0
 

@@ -9,7 +9,7 @@
     {
       "name": "lanes",
       "description": "A collection of tools for flat-to-VR AI modding with Claude: skills, helper programs and checks for Claude Code that take a flat-screen PC game into VR, from the first look inside the game to the build you wear in the headset. Among them: tools that see and drive a running game, a robot VR tester, a shared work board, and session lanes that keep several Claude sessions out of each other's way.",
-      "version": "0.113.7",
+      "version": "0.114.0",
       "source": "./plugins/lanes",
       "author": {
         "name": "TefMeister"

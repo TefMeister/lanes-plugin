@@ -14,7 +14,10 @@ from a file this tool writes. Design: docs/specs/2026-10-17-vr-bench-design.md.
                                       only (a game name: `vrbench_exe.<game> = <path>` in lanes.conf, else the one
                                       program in its `builds_app.<game>` folder). Waits up to a minute for a copy
                                       of the game still running from the last run to close, then refuses.
-    python vrbench.py stop            switch it off again and take it out of the OpenXR layer list
+                                      Holds the one-game lock for this session (clash guard): refused while
+                                      another session's game runs on this PC.
+    python vrbench.py stop            switch it off again and take it out of the OpenXR layer list (and give
+                                      back this session's one-game lock)
     python vrbench.py profile         note this PC's specs, OpenXR runtimes, headset and tier (light | full)
     python vrbench.py learn <project> [--minutes 60] [--stage vr_head,vr_hands,vr_body] [--tier light|full]
                                       the learning hour: pre-flight, launch, menus, flat movement, the head, the
@@ -78,6 +81,12 @@ def status():
 
 def start(target):
     import vb_layer
+    # 0.114.0: switching the bench on for a game starts a game session, so it holds the one-game lock ("live") for
+    # this session, and refuses while another session's game holds it (the Developer PC, 2026-11-14: a second game
+    # could start beside a /ms with Tefa in the headset). The guard switched off or broken: it just runs.
+    sys.path.insert(0, os.path.dirname(HERE))
+    import clash
+    clash.step("live")
     try:
         exe = vb_layer.resolve_exe(target)
         vb_layer.wait_gone(exe)      # never a second copy beside one still closing (2026-11-10)
@@ -92,6 +101,14 @@ def start(target):
 def stop():
     import vb_layer
     vb_layer.stop()
+    try:
+        sys.path.insert(0, os.path.dirname(HERE))
+        import clash
+        session = os.environ.get("CLAUDE_CODE_SESSION_ID", "")
+        if clash.held_by("live", clash.ALL, session):
+            print(clash.release(clash.FL.conf(), "live")[1])   # only this session's own game lock, never another's
+    except Exception:  # noqa: BLE001
+        pass
     print("VR Bench: off, and out of the OpenXR layer list.")
     return 0
 

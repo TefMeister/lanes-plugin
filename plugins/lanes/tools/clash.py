@@ -99,10 +99,12 @@ JOBS = {
                   "why": "it removes what the others are writing"},
     "theme": {"label": "the terminal look", "alone": PC,
               "why": "both write the terminal's one settings file"},
-    "menu": {"label": "Menu-o-matiC / Move-o-matiC", "alone": PC, "clashes": {"bench": PC},
-             "why": "both press keys into the window in front; two at once press into each other's game"},
-    "bench": {"label": "VR Bench", "alone": PC,
-              "why": "there is one pretend headset and one set of pretend hands on a PC"},
+    "menu": {"label": "Menu-o-matiC / Move-o-matiC", "alone": PC, "clashes": {"bench": PC, "live": PC},
+             "why": "it presses keys into the window in front; beside VR Bench or another session's game it presses "
+                    "into that game"},
+    "bench": {"label": "VR Bench", "alone": PC, "clashes": {"live": PC},
+              "why": "there is one pretend headset and one set of pretend hands on a PC, and it presses keys into the "
+                     "window in front; beside another session's game it would press into that game"},
     "obs_clip": {"label": "a recording asked for by hand", "alone": PC, "clashes": {"begone_record": PC},
                  "by": "obs-rec.py start refuses while OBS is already recording",
                  "why": "OBS records one thing at a time; a second start would take over the first one's recording"},
@@ -112,7 +114,7 @@ JOBS = {
     "rider": {"label": "the BeG0nE helper (and the collector in it)", "alone": PC,
               "by": "rider.py start: one helper per PC (a running one is kept, or restarted when its code is older)",
               "why": "two would file every report and every game run twice"},
-    "live": {"label": "a game session (/lm or /ms)", "alone": PC,
+    "live": {"label": "a game session (/lm, /ms, VR Bench's start, or a project's launcher)", "alone": PC,
              "why": "a PC runs one game at a time: two game sessions would fight over the screen, the keys, the headset and the frame-time numbers (Tefa, 2026-11-06: several /pd at once, only one live game)"},
     "lane": {"label": "/pd, /lm or /ms on one project", "alone": EVERY, "per_project": True,
              "by": "the live claim on the board (lane-claim.sh, the /pd lock and their hooks)",
@@ -408,8 +410,9 @@ def dead_tool_lock(rec):
     return bool(m) and rec["where"] == "this PC" and not pid_alive(int(m.group(1)))
 
 
-def blockers(c, name, project, session, remote):
-    """the held locks that stop `name` on `project` from starting now (stale ones and this session's own are skipped)"""
+def blockers(c, name, project, session, remote, owner=""):
+    """the held locks that stop `name` on `project` from starting now (stale ones and this session's own are skipped).
+    owner (0.114.0): the session a tool runs for; that session's own locks (its game) do not stop its own tool."""
     me = FL.me(c)
     found = []
     for rec in local_locks() + remote:
@@ -423,6 +426,10 @@ def blockers(c, name, project, session, remote):
             continue
         if session and rec.get("session") == session:
             continue    # this session's own lock: running its own parts, or starting it again
+        if rec.get("session") == "tool-%d" % os.getpid() and not (session or "").startswith("tool-"):
+            continue    # 0.114.0: a program never stops its own session's take (VR Bench holds "bench", then the game)
+        if owner and rec.get("session") == owner:
+            continue    # 0.114.0: the session this tool runs for (VR Bench in a /lm session drives that session's game)
         if on_this_pc and rec["where"] == "GitHub" and any(
                 l["job"] == rec["job"] and l["project"] == rec["project"] for l in local_locks()):
             continue    # the GitHub copy of a lock already counted from this PC's own file
@@ -445,7 +452,7 @@ def say_blocked(c, name, project, recs):
             % (what, where, since, me_label, j["why"] if r["job"] == name else JOBS[name]["why"], STALE_H, how))
 
 
-def check(c, name, project=ALL, session="", fetch=True):
+def check(c, name, project=ALL, session="", fetch=True, owner=""):
     """(free_to_start, line)"""
     if name not in JOBS:
         return True, "CLASH GUARD: '%s' is not in the table; nothing to check." % name
@@ -459,11 +466,11 @@ def check(c, name, project=ALL, session="", fetch=True):
             return False, ("CLASH GUARD: GitHub could not be reached, so it cannot be checked that %s is not running on "
                            "the other PC. Try again when GitHub answers." % j["label"])
         remote = remote_locks(b)
-    recs = blockers(c, name, project or ALL, session, remote)
+    recs = blockers(c, name, project or ALL, session, remote, owner)
     return (False, say_blocked(c, name, project, recs)) if recs else (True, "CLASH GUARD: %s is free to start." % j["label"])
 
 
-def take(c, name, project=ALL, session="", force=False):
+def take(c, name, project=ALL, session="", force=False, owner=""):
     """(ok, line). Holds it on this PC, and on GitHub when it clashes across PCs. force = the person said so."""
     if name not in JOBS:
         return False, "CLASH GUARD: unknown job '%s'. Known: %s" % (name, ", ".join(JOBS))
@@ -483,7 +490,7 @@ def take(c, name, project=ALL, session="", force=False):
     local = os.path.join(LOCAL_DIR, k + ".lock")
     if reach(name) == EVERY and b:
         for _attempt in range(TAKE_ATTEMPTS):
-            ok, line = (True, "") if force else check(c, name, project, session)
+            ok, line = (True, "") if force else check(c, name, project, session, owner=owner)
             if not ok:
                 return False, line
             write_local(local, rec)   # here first: a GitHub lock of this PC with no file here counts as left over
@@ -494,7 +501,7 @@ def take(c, name, project=ALL, session="", force=False):
             return False, "CLASH GUARD: could not put the lock on GitHub. Try again in a minute."
     else:
         if not force:
-            ok, line = check(c, name, project, session, fetch=False)
+            ok, line = check(c, name, project, session, fetch=False, owner=owner)
             if not ok:
                 return False, line
         write_local(local, rec)
@@ -523,6 +530,13 @@ def release(c, name, project=ALL, local_only=False, stale_ok=False):
     k = key(name, project or ALL)
     p = os.path.join(LOCAL_DIR, k + ".lock")
     had = os.path.isfile(p)
+    parts = []
+    if had and JOBS[name].get("parts"):
+        # 0.114.0: the full scan's parts were each locked by their own typed command and kept to the session's end
+        # (the Developer PC, 2026-11-14: the /gr part's lock still held hours after the scan). They go with it.
+        own = [r.get("session", "") for r in local_locks() if r["job"] == name and r["project"] == (project or ALL)]
+        parts = [r for r in local_locks() if r["job"] in JOBS[name]["parts"] and own and own[0]
+                 and r.get("session", "") == own[0]]
     if had:
         drop_local(p)
     b = FL.board(c)
@@ -539,7 +553,8 @@ def release(c, name, project=ALL, local_only=False, stale_ok=False):
             if not FL.push_change(b, None, "clash guard: %s finished %s" % (FL.me(c), k), rel=rel):
                 return False, "CLASH GUARD: could NOT remove the lock on GitHub; it runs out after %d h." % STALE_H
             had = True
-    return True, "CLASH GUARD: %s %s." % (k, "released" if had else "was not held")
+    extra = [release(c, r["job"], r["project"], local_only=local_only)[1] for r in parts]
+    return True, "CLASH GUARD: %s %s." % (k, "released" if had else "was not held") + "".join(" " + e for e in extra)
 
 
 class hold:
@@ -556,7 +571,8 @@ class hold:
             if not features.is_on("clash_guard"):
                 return self
             c = FL.conf()
-            ok, line = take(c, self.name, self.project, "tool-%d" % os.getpid())
+            ok, line = take(c, self.name, self.project, "tool-%d" % os.getpid(),
+                            owner=os.environ.get("CLAUDE_CODE_SESSION_ID", ""))
         except Exception:
             return self
         if not ok:
