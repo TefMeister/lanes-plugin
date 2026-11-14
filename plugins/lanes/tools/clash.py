@@ -599,6 +599,10 @@ def step(name, project=ALL, while_running=False):
         session = os.environ.get("CLAUDE_CODE_SESSION_ID", "")
         if while_running and held_by(name, project, session):
             return
+        if while_running and session and any(
+                r.get("session", "") == session and (r["job"] == name or name in JOBS.get(r["job"], {}).get("parts", []))
+                for r in local_locks()):
+            return  # 0.113.5: this session runs the full scan (or this job) already; its own look-only part passes
         if not session or while_running:
             h = hold(name, project)
             h.__enter__()

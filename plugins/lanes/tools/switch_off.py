@@ -30,7 +30,6 @@ The hook hooks/switch-off-guard.py refuses a bare shutdown typed by a session an
 import argparse
 import json
 import os
-import re
 import subprocess
 import sys
 import time

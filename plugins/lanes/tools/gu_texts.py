@@ -271,7 +271,8 @@ def summary_pages(pages, clones, releases, now, owner):
             except (OSError, ValueError):
                 continue
             for p in projects:
-                stage = p.get("stage") or ""
+                # 0.113.5: the Keeper refreshes stage_latest; dating by "stage" alone flagged fresh rows as behind
+                stage = ((p.get("stage") or "") + " " + (p.get("stage_latest") or "")).strip()
                 dates = sorted(re.findall(r"\d{4}-\d\d-\d\d", stage))
                 when = datetime.date.fromisoformat(dates[-1]) if dates else None
                 entries.append((p.get("repo", ""), "", when, stage + " " + str(p.get("latest_release") or ""),

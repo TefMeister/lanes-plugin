@@ -31,6 +31,9 @@ def parse(prompt):
 
 
 def project_of(job, args):
+    import clash
+    if not clash.JOBS.get(job, {}).get("per_project"):
+        return "all"    # 0.113.5: "/od part of /fullscan" held Out of Date on a project called "part"
     for a in args:
         if a != "force" and not a.startswith(("-", "skip:")):
             return a

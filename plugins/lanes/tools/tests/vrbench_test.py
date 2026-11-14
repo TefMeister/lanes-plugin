@@ -50,7 +50,7 @@ class FakeProbes:
 
 
 import vb_learn
-import vb_stages_vr  # noqa: E402
+import vb_stages_vr  # noqa: E402,F401  (imported to prove it loads)
 
 
 class FakeTools:

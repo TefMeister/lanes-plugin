@@ -1114,7 +1114,7 @@ def places_cell(conf, pushed):
     try:
         with open(os.path.join(folder, "INDEX.json"), encoding="utf-8") as f:
             for p in json.load(f).get("projects") or []:
-                dates = sorted(re.findall(r"\d{4}-\d\d-\d\d", p.get("stage") or ""))
+                dates = sorted(re.findall(r"\d{4}-\d\d-\d\d", (p.get("stage") or "") + " " + (p.get("stage_latest") or "")))
                 if p.get("repo"):
                     stages[p["repo"].lower()] = dates[-1] if dates else ""
     except (OSError, ValueError, AttributeError):
