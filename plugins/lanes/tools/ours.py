@@ -61,6 +61,23 @@ TOOLS = {
                            "VR (magazine, well, slide, pump or bolt, front grip), live on the gun, made to hang in "
                            "the headset through Window View. Works with Visceral RE8 for now (Resident Evil Village "
                            "VR); called Grab Zones until 2026-10-27"},
+    "holster_zones": {"label": "Holster Zones", "repo": "TefMeister/holster-zones-vr", "kind": "app",
+                      "folder": "HolsterZones", "exe": "HolsterZones.exe",
+                      "what": "a small window of sliders that moves and resizes every holster spot on the body in VR "
+                              "(the quick slots, knife, medicine, ammo pouch), with a SITTING offset for playing from a "
+                              "chair; the sister of Grip Zones, made to hang in the headset through Window View. Works "
+                              "with Visceral RE8 for now"},
+    "gun_poser": {"label": "Gun Poser", "repo": "TefMeister/gun-poser-vr", "kind": "app",
+                  "folder": "GunPoser", "exe": "GunPoser.exe",
+                  "what": "a small window of sliders that aims and moves the gun in the right hand in VR (up or down, "
+                          "left or right, roll, and forward, up or sideways in the hand), for one gun or all, made to "
+                          "hang in the headset through Window View. Works with Visceral RE8 for now"},
+    "animation_timing": {"label": "Animation & Timing", "repo": "TefMeister/animation-timing-vr", "kind": "app",
+                         "folder": "AnimTiming", "exe": "AnimTiming.exe",
+                         "what": "a window plus one REFramework script that freezes, steps, slows down and nudges the "
+                                 "player's animations in RE Engine games, with keys per frame; with Visceral RE8 it "
+                                 "also tunes the mod's finger movements and timings live. The sister of Hand Poser; "
+                                 "first run in a real game 2026-11-14"},
     "cubekit": {"label": "CubeKit (Blender add-on)", "repo": "TefMeister/blender-cubekit", "kind": "blender",
                 "what": "builds pixel-style models out of little cubes from a settings file: one cube size, pick any "
                         "single cube, carved wear, stop-motion animation and export for GZDoom; made for the "

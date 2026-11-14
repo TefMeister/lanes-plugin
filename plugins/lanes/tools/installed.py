@@ -17,8 +17,8 @@ from origin/main, after a quick fetch, because a note written elsewhere arrives 
 Like owed.sh, this NEVER commits: it writes one file and the close-out box reports it as unsaved until the session
 saves the board. Exit 0 always for brief/scan (a start-up check must never be why a session opens with an error).
 
-APPS it can find by itself (scan): Hand Freeze, VR Bench, Window View, Hand Poser, Grip Zones. A new app of ours adds one line to
-APPS.
+APPS it can find by itself (scan): Hand Freeze, VR Bench, Window View, Hand Poser, Grip Zones, Holster Zones, Gun
+Poser, Animation & Timing. A new app of ours adds one line to APPS.
 Tests set LANES_BOARD, LANES_CONFIG, LANES_HANDFREEZE_DIR and LANES_VRBENCH_LAYER_DIR.
 """
 import datetime
@@ -73,7 +73,10 @@ def app_found(folder, exe):
 # app name -> how to find it on this PC (returns the release, or None when absent)
 APPS = {"Hand Freeze": handfreeze_found, "VR Bench": vrbench_found,
         "Window View": app_found("WindowView", "WindowView.exe"), "Hand Poser": app_found("HandPoser", "HandPoser.exe"),
-        "Grip Zones": app_found("GripZones", "GripZones.exe")}
+        "Grip Zones": app_found("GripZones", "GripZones.exe"),
+        "Holster Zones": app_found("HolsterZones", "HolsterZones.exe"),
+        "Gun Poser": app_found("GunPoser", "GunPoser.exe"),
+        "Animation & Timing": app_found("AnimTiming", "AnimTiming.exe")}
 
 
 def conf_files():
