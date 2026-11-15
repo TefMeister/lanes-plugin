@@ -926,6 +926,22 @@ else
   fail "scan_priority_test.py failed"
 fi
 
+echo "netcheck.py - the network check reads only, says what is unsafe and what changed (0.116.0)"
+if out=$("$PY" "$HERE/netcheck_test.py" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "netcheck_test.py failed"
+fi
+
+echo "spacecheck.py - the space check looks only and never names a kept folder (0.116.0)"
+if out=$("$PY" "$HERE/spacecheck_test.py" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "spacecheck_test.py failed"
+fi
+
 echo "quiet_install.py - installs with no Yes click: what an order may carry, the runner's refusals (0.110.0)"
 if out=$("$PY" "$HERE/quiet_install_test.py" 2>&1); then
   ok "$(printf '%s\n' "$out" | tail -n 1)"

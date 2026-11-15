@@ -386,6 +386,41 @@ def cmd_note(a):
     say(event="note", notes=len(route["setup_notes"]))
 
 
+def cmd_expect(a):
+    """Give step N (a key, click, wheel or hold) a picture check that runs before its input (mom_expect)."""
+    import mom_expect as E
+    route = R.load(a.route)
+    if not 0 <= a.step < len(route["steps"]) or not any(k in route["steps"][a.step] for k in
+                                                         ("key", "click", "wheel", "hold", "turn", "play")):
+        say(event="error", error=f"step {a.step} is not a key, click, wheel or hold step")
+        sys.exit(1)
+    test = {"test": a.test}
+    if a.test == "checkpoint":
+        test["name"] = a.name
+    else:
+        if not a.region:
+            say(event="error", error="--region x,y,w,h is needed for a number test"); sys.exit(1)
+        test["region"] = R.parse_region(a.region)
+    read = None
+    if a.image and a.test != "checkpoint":
+        from PIL import Image
+        read = round(E.measure(Image.open(a.image), test), 3)
+        if a.min is None and a.max is None:      # a limit between this picture and an empty screen
+            test.update(E.suggest_limit(a.test, read))
+    if a.min is not None:
+        test["min"] = a.min
+    if a.max is not None:
+        test["max"] = a.max
+    step = route["steps"][a.step]
+    step["expect"] = E.tests_of(step) + [test] if a.alt else test
+    if a.always:
+        step["always"] = True
+    E.validate(route, a.route)
+    R.save(route, a.route)
+    say(event="expect", step=a.step, test=test, read_on_image=read, ways=len(E.tests_of(step)),
+        always=bool(step.get("always")))
+
+
 def register_common(sub):
     """The commands both Menu-o-matiC and Move-o-matiC have."""
     s = sub.add_parser("look"); s.add_argument("window"); s.add_argument("out")
@@ -432,7 +467,19 @@ def register_common(sub):
     s = sub.add_parser("run"); s.add_argument("routes", nargs="+")
     s.add_argument("--from", dest="start", type=int, default=0)
     s.add_argument("--lost-dir", default="menu-o-matic-lost")
-    s.add_argument("--timeout", type=float, default=DEFAULT_WAIT_TIMEOUT_S); s.set_defaults(f=cmd_run)
+    s.add_argument("--timeout", type=float, default=DEFAULT_WAIT_TIMEOUT_S)
+    g = s.add_mutually_exclusive_group()
+    g.add_argument("--check", action="store_true", help="look at every expect on this run")
+    g.add_argument("--no-check", action="store_true", help="look at none, not even the 'always' ones")
+    s.set_defaults(f=cmd_run)
+    s = sub.add_parser("expect"); s.add_argument("route"); s.add_argument("step", type=int)
+    s.add_argument("--test", required=True, choices=("red", "bright", "dark", "checkpoint"))
+    s.add_argument("--region"); s.add_argument("--name", help="the checkpoint, for --test checkpoint")
+    s.add_argument("--min", type=float); s.add_argument("--max", type=float)
+    s.add_argument("--image", help="a picture of the right screen: reads the number and suggests the limit")
+    s.add_argument("--or", dest="alt", action="store_true", help="add as another way the screen may look")
+    s.add_argument("--always", action="store_true", help="check on every run (New Game, overwrite save)")
+    s.set_defaults(f=cmd_expect)
 
 
 # The commands that press keys, click or turn: two of these from different sessions on one PC press into each

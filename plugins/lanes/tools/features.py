@@ -191,6 +191,20 @@ FEATURES = {
                               "scan has ended; ten minutes after being told, anything but a save is refused. "
                               "Hand-overs from the other PC wait in order and are uploaded afterwards",
                       "link": PROTO_LINK + "48-the-full-scan-goes-first-01100-2026-11-11"},
+    "netcheck": {"label": "Network safety check", "set": "checkup",
+                 "what": "the weekly full scan reads this PC's network safety, without changing anything: Windows "
+                         "Firewall, the antivirus, Remote Desktop and old file sharing, recent Windows updates, and "
+                         "what changed since last week (a program newly open to the network, a new firewall opening, "
+                         "something new at Windows start, a remote-access program, the name server, the hosts file); "
+                         "programs you keep on purpose go in netcheck_known and are never flagged",
+                 "link": GH + "tools/netcheck.py"},
+    "spacecheck": {"label": "Forgotten space finder", "set": "checkup",
+                   "what": "the weekly full scan walks this PC's drives and lists what sits there taking space, in "
+                           "three groups (safe to clear, probably safe, yours to decide): the Recycle Bin, old temporary "
+                           "files and caches, old downloads and crash dumps, big files untouched for half a year, the "
+                           "same big file kept twice, folders untouched for a year; it never deletes anything, and "
+                           "never names programs, games, saved builds, project copies or folders in spacecheck_keep",
+                   "link": GH + "tools/spacecheck.py"},
     "quiet_installs": {"label": "Installs with no Yes click", "set": "tools", "ask_on_update": True,
                        "what": "one Yes click, once per PC, makes a Windows task that installs and updates programs "
                                "from the Windows package catalogue with administrator rights, so the weekly tool "

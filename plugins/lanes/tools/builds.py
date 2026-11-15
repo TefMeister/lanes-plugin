@@ -80,6 +80,9 @@ import builds_vanilla as vanilla
 BIG_FILE_MB = 95                       # above this a file goes up as a release asset, not into git
 DEFAULT_SERIES = "0.1.0"
 TITLE_MAX = 70                         # characters of the title kept in a folder name
+TITLE_MIN = 8                          # a title shortened to fit the path limit keeps at least this many
+WIN_PATH_MAX = 259                     # Windows' classic path limit (260 with the closing nul), long paths off
+HALF_DIR = ".half-builds"              # a cut-off copy is moved here: kept on this PC, never sent up
 CHANGES_LIST_MAX = 200                 # files listed per section in CHANGES.md
 PUSH_TRIES = 3
 RELEASE_STUB = ".release.txt"
@@ -243,12 +246,33 @@ def send_pending(root, pending):
         conf = read_project(root, project)
         for name in names:
             bdir = os.path.join(root, project, name)
+            if not os.path.isfile(os.path.join(bdir, "MANIFEST.sha256")):
+                set_half_aside(root, project, name)
+                continue
             when, note = changes_field(bdir, "When"), changes_field(bdir, "What changed and why")
             result = changes_field(bdir, "Result")
             result = "" if result == NOT_TESTED else result
             name = move_to_free_number(root, project, conf, name)
             name, state = save_build(root, project, conf, name, when, note, result)
             print(f"kept on this PC until now, sent up: {project} {name} (github: {state})")
+
+
+def set_half_aside(root, project, name):
+    """A build folder with no MANIFEST.sha256 is a copy that was cut off (before 0.116.0 such a folder stayed, and the
+    next snap pushed it as a build: Village b119, 176 of 322 files). It is moved to HALF_DIR, which git is told to
+    ignore: kept on this PC, never sent up, never in the list."""
+    target = os.path.join(root, HALF_DIR, project, name)
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    if os.path.exists(target):
+        target += time.strftime(" (%Y-%m-%d %H%M%S)")
+    shutil.move(os.path.join(root, project, name), target)
+    exclude = os.path.join(root, ".git", "info", "exclude")
+    os.makedirs(os.path.dirname(exclude), exist_ok=True)
+    have = open(exclude, encoding="utf-8").read() if os.path.isfile(exclude) else ""
+    if f"/{HALF_DIR}/" not in have.splitlines():
+        with open(exclude, "a", encoding="utf-8", newline="\n") as f:
+            f.write(("" if have.endswith("\n") or not have else "\n") + f"/{HALF_DIR}/\n")
+    print(f"  NOT sent up: {project} {name} is a cut-off copy (no MANIFEST.sha256); kept aside in {HALF_DIR}/")
 
 
 def has_upstream(root):
@@ -346,6 +370,27 @@ def feature_of(name):
 
 def safe_title(t):
     return re.sub(r"[^\w .,+()-]", "", t).strip()[:TITLE_MAX].strip()
+
+
+def build_name(root, project, conf, num, title, feature, ours):
+    """The build's folder name, its title shortened when the longest file would pass Windows' path limit (2026-11-14,
+    Village holsters b119: WinError 3 after 176 of 322 files). Refused before anything is copied when even a short
+    title cannot fit."""
+    head = f"v{conf['series']}-b{num:03d} - "
+    feat = f"{safe_title(feature)}/" if feature and safe_title(feature) else ""
+    longest = max([len(rel) + len(RELEASE_STUB) for rel in ours] + [len("MANIFEST.sha256")])
+    base = len(os.path.abspath(os.path.join(root, project))) + 1 + len(feat) + len(head) + 1
+    room = WIN_PATH_MAX - base - longest
+    t = safe_title(title)
+    if len(t) > room:
+        if room < TITLE_MIN:
+            worst = max(ours, key=len) if ours else "MANIFEST.sha256"
+            sys.exit(f"builds.py: no room for a title: the longest file ({worst}) would pass Windows' path limit of "
+                     f"{WIN_PATH_MAX} characters under {project}. Nothing was copied. Use a shorter --feature, or "
+                     "a builds store nearer the drive's top folder.")
+        t = t[:room].rstrip(" .,+-(")
+        print(f"  the title was shortened to fit Windows' path limit: {t!r}")
+    return f"{feat}{head}{t}"
 
 
 def write_ignore_and_stubs(root, project, build_dir, conf, tag_hint):
@@ -473,17 +518,24 @@ def snapshot(root, project, conf, title, note, result, source, feature=""):
     pull(root)
     existing = builds(root, project, conf)
     num = existing[-1][0] + 1 if existing else 1
-    name = f"v{conf['series']}-b{num:03d} - {safe_title(title)}"
-    if feature and safe_title(feature):
-        name = f"{safe_title(feature)}/{name}"
+    ours = files_of_ours(src, conf)
+    name = build_name(root, project, conf, num, title, feature, ours)
     dest = os.path.join(root, project, name)
     os.makedirs(dest)
     now = {}
-    for rel, full in files_of_ours(src, conf).items():
-        target = os.path.join(dest, rel)
-        os.makedirs(os.path.dirname(target), exist_ok=True)
-        shutil.copy2(full, target)
-        now[rel] = sha(target)
+    fail_after = int(os.environ.pop("LANES_BUILDS_TEST_FAIL_AFTER", "0") or 0)   # tests only: a copy cut off
+    try:
+        for rel, full in ours.items():
+            if fail_after and len(now) >= fail_after:
+                raise OSError("test: copy cut off on purpose")
+            target = os.path.join(dest, rel)
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            shutil.copy2(full, target)
+            now[rel] = sha(target)
+    except OSError as e:                     # 2026-11-14: a copy cut off half way stayed and was pushed later
+        shutil.rmtree(dest, ignore_errors=True)
+        sys.exit(f"builds.py: the copy of {name} stopped at {len(now)} of {len(ours)} files ({e}). "
+                 "Nothing was kept or sent up; fix the cause and run snap again.")
     with open(os.path.join(dest, "MANIFEST.sha256"), "w", encoding="utf-8", newline="\n") as f:
         f.writelines(f"{now[p]}  {p}\n" for p in sorted(now))
     prev_name = existing[-1][1] if existing else ""

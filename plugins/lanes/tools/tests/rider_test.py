@@ -67,7 +67,8 @@ def main():
     R.file_ended([(tool, q, "x")], set(), set())
     check(any("could not file" in s for s in said) and not os.path.exists(q), "a filer that throws does not stop the rest")
 
-    # 3. a pass that throws does not end the loop
+    # 3. a pass that throws does not end the loop (with a test-only mutex, so a real rider on this PC is not in the way)
+    R.ONE_RIDER_MUTEX = f"Local\\BeG0nE-rider-test-{os.getpid()}"
     passes = []
 
     def bad_pass(*a):
@@ -96,6 +97,32 @@ def main():
     check(R.game_of({"game": "?"}, [], two) == R.UNKNOWN_GAME, "two open runs and no clue: unknown-game, no guess")
     check(R.game_of({"game": "?"}, ["darkness.exe"], two) == "the-darkness-vr", "two open runs: the VR one wins")
     check("?" not in R.UNKNOWN_GAME, "the fallback name is a valid folder name")
+
+    # 5. one rider per PC (0.116.x: two riders on the Developer PC each started OBS; the second start crashed it and
+    # every "OBS has crashed!" box played the Windows error sound at Silent Hill 2's cutscene starts)
+    check(R.is_rider_cmd(["pythonw.exe", r"C:\x\begone\rider.py", "run"]), "a rider loop's command line is seen")
+    check(R.is_rider_cmd(["python", "/x/camera-jitter/ride-along/ride.py", "run"]), "the old ride.py loop too")
+    check(not R.is_rider_cmd(["python", r"C:\x\begone\rider.py", "status"]), "rider.py status is not a rider")
+    check(not R.is_rider_cmd(["python", r"C:\x\tools\obs-rec.py", "run"]), "another program's run is not a rider")
+    if os.name == "nt":
+        import subprocess
+        import time
+        check(not R.take_the_one_rider_lock(), "a second rider in the same PC cannot take the lock the first holds")
+        said.clear(); passes.clear()
+        R.run()                                      # returns at once: the lock is held (by section 3's run)
+        check(not passes, "a second rider does not ride")
+        check(any("another rider already runs" in s for s in said), "and says so in the rider's log")
+        other = R.ONE_RIDER_MUTEX + "-child"
+        code = ("import sys,time; sys.path.insert(0, sys.argv[1]); import rider as R; "
+                "print('held' if R.take_the_one_rider_lock(sys.argv[2]) else 'refused', flush=True); time.sleep(3)")
+        child = subprocess.Popen([sys.executable, "-c", code, os.path.join(PLUGIN, "begone"), other],
+                                 stdout=subprocess.PIPE, text=True, env=os.environ.copy())
+        first = child.stdout.readline().strip()
+        check(first == "held", f"a rider in another process takes the lock ({first})")
+        check(not R.take_the_one_rider_lock(other), "while it runs, this process cannot take it")
+        child.wait(timeout=20)
+        time.sleep(0.3)
+        check(R.take_the_one_rider_lock(other), "once that rider has ended, the lock is free (a killed rider never blocks)")
 
     print("rider_test: " + ("all passed" if not fails else f"{fails} failed"))
     return 1 if fails else 0

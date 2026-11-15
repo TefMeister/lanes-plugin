@@ -25,6 +25,10 @@ SHELLS = ("Bash", "PowerShell")
 SAVE_OK = re.compile(
     r"\bgit(?:\.exe)?\b[^;&|\n]*\b(status|diff|log|show|add|commit|push|fetch|stash|rev-parse|branch|remote)\b"
     r"|(?:scan_priority|parcel|handover|clash|owed|keeper)\.(?:py|sh)\b", re.I)
+# The scan's closing steps (fullscan step 7, 7b): when its own session runs one, the run is done and holds nobody
+# more, even if the window goes on to other work (0.116.0).
+SCAN_END = re.compile(r"\bscan_priority\.py[\"']?\s+done\b|\bgd\.py[\"']?\s+fullscan-done\b|\b(?:gu|ch)\.py[\"']?\s+done\b"
+                      r"|\bscan_snapshot\.py[\"']?\s+take\s+after\b|\bclash\.py[\"']?\s+release\s+fullscan\b", re.I)
 CHANGES = re.compile(r"\bgit(?:\.exe)?\b[^;&|\n]*\b(pull|merge|rebase|reset|checkout|switch|restore|clean)\b", re.I)
 
 
@@ -53,6 +57,9 @@ def guard(data):
     if not rec:
         if SP.is_holder(session):                   # the scan's own session: its call is the scan's heartbeat
             SP.beat(session)
+            cmd = (data.get("tool_input") or {}).get("command") or ""
+            if data.get("tool_name", "") in SHELLS and SCAN_END.search(cmd):
+                SP.end_run(session)                 # its closing step: the others carry on from here
         return 0
     what = SP.label(rec)
     if event == "UserPromptSubmit":

@@ -160,9 +160,15 @@ def send_one(repo_name, f, quiet_when_nothing=False, note=""):
         return 1
     ok, branch = git(["branch", "--show-current"], repo)
     ok2, upstream = git(["rev-parse", "--abbrev-ref", "@{u}"], repo)
+    remote = ""
+    if ok and branch and not ok2:
+        upstream, remote = follow_if_on_github(repo, branch)
+        ok2 = bool(upstream or remote)
     if not (ok and branch and ok2):
-        print("parcel: %s is on no branch that follows GitHub; nothing sent" % repo_name)
+        print("parcel: %s is on no branch that follows GitHub and has no GitHub address; nothing sent" % repo_name)
         return 1
+    if remote:                                                     # a brand-new project: every step goes (0.116.0)
+        return send_new(repo_name, repo, branch, remote, f, note)
     _, count = git(["rev-list", "--count", upstream + "..HEAD"], repo)
     if not count.isdigit() or int(count) == 0:
         if not quiet_when_nothing:
@@ -207,6 +213,65 @@ def send_one(repo_name, f, quiet_when_nothing=False, note=""):
     return 0
 
 
+def clean_url(url):
+    """the GitHub address without a login or token in it (an address with user:token@ is never written down)"""
+    if "://" in url and "@" in url.split("://", 1)[1].split("/", 1)[0]:
+        scheme, rest = url.split("://", 1)
+        return scheme + "://" + rest.split("@", 1)[1]
+    return url
+
+
+def follow_if_on_github(repo, branch):
+    """A branch with no upstream (2026-11-14: holster-zones-vr, a new repo, could not be handed over). When GitHub
+    has the branch already (the Keeper uploaded the first parcel), follow it and go on as usual: returns
+    (upstream, ""). When it has not: (\"\", origin's address) so the whole branch goes as a new project's parcel.
+    No origin at all: (\"\", \"\")."""
+    ok, url = git(["remote", "get-url", "origin"], repo)
+    if not ok or not url:
+        return "", ""
+    git(["fetch", "-q", "origin"], repo)
+    if git(["rev-parse", "--verify", "-q", "refs/remotes/origin/" + branch], repo)[0]:
+        git(["branch", "-q", "--set-upstream-to", "origin/" + branch], repo)
+        return "origin/" + branch, ""
+    return "", clean_url(url)
+
+
+def send_new(repo_name, repo, branch, remote, f, note):
+    """a new project's first parcel: the whole branch, with GitHub's address on the label (the Keeper has no copy)"""
+    _, tip = git(["rev-parse", "HEAD"], repo)
+    for _, d in labels(f["outbox"]):
+        if d.get("repo") == repo_name and d.get("tip") == tip:
+            print("parcel: %s is already handed over (waiting for the Keeper): %s" % (repo_name, d["id"]))
+            return 0
+    _, count = git(["rev-list", "--count", "HEAD"], repo)
+    _, subjects = git(["log", "--format=%s", "HEAD"], repo)
+    _, loose = git(["status", "--porcelain"], repo)
+    pid = "%s__%s__%s__%s" % (repo_name, branch.replace("/", "-"), time.strftime("%Y%m%d-%H%M%S"), tip[:10])
+    label = {"id": pid, "repo": repo_name, "branch": branch, "tip": tip, "base": "", "steps": int(count or 0),
+             "subjects": subjects.splitlines()[:50], "from": conf().get("machine_name", ""), "note": note,
+             "sent": time.strftime("%Y-%m-%d %H:%M:%S"), "new": True, "remote": remote}
+    extra = "; %d change(s) not saved in a step yet stay behind" % len(loose.splitlines()) if loose else ""
+    if this_pc():
+        label["direct"] = True
+        write_json(os.path.join(f["outbox"], pid + ".json"), label)
+        flags = (CREATE_NO_WINDOW | DETACHED_PROCESS) if os.name == "nt" else 0
+        subprocess.Popen([sys.executable, os.path.abspath(__file__), "_push", pid], creationflags=flags,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL)
+        print("parcel: %s (new on GitHub) handed over, %s step(s); uploading in the background%s" % (repo_name, count, extra))
+        return 0
+    bundle = os.path.join(f["outbox"], pid + ".bundle")
+    ok, out = git(["bundle", "create", bundle + ".part", branch], repo)
+    if not ok:
+        print("parcel: could not seal %s: %s" % (repo_name, out.splitlines()[-1] if out else "?"))
+        return 1
+    os.replace(bundle + ".part", bundle)
+    label.update(sha256=sha256(bundle), bytes=os.path.getsize(bundle))
+    write_json(os.path.join(f["outbox"], pid + ".json"), label)
+    print("parcel: %s (new on GitHub) handed over, %s step(s), %.1f MB%s"
+          % (repo_name, count, os.path.getsize(bundle) / 1e6, extra))
+    return 0
+
+
 def push_direct(pid):
     """one PC: upload a handed-over project from its working copy, in the background, and write the receipt"""
     f = folders()
@@ -215,7 +280,10 @@ def push_direct(pid):
     if not d:
         return 1
     repo = os.path.join(root(), d["repo"])
-    ok, out = git(["push", "origin", "%s:%s" % (d["tip"], d["branch"])], repo)
+    ok, out = git(["push", "origin", "%s:refs/heads/%s" % (d["tip"], d["branch"])], repo)
+    if ok and d.get("new"):
+        git(["fetch", "-q", "origin"], repo)
+        git(["branch", "-q", "--set-upstream-to", "origin/" + d["branch"]], repo)
     if ok:
         done(f, label_path, label_path[:-5] + ".bundle")
         receipt(f, d, ON_GITHUB)
@@ -284,6 +352,14 @@ def light():
         if name in skip or not os.path.isdir(os.path.join(repo, ".git")):
             continue
         ok, count = git(["rev-list", "--count", "@{u}..HEAD"], repo)
+        new = False
+        if not ok and git(["remote", "get-url", "origin"], repo)[0] and git(["rev-parse", "-q", "--verify", "HEAD"], repo)[0]:
+            _, branch = git(["branch", "--show-current"], repo)    # a new project with no upstream yet (0.116.0)
+            if branch and follow_if_on_github(repo, branch)[0]:    # uploaded since: it follows GitHub now
+                ok, count = git(["rev-list", "--count", "@{u}..HEAD"], repo)
+            else:
+                ok, count = git(["rev-list", "--count", "HEAD"], repo)
+                new = True
         if ok and count.isdigit() and int(count):
             _, tip = git(["rev-parse", "HEAD"], repo)
             d = sent.get((name, tip))
@@ -293,6 +369,8 @@ def light():
             elif d:
                 why = (answer or {}).get("why", "") if (answer or {}).get("status") == NOT_YET else ""
                 waiting.append(name + (" (%s)" % why if why else ""))   # e.g. the full scan goes first (0.110.0)
+            elif new:
+                unsent.append(name + " (new on GitHub)")
             else:
                 git(["fetch", "-q", "origin"], repo)               # perhaps uploaded since: look again, level
                 _, count = git(["rev-list", "--count", "@{u}..HEAD"], repo)
@@ -335,8 +413,10 @@ def receive_one(label_path, d, f):
     repo = os.path.join(root(), d["repo"])
     branch = d["branch"]
     if not os.path.isdir(os.path.join(repo, ".git")):
-        receipt(f, d, NOT_YET, "the Keeper has no copy of this project in its clone root")
-        return 1
+        if not d.get("new"):
+            receipt(f, d, NOT_YET, "the Keeper has no copy of this project in its clone root")
+            return 1
+        return receive_new(label_path, d, f, repo, bundle)
     _, now_branch = git(["branch", "--show-current"], repo)
     _, changed = git(["status", "--porcelain", "--untracked-files=no"], repo)
     if now_branch != branch or changed:
@@ -377,6 +457,57 @@ def receive_one(label_path, d, f):
     git(["update-ref", "-d", ref], repo)
     done(f, label_path, bundle)
     receipt(f, d, ON_GITHUB)
+    return 0
+
+
+def rm_tree(path):
+    """remove a folder git made: its object files are read-only on Windows, which plain rmtree cannot remove"""
+    def unlock(func, p, _exc):
+        try:
+            os.chmod(p, 0o700)
+            func(p)
+        except OSError:
+            pass
+    shutil.rmtree(path, onerror=unlock)
+
+
+def receive_new(label_path, d, f, repo, bundle):
+    """A brand-new project's first parcel (0.116.0): the Keeper makes its copy from the parcel, points it at GitHub
+    and uploads. The repo must exist on GitHub already (made private by the session that made it); the Keeper
+    never creates one. GitHub holding steps of its own is refused like any parcel that does not fit."""
+    branch = d["branch"]
+    ok, out = git(["clone", "-q", "--branch", branch, bundle, repo], root())
+    if not ok:
+        rm_tree(repo)
+        receipt(f, d, REFUSED, "the new project's parcel could not be opened")
+        return 1
+    git(["remote", "set-url", "origin", d.get("remote", "")], repo)
+    ok, out = git(["ls-remote", "--heads", "origin"], repo)
+    if not ok:
+        rm_tree(repo)
+        receipt(f, d, REFUSED, "GitHub has no such project yet (or could not be reached): make the repo there first, "
+                               "private unless Tefa says otherwise, then hand over again")
+        return 1
+    git(["fetch", "-q", "--prune", "origin"], repo)                # forget the parcel's own branch names
+    if git(["rev-parse", "--verify", "-q", "refs/remotes/origin/" + branch], repo)[0]:
+        if git(["merge-base", "--is-ancestor", d["tip"], "origin/" + branch], repo)[0]:
+            git(["branch", "-q", "--set-upstream-to", "origin/" + branch], repo)
+            done(f, label_path, bundle)
+            receipt(f, d, ON_GITHUB, "it was there already")
+            return 0
+        if not git(["merge-base", "--is-ancestor", "origin/" + branch, d["tip"]], repo)[0]:
+            rm_tree(repo)
+            receipt(f, d, REFUSED, "GitHub has steps of its own in this project; pull there and hand over again")
+            return 1
+    ok, out = git(["push", "-u", "origin", branch], repo)
+    if not ok:
+        tail = " / ".join(l.strip() for l in out.splitlines()[-6:]
+                          if l.strip() and "failed to push some refs" not in l and not l.startswith("To "))
+        rm_tree(repo)
+        receipt(f, d, REFUSED, "the upload was refused or failed: " + tail[:600])
+        return 1
+    done(f, label_path, bundle)
+    receipt(f, d, ON_GITHUB, "a new project: the Keeper's copy was made from the parcel")
     return 0
 
 

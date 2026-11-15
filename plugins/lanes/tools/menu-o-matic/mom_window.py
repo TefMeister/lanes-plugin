@@ -91,6 +91,11 @@ REFUSED = []        # (title, program) of the windows the last find_window turne
 
 def program_of(hwnd):
     """The file name of the program that owns the window ("falloutnv.exe"), lower case, or "" if Windows won't say."""
+    return program_path(hwnd).replace("/", "\\").rsplit("\\", 1)[-1].lower()
+
+
+def program_path(hwnd):
+    """The full path of the program that owns the window, or "" if Windows won't say (mom_expect: a new game build)."""
     kernel32 = ctypes.windll.kernel32
     pid = w.DWORD()
     u.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
@@ -103,7 +108,7 @@ def program_of(hwnd):
         size = w.DWORD(1024)
         if not kernel32.QueryFullProcessImageNameW(handle, 0, buf, ctypes.byref(size)):
             return ""
-        return buf.value.replace("/", "\\").rsplit("\\", 1)[-1].lower()
+        return buf.value
     finally:
         kernel32.CloseHandle(handle)
 

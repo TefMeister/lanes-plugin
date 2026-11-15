@@ -209,6 +209,40 @@ has "proj/PROJECT.conf" "$out" "and names the file"
 has "git stash" "$out" "and says what to do with it"
 git -C "$T/pc2" checkout -q -- proj/PROJECT.conf
 
+echo "a long title is shortened to fit Windows' path limit, and a cut-off copy is never kept (0.116.0)"
+# 2026-11-14, Developer PC: a long build title made a path too long; the copy stopped half way (WinError 3), the half
+# build stayed, and the next snap pushed it as a build (Village holsters b119, 176 of 322 files, no manifest).
+mkpath() { "$PY" - "$1" "$2" <<'EOF'
+import os, sys
+base, total = sys.argv[1], int(sys.argv[2])
+rel = "mods/" + "d" * 40 + "/"
+rel += "f" * (total - len(os.path.abspath(base)) - 1 - len(rel) - 4) + ".txt"
+full = os.path.join(base, rel); os.makedirs(os.path.dirname(full), exist_ok=True)
+open(full, "w").write("x")
+EOF
+}
+LS="$T/ls"; mkdir -p "$LS/mods"; echo v-long > "$LS/mod.dll"; mkpath "$LS" 180
+LONGT="a very long build title that goes on and on about holsters and seated play and the left hand docking again"
+out=$(pc pc2 snap proj "$LONGT" --note "long title" --source "$LS")
+has "shortened to fit" "$out" "a title too long for the path limit is shortened"
+has "github: pushed" "$out" "and the build is saved and pushed"
+newest=$(ls "$T/pc2/proj" | grep '^v1.0.0-b' | sort | tail -1)
+[ -f "$T/pc2/proj/$newest/MANIFEST.sha256" ] && ok "the shortened build is complete" || fail "the shortened build is complete"
+LS2="$T/l2"; mkdir -p "$LS2/mods"; echo v-l2 > "$LS2/mod.dll"; mkpath "$LS2" 250
+before=$(ls "$T/pc2/proj" | wc -l)
+out=$(pc pc2 snap proj "too deep" --note "no room" --source "$LS2")
+has "no room for a title" "$out" "with no room even for a short title, snap refuses"
+[ "$(ls "$T/pc2/proj" | wc -l)" = "$before" ] && ok "and copies nothing" || fail "and copies nothing"
+out=$(LANES_BUILDS_TEST_FAIL_AFTER=1 pc pc2 snap proj "cut off" --note "copy fails half way" --source "$LS")
+has "Nothing was kept or sent up" "$out" "a copy that stops half way says so"
+[ -z "$(ls "$T/pc2/proj" | grep 'cut off')" ] && ok "and leaves no half build behind" || fail "and leaves no half build behind"
+HB="$T/pc2/proj/v1.0.0-b099 - half"; mkdir -p "$HB"; echo part > "$HB/mod.dll"   # an old half build, no manifest
+out=$(pc pc2 which proj)
+has "NOT sent up" "$out" "an old half build found in the store is not sent up"
+hasnt "b099 - half" "$(git -C "$T/remote.git" log --format=%s -5)" "it never reaches GitHub"
+[ -f "$T/pc2/.half-builds/proj/v1.0.0-b099 - half/mod.dll" ] && ok "it is kept aside on this PC" || fail "it is kept aside on this PC"
+[ -z "$(git -C "$T/pc2" status --porcelain)" ] && ok "and the store is clean" || fail "and the store is clean"
+
 echo
 [ "$FAILED" -eq 0 ] && echo "builds-fixture: $N checks, 0 failed" || echo "builds-fixture: FAILURES above ($N checks)"
 exit "$FAILED"

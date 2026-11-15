@@ -14,6 +14,10 @@ done
 [ -n "$PY" ] || { echo "skip: no python"; exit 0; }
 "$PY" -c "import PIL" >/dev/null 2>&1 || { echo "skip: Pillow is not installed (python -m pip install pillow)"; exit 0; }
 out=$("$PY" "$TEST" 2>&1); rc=$?
+# the picture check before a key press (mom_expect.py, 0.116.x): its own test, in a temp folder
+out2=$("$PY" "$(dirname "$TEST")/test_mom_expect.py" 2>&1); rc2=$?
+out="$out
+$out2"
 printf '%s\n' "$out" | grep "^FAIL" || true
 n=$(printf '%s\n' "$out" | grep -c "^ok")
-[ "$rc" -eq 0 ] && echo "menu-o-matic: $n checks passed" || { echo "menu-o-matic: FAILED"; exit 1; }
+[ "$rc" -eq 0 ] && [ "$rc2" -eq 0 ] && echo "menu-o-matic: $n checks passed" || { echo "menu-o-matic: FAILED"; exit 1; }

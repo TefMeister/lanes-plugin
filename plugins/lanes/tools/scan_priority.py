@@ -17,6 +17,9 @@ scan tidies, saves and publishes the same files. This is that missing half.
                                              return when it has ended. Run it as a BACKGROUND command: the session is
                                              called back when it returns, and carries on where it stopped
     python scan_priority.py lift             the PERSON's word: let the other sessions work beside this run after all
+    python scan_priority.py done [--session <id>]
+                                             the scan's OWN word, once its parts are done and saved (0.116.0): the
+                                             hold ends even if the window goes on working
     python scan_priority.py beat <session>   (the hook) the session that runs the scan is alive
 
 HOW IT HOLDS (hooks/scan-priority.py, run with the other tool guards)
@@ -29,6 +32,11 @@ HOW IT HOLDS (hooks/scan-priority.py, run with the other tool guards)
 
 WHEN THE SCAN'S WINDOW DIES. Its lock on this PC would last STALE_H hours. Here it counts as ended once the scan's
 session has made no tool call for QUIET_MIN minutes, so a crashed scan never freezes the PC for long.
+
+WHEN THE SCAN IS DONE BUT ITS WINDOW WORKS ON (0.116.0, 2026-11-14, Developer PC: the scan's parts were done by
+12:15, the window went on to other jobs and every call was a heartbeat, so the PC was held until 16:10). The hold
+ends at the scan's own `done` (fullscan step 7), and by itself when its session runs one of the scan's closing steps
+(the stamps, the snapshot after, giving the lock back), and at the latest HOLD_MAX_H hours after the run started.
 
 WHICH RUNS HAVE PRIORITY. `scan_priority_jobs = fullscan, gd, gr, sr, od, gu, ch, gs` in lanes.conf (that is the
 default: the full scan and every command it runs inside itself, also when one of them is run alone).
@@ -47,11 +55,13 @@ STATE_DIR = os.environ.get("LANES_STATE_DIR") or os.path.join(os.path.expanduser
 DIR = os.path.join(STATE_DIR, "scan-priority")
 BEAT = os.path.join(DIR, "beat.json")
 LIFT = os.path.join(DIR, "lift.json")
+ENDED = os.path.join(DIR, "ended.json")
 DEFAULT_JOBS = ("fullscan", "gd", "gr", "sr", "od", "gu", "ch", "gs")
 GRACE_MIN = 10              # how long a working session has to finish its step and save, once told
 QUIET_MIN = 45              # the scan's session silent this long = its window died; the hold ends
 WAIT_POLL_S = 15            # how often `wait` looks
 WAIT_MAX_H = 12             # `wait` gives up after this (the lock itself is stale by then)
+HOLD_MAX_H = 6              # a run holds the PC at most this long, however busy its window stays (0.116.0)
 REMIND_MIN = 4              # a told session that keeps working is told again this often, until the grace is over
 
 
@@ -92,6 +102,21 @@ def lift(rec, now=None):
     _write(LIFT, {"lock": lock_id(rec), "at": now or time.time()})
 
 
+def end_run(session, c=None):
+    """the scan's session says its run is done: every priority lock it holds stops holding the others. Returns how
+    many locks that was."""
+    import clash
+    import fullscan_lock as FL
+    if not session:
+        return 0
+    wanted = priority_jobs(FL.conf() if c is None else c)
+    ids = [lock_id(r) for r in clash.local_locks() if r.get("job") in wanted and r.get("session") == session]
+    if ids:
+        old = [i for i in _read(ENDED).get("locks", []) if i not in ids][-50:]
+        _write(ENDED, {"locks": old + ids})
+    return len(ids)
+
+
 def running(session="", c=None, now=None):
     """the lock of the priority run that holds this PC against `session`, or None.
     None when the run is this session's own, was lifted by the person, or its window died."""
@@ -101,6 +126,7 @@ def running(session="", c=None, now=None):
     now = now or time.time()
     wanted = priority_jobs(c)
     lifted = _read(LIFT).get("lock")
+    ended = set(_read(ENDED).get("locks", []))
     b = _read(BEAT)
     for rec in clash.local_locks():
         if rec.get("job") not in wanted or not rec.get("session") or rec["session"].startswith("tool-"):
@@ -109,9 +135,11 @@ def running(session="", c=None, now=None):
             continue
         if session and rec["session"] == session:
             continue
-        if lock_id(rec) == lifted:
+        if lock_id(rec) == lifted or lock_id(rec) in ended:
             continue
         started = rec["when"].timestamp() if rec.get("when") else now
+        if now - started > HOLD_MAX_H * 3600:
+            continue                                    # held long enough: a run never holds the PC all day
         last = b.get("at", 0) if b.get("session") == rec["session"] else 0
         if now - max(started, last) > QUIET_MIN * 60:
             continue                                    # its window died without giving the lock back
@@ -204,6 +232,11 @@ def main(argv):
         lift(rec)
         print("SCAN PRIORITY: lifted for %s. Other sessions may work beside it; the next run holds again."
               % label(rec))
+        return 0
+    if verb == "done":
+        n = end_run(session or os.environ.get("CLAUDE_CODE_SESSION_ID", ""))
+        print("SCAN PRIORITY: the run is done; the other sessions on this PC carry on." if n
+              else "SCAN PRIORITY: this session holds no priority run here; nothing to end.")
         return 0
     if verb == "wait":
         end = time.time() + WAIT_MAX_H * 3600

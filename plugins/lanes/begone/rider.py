@@ -30,6 +30,10 @@ lanes-next (2026-11-04): the ALWAYS-ON COLLECTOR rides here too (collector.py): 
 or VR, with or without a session, is collected while it runs and shelved for Gold Digger when it closes. With
 `collector` on (features.py). `start` also restarts a running rider whose code is older than the files on disk, so
 a plugin update reaches the rider without anyone remembering to.
+0.116.x: ONE RIDER PER PC. Two ran at once on the Developer PC (the Startup entry's `run` never looked; a session
+start's `start` only knew the pid file), both started OBS for the same game, the second start crashed it, and every
+"OBS has crashed!" box played the Windows error sound at Silent Hill 2's cutscene starts. Now a rider takes a named
+mutex or leaves, `start` / `stop` act on every rider process from any folder, and every recording decision is logged.
 """
 import ctypes
 import json
@@ -70,6 +74,8 @@ TIDY_EVERY_S = 3600             # how often the videos nothing needs are taken o
 TIDY_FIRST_S = 300              # the first tidy this long after the rider starts
 FEATURES = os.path.join(os.path.dirname(HERE), "tools", "features.py")
 SAVE_RETRY_S = 600              # reports left unsaved (git busy, offline) are tried again this often (autosave.py)
+ONE_RIDER_MUTEX = "Local\\BeG0nE-rider"   # every copy of the rider, whichever folder it runs from, takes this one
+ERROR_ALREADY_EXISTS = 183
 
 
 def say(msg):
@@ -201,7 +207,12 @@ def rec(*args):
 
 def start_recording(head, game, vr_exes=()):
     """True when the rider started a recording for this session (and so must stop it)"""
-    if not record_wanted() or recording_now():
+    # every way out says why in ride.log (0.116.x: "the rider's log says why it started or did not start OBS")
+    if not record_wanted():
+        say("not recording: begone_record is off in lanes.conf (or obs-rec.py is missing)")
+        return False
+    if recording_now():
+        say("not recording: OBS is already recording (obs-rec-state.json), so OBS is not started again")
         return False
     pid = head.get("pid", "")
     exe = exe_of(pid) if str(pid).isdigit() else None
@@ -214,7 +225,7 @@ def start_recording(head, game, vr_exes=()):
         ok, line = rec("start", exe, REC_LABEL, "--game", game)
     except Exception as e:
         ok, line = False, str(e)
-    say(line if ok else "could not record: " + line)
+    say(("started OBS: " + line) if ok else "could not record: " + line)
     return ok
 
 
@@ -346,11 +357,39 @@ def game_of(head, loaded=(), runs=None):
     return hits.pop() if len(hits) == 1 else UNKNOWN_GAME
 
 
+_one_rider = None                  # the Windows mutex this rider holds while it runs (kept so it is not let go)
+
+
+def take_the_one_rider_lock(name=None):
+    """True when this process is now THE rider on this PC. 0.116.x (Developer PC, 2026-11-13/14): two riders ran at
+    once, one from the Startup entry (`rider.py run`, which never looked) and one from a session start, both starting
+    OBS for the same game; the second start crashed OBS ("OBS has crashed!", 19 times on Silent Hill 2) and every
+    crash box played the Windows error sound. A named mutex is let go by Windows when its process ends, so a rider
+    that was killed never blocks the next one."""
+    global _one_rider
+    if os.name != "nt":
+        return True
+    k = ctypes.WinDLL("kernel32", use_last_error=True)
+    k.CreateMutexW.restype = ctypes.c_void_p
+    h = k.CreateMutexW(None, False, name or ONE_RIDER_MUTEX)
+    if not h:
+        return True                     # no mutex to be had: carry on as before rather than not ride at all
+    if ctypes.get_last_error() == ERROR_ALREADY_EXISTS:
+        k.CloseHandle(ctypes.c_void_p(h))
+        return False
+    _one_rider = h
+    return True
+
+
 def run():
     os.makedirs(bc.LOCAL, exist_ok=True)
+    if not take_the_one_rider_lock():
+        say(f"rider (pid {os.getpid()}) not started: another rider already runs on this PC (pid in {PID_FILE}); "
+            "one rider per PC, so OBS is never started twice")
+        return
     with open(PID_FILE, "w") as f:
         f.write(str(os.getpid()))
-    say("rider up: " + ", ".join(t["name"] for t in bc.tools() if t.get("log_dir")))
+    say(f"rider up (pid {os.getpid()}, {HERE}): " + ", ".join(t["name"] for t in bc.tools() if t.get("log_dir")))
     if feature_on("collector"):
         try:
             collector.recover()     # runs a stopped rider left open: adopted if the game still runs, else 'lost'
@@ -421,6 +460,31 @@ def running():
         return None, ""
 
 
+def is_rider_cmd(argv):
+    """True for the command line of a running rider loop, any copy: `... rider.py run` (or the old `ride.py run`)."""
+    names = [os.path.basename(a).lower() for a in argv]
+    return any(n in ("rider.py", "ride.py") for n in names) and "run" in [a.lower() for a in argv]
+
+
+def riders():
+    """(pid, command line) of EVERY rider loop running on this PC, from any folder, not only the one in the pid file
+    (0.116.x: the Startup entry's rider was never written down when a session start had already written its own)."""
+    try:
+        import psutil
+    except ImportError:
+        pid, cmd = running()
+        return [(pid, cmd)] if pid else []
+    found = []
+    for p in psutil.process_iter(["pid", "name", "cmdline"]):
+        try:
+            argv = p.info["cmdline"] or []
+            if p.info["pid"] != os.getpid() and "python" in (p.info["name"] or "").lower() and is_rider_cmd(argv):
+                found.append((p.info["pid"], " ".join(argv)))
+        except Exception:
+            continue
+    return found
+
+
 def is_this(cmd):
     return os.path.normcase(os.path.abspath(__file__)) in os.path.normcase(cmd)
 
@@ -440,11 +504,14 @@ def code_newer_than(pid):
 
 
 def start():
-    pid, cmd = running()
+    all_riders = riders()
+    pid, cmd = all_riders[0] if len(all_riders) == 1 else (None, "")
     if pid and is_this(cmd) and not code_newer_than(pid):
         print("already running"); return True
-    if pid:
-        stop()                          # an older rider (another plugin version, newer code on disk, or ride.py)
+    if all_riders:
+        # an older rider (another plugin version, newer code on disk, or ride.py), or more than one of them
+        stop()
+        time.sleep(1.0)                 # Windows lets go of the dead rider's mutex
     os.makedirs(bc.LOCAL, exist_ok=True)
     pyw = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
     exe = pyw if os.path.exists(pyw) else sys.executable
@@ -460,10 +527,16 @@ def start():
 
 
 def stop():
+    pids = {pid for pid, _ in riders()}
     pid, _ = running()
-    if not pid:
+    if pid:
+        pids.add(pid)
+    if not pids:
         print("not running"); return
-    subprocess.run(["taskkill", "/PID", str(pid), "/F"], capture_output=True)
+    for pid in sorted(pids):            # every copy, not only the one the pid file names (0.116.x)
+        subprocess.run(["taskkill", "/PID", str(pid), "/F"], capture_output=True)
+    if len(pids) > 1:
+        print(f"stopped {len(pids)} riders (pids {', '.join(map(str, sorted(pids)))}); one per PC is the rule")
     try:
         os.remove(PID_FILE)
     except OSError:
@@ -474,6 +547,10 @@ def stop():
 def status():
     pid, cmd = running()
     print("rider:", (f"running (pid {pid})" + ("" if is_this(cmd) else ", an OLDER copy")) if pid else "not running")
+    many = riders()
+    if len(many) > 1:
+        print(f"!! {len(many)} riders are running (pids {', '.join(str(p) for p, _ in many)}): each would start OBS; "
+              "`rider.py start` stops them all and starts one")
     try:
         with open(STATE, encoding="utf-8") as f:
             st = json.load(f)

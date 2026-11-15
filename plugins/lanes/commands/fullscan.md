@@ -1,5 +1,5 @@
 ---
-description: "(Full scan) The weekly check-up in one go: Gold Digger, research, Out of Date, tool check, code health, tidiness, save."
+description: "(Full scan) The weekly check-up in one go: Gold Digger, research, Out of Date, tool check, code health, tidiness, network safety, forgotten space, save."
 ---
 
 `/fullscan` — **everything checked and brought up to date, in one go.** Asked for by the maintainer, 2026-10-26:
@@ -111,9 +111,29 @@ says off.
 
 Read-only, as always. It runs after everything above so it checks what this run wrote too.
 
+## 6b. Network safety and forgotten space (0.116.0)
+
+Asked for by the maintainer, 2026-11-15: *"is there a way to add some sort of a network security check to the weekly
+fullscan, plus a scan of the whole pc files that are just sitting there taking space?"* Both LOOK ONLY, on this PC:
+nothing is changed, stopped, deleted or moved, and their full lists stay in this PC's Lanes folder (never GitHub: they
+name programs and folders).
+
+1. When `features.py is-on netcheck` says on: `python "${CLAUDE_PLUGIN_ROOT}/tools/netcheck.py" scan`. Exit 1 = a
+   line marked ⚠️ is worth the person's look: it goes in the report's last section, in its own words. Never stop,
+   remove or "fix" a program it names (a program the person keeps on purpose belongs in `netcheck_known`).
+2. When `features.py is-on spacecheck` says on: `python "${CLAUDE_PLUGIN_ROOT}/tools/spacecheck.py" scan` as a
+   BACKGROUND command (it walks every drive, up to 30 minutes; exit 1 = cut off, the rest is next week). Its three
+   groups go in the report: what is safe to clear, probably safe, and yours to decide, each with its size and the
+   biggest few items by name. **Delete nothing**, not even the "safe" group: the person says which, and a session
+   removes those, one by one, afterwards. The report links its full list with one arrow line, the folder only inside
+   the link.
+
 ## 7. Save, then the questions
 
 1. Save everything: the person's `/sp` if this PC has it, otherwise commit and push each lane root's own work.
+   Then `python "${CLAUDE_PLUGIN_ROOT}/tools/scan_priority.py" done`: the parts are done and saved, so the other
+   sessions on this PC carry on from here while the questions below wait for the person (0.116.0; the scan's closing
+   steps end the hold by themselves too, and a run holds the PC six hours at most).
 2. Ask the tool check's install question, with code health's questions after it, in its full shape (`/gu`'s rules, "The shape of that question"): first a
    plain numbered list of every update, each with what is in it, where it downloads from and what it could break; then
    the tick boxes, **"Everything" first**, then one per update. It covers every tool with a newer version: this plugin,

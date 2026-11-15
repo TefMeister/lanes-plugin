@@ -5,6 +5,7 @@ In a temp folder: a pretend GitHub (bare repos), a clone root for the session th
 pretend transfer folder and a board. Nothing listens on a network and no window is opened. Exit 0 = pass."""
 import json
 import os
+import shutil
 import stat
 import subprocess
 import sys
@@ -145,6 +146,43 @@ tool(PARCEL, ["send", "proj"], DEV)
 rc, out = tool(PARCEL, ["receive"], KEEP)
 check(rc == 0 and hub_steps() == 6 and not os.listdir(p("transfer", "parcels", "outbox")),
       "once repaired it is sent again and the outbox is empty")
+
+# ----- 0.116.0: a brand-new project's first steps (2026-11-14: holster-zones-vr "on no branch that follows GitHub") --
+git(["init", "-q", "--bare", "-b", "main", p("fresh.git")], T)
+git(["init", "-q", "-b", "main", p("dev", "fresh")], T)
+git(["remote", "add", "origin", p("fresh.git")], p("dev", "fresh"))
+open(p("dev", "fresh", "a.txt"), "w").write("one\n")
+git(["add", "a.txt"], p("dev", "fresh"))
+git(["commit", "-q", "-m", "first"], p("dev", "fresh"))
+commit(p("dev", "fresh"), "two", "second")
+rc, out = tool(PARCEL, ["light"], DEV)
+check(rc == 1 and "not handed over: fresh (new on GitHub)" in out, "a new project's steps show as not handed over")
+rc, out = tool(PARCEL, ["send", "fresh", "--note", "a new helper"], DEV)
+check(rc == 0 and "(new on GitHub) handed over, 2 step(s)" in out, "a new project is handed over, every step")
+rc, out = tool(PARCEL, ["receive"], KEEP)
+check(rc == 0 and hub_steps("fresh") == 2 and os.path.isdir(p("keeper", "fresh", ".git")),
+      "the Keeper makes its copy from the parcel and uploads it")
+rc, out = tool(PARCEL, ["light"], DEV)
+check(rc == 0 and "everything this PC saved is on GitHub" in out, "the new project follows GitHub afterwards")
+commit(p("dev", "fresh"), "three", "third")
+rc, out = tool(PARCEL, ["send", "fresh"], DEV)
+check(rc == 0 and "1 step(s)" in out and "new on GitHub" not in out, "its next step goes as an ordinary parcel")
+rc, out = tool(PARCEL, ["receive"], KEEP)
+check(rc == 0 and hub_steps("fresh") == 3, "and is uploaded")
+git(["init", "-q", "-b", "main", p("dev", "ghost")], T)
+git(["remote", "add", "origin", p("ghost.git")], p("dev", "ghost"))   # never made on GitHub
+open(p("dev", "ghost", "a.txt"), "w").write("one\n")
+git(["add", "a.txt"], p("dev", "ghost"))
+git(["commit", "-q", "-m", "first"], p("dev", "ghost"))
+tool(PARCEL, ["send", "ghost"], DEV)
+rc, out = tool(PARCEL, ["receive"], KEEP)
+check(rc == 1 and "make the repo there first" in out and not os.path.isdir(p("keeper", "ghost")),
+      "a new project GitHub has not got is refused with the reason, and the Keeper keeps no copy")
+check(not os.path.isdir(p("ghost.git")), "the Keeper never creates a repo on GitHub")
+shutil.rmtree(p("dev", "ghost"), ignore_errors=True)
+for n in os.listdir(p("transfer", "parcels", "outbox")):
+    if n.startswith("ghost__"):
+        os.remove(os.path.join(p("transfer", "parcels", "outbox"), n))
 
 # ----- one PC: the upload runs in the background from the working copy -----
 git(["clone", "-q", p("solo.git"), p("one", "solo")], T)
