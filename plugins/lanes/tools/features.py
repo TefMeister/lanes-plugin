@@ -139,6 +139,12 @@ FEATURES = {
     "gu_nudge": {"label": "Weekly tool reminder", "set": "tools",
                  "what": "one line at session start when the weekly tool check (/lanes:gu) is a week old",
                  "link": PROTO_LINK + "23-the-weekly-tool-check-lanesgu-0670-2026-10-14"},
+    "auto_update": {"label": "Lanes updates itself", "set": "tools", "ask_on_update": True,
+                    "what": "a new Lanes version installs by itself at a session start, in the background and with "
+                            "no question, then the next session says what each version added; it waits while a "
+                            "game, a game session, VR Bench or a release is running on the PC or updates are held "
+                            "for a test, and a failed update leaves the old version working and is said in one line",
+                    "link": GH + "tools/auto_update.py"},
     "update_hold": {"label": "Hold Lanes updates during a test", "set": "tools",
                     "what": "while a test is running, `hold.py on \"why\"` stops every session on this PC from "
                             "updating or reinstalling Lanes until it is lifted (or 12 hours pass)",

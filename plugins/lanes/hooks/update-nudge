@@ -2,6 +2,8 @@
 # SessionStart hook: when a newer version of this plugin is published than the one installed here,
 # put a short note in front of the session - what changed, and an offer to update it on the user's
 # say-so. The check fetches at most every few hours and is silent on any failure (offline, no git).
+# With the extra `auto_update` on (0.117.0), Lanes updates itself instead, with no question, unless a game,
+# a test or a hold stops it (tools/auto_update.py).
 # LANES_UPDATE_NUDGE=0 turns it off.
 set -uo pipefail
 [ "${LANES_UPDATE_NUDGE:-1}" = "0" ] && exit 0
@@ -14,5 +16,9 @@ for cand in python3 python py; do
   PY="$cand"; break
 done
 [ -n "$PY" ] || exit 0
+if "$PY" "$PLUGIN_ROOT/tools/features.py" is-on auto_update >/dev/null 2>&1; then
+  "$PY" "$PLUGIN_ROOT/tools/auto_update.py" start 2>/dev/null | "$PY" "$SCRIPT_DIR/emit_context.py"
+  exit 0
+fi
 "$PY" "$PLUGIN_ROOT/tools/update-check.py" 2>/dev/null | "$PY" "$SCRIPT_DIR/emit_context.py"
 exit 0
