@@ -29,6 +29,7 @@ you have at the start of every session: *what can I actually do right now?*
 | `/bench` | VR Bench | A robot player for VR games: with the pretend headset, it moves the head, both hands and every button by itself and writes down what the game did, so VR work can be tested with nobody in the headset. |
 | `/menu` | Menu-o-matiC, Move-o-matiC and State-o-matiC | You play a game's menus and a short route once while it records; after that it repeats them by itself, and can tell menu, loading, cutscene and gameplay apart. |
 | `/setup` | Setup | First-run setup: your name, this PC's name, and optional tools. |
+| `/next` | Next | Hands the next job on to a fresh window: writes a long, exact prompt for it, opens the new window and closes this one once it is safe (everything saved, no game or task of its own running, no question waiting). A long session rereads its whole history for every reply, so a new job costs less in a fresh one. |
 | `/update` | Update | Gets the newest version of the plugin, after asking you. |
 | `/uninstall` | Uninstall | Takes Lanes off this PC in one go, after showing what it will do: the look, the shortcut, its helpers and settings, then the plugin. Your own work stays. |
 | `/theme` | Theme | The plugin's look (see below): puts it on, or puts your terminal back the way it was. |
@@ -310,7 +311,7 @@ any project. Expect changes: `/lanes:update` tells you what is new and never ins
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Flat-to-VR AI modding with Claude: skills, helper programs and checks, and several sessions at once without them treading on each other. | `0.117.0`, public, in daily use |
+| [`lanes`](plugins/lanes/) | Flat-to-VR AI modding with Claude: skills, helper programs and checks, and several sessions at once without them treading on each other. | `0.118.0`, public, in daily use |
 
 ## Modding games?
 

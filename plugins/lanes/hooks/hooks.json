@@ -288,6 +288,12 @@
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook reply-check.py",
             "shell": "bash",
             "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd\" py-hook session-hand.py",
+            "shell": "bash",
+            "timeout": 180
           }
         ]
       }

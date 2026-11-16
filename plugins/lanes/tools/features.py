@@ -145,6 +145,16 @@ FEATURES = {
                             "game, a game session, VR Bench or a release is running on the PC or updates are held "
                             "for a test, and a failed update leaves the old version working and is said in one line",
                     "link": GH + "tools/auto_update.py"},
+    "fresh_nudge": {"label": "Fresh-session nudge", "set": "tools", "ask_on_update": True,
+                    "what": "when a job has just been saved and the session has grown big, one line says it is a good "
+                            "moment to start a fresh session, because every next step costs more; never in the middle "
+                            "of a job (the mark: fresh_nudge_tokens in lanes.conf)",
+                    "link": GH + "tools/handon.py"},
+    "hand_on": {"label": "Session hand-on", "set": "tools", "ask_on_update": True,
+                "what": "on your yes to a next job, /lanes:next writes a long, exact prompt for it, opens a new window "
+                        "with it, and closes the old window once it is saved, no game or background task of its own "
+                        "runs and no question waits; otherwise the old one stays open and says why",
+                "link": GH + "commands/next.md"},
     "update_hold": {"label": "Hold Lanes updates during a test", "set": "tools",
                     "what": "while a test is running, `hold.py on \"why\"` stops every session on this PC from "
                             "updating or reinstalling Lanes until it is lifted (or 12 hours pass)",

@@ -926,6 +926,14 @@ else
   fail "scan_priority_test.py failed"
 fi
 
+echo "handon.py - the fresh-session nudge and the hand-on to a new window, closed only when safe (0.118.0)"
+if out=$("$PY" "$HERE/handon_test.py" 2>&1); then
+  ok "$(printf '%s\n' "$out" | tail -n 1)"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "handon_test.py failed"
+fi
+
 echo "auto_update.py - Lanes updates itself with no question, waits for a game, a test or a hold (0.117.0)"
 if out=$("$PY" "$HERE/auto_update_test.py" 2>&1); then
   ok "$(printf '%s\n' "$out" | tail -n 1)"

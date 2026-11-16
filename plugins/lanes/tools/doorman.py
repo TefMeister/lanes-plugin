@@ -267,8 +267,14 @@ def clean_name(name):
 
 
 def open_session(name="", first=""):
-    """first: only ROUND_TEXT is ever passed on (the new window starts with the Keeper's round)"""
-    first = ROUND_TEXT if first == ROUND_TEXT else ""
+    """first: only ROUND_TEXT (the Keeper's round) or a hand-on pointer to a prompt file Lanes wrote (0.118.0,
+    handon.first_allowed) is ever passed on as the new window's first message; anything else is dropped"""
+    if first != ROUND_TEXT:
+        try:
+            import handon
+            first = first if handon.first_allowed(first) else ""
+        except Exception:  # noqa: BLE001 - when in doubt, nothing is passed on
+            first = ""
     c = conf()
     lnk = expand(c.get("doorman_shortcut", os.path.join(HOME, "Desktop", "Lanes.lnk")))
     if not os.path.isfile(lnk):
