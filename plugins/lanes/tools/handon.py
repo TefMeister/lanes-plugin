@@ -53,7 +53,7 @@ SAVE_SIGNS = re.compile(r"parcel\.py\"?\s+(?:send|light)|handover\.py\"?\s+close
 SAVE_SKILLS = ("sp", "lanes:sp")
 BG_STARTED = re.compile(r"running in background with ID: ([A-Za-z0-9]+)")
 BG_ENDED = re.compile(r"<task-id>([A-Za-z0-9]+)</task-id>.*?<status>(\w+)</status>", re.S)
-UNSAVED = ("REFUSED", "changes in no saved step")
+UNSAVED = ("REFUSED", "saved but not handed over", "changes in no saved step")
 OUTLINE = """# Hand-on: <the next job, in a few words>
 
 ## The job, in Tefa's words

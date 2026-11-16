@@ -103,7 +103,8 @@ if [ "$NOTES" = "--check" ]; then
 fi
 
 echo "All checks passed. Publishing lanes $VERSION"
-git pull -q --rebase || stop "could not bring the branch up to date"
+# once (2026-11-16) a pull here failed with "Cannot rebase onto multiple branches" and worked a minute later: try twice
+git pull -q --rebase || { sleep 20; git pull -q --rebase; } || stop "could not bring the branch up to date"
 git push -q || stop "push failed"
 git tag "v$VERSION" && git push -q origin "v$VERSION" || stop "could not push the tag"
 gh release create "v$VERSION" --verify-tag --latest --title "$VERSION" --notes "$NOTES" || stop "the tag is pushed but the GitHub Release failed; run: gh release create v$VERSION --verify-tag --latest"

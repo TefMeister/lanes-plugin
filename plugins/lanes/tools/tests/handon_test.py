@@ -111,6 +111,9 @@ calm = saved_turn(300000)
 check("saved, no game, no task, no question: safe to close", handon.close_reasons(calm) == [])
 os.environ["HANDON_TEST_LIGHT"] = "\U0001F4E6 ✏️ changes in no saved step yet: builds"
 check("unsaved changes keep it open", any("not everything is saved" in w for w in handon.close_reasons(calm)))
+os.environ["HANDON_TEST_LIGHT"] = "\U0001F4E6 \U0001F7E0 saved but not handed over: visceral-re3-vr"
+check("a saved step not yet handed over keeps it open",
+      any("not everything is saved" in w for w in handon.close_reasons(calm)))
 os.environ["HANDON_TEST_LIGHT"] = "\U0001F4E6 ⏳ waiting for the Keeper: visceral-re2-vr"
 check("parcels only waiting for the Keeper do not", handon.close_reasons(calm) == [])
 os.environ["HANDON_TEST_LIGHT"] = "\U0001F4E6 everything this PC saved is on GitHub"
