@@ -18,7 +18,8 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 # (script, its own arguments) in the order their text should appear
 PARTS = [("name-rule", []), ("repo-rule", []), ("talk-rule", []), ("straight-talk", []), ("tools-rule", []),
-         ("setup-nudge", []), ("gu-nudge", []), ("gd-shelve", ["nudge"]), ("shortcut-offer", [])]
+         ("setup-nudge", []), ("gu-nudge", []), ("gd-shelve", ["nudge"]), ("shortcut-offer", []),
+         ("switch-off-audit", [])]   # 0.118.2: a switch-off that skipped the guard, said once
 PART_TIMEOUT_S = 15        # one part; the whole hook has 60 in hooks.json
 TOTAL_BUDGET_S = 50        # stop starting new parts after this, so the hook itself is never cut off
 

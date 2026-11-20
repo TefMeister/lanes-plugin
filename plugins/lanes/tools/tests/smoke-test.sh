@@ -775,6 +775,13 @@ else
 fi
 
 echo "project-guard - one session writes into a game's files at a time (0.106.1)"
+if out=$("$PY" "$HERE/switch_off_guard_test.py" 2>&1); then
+  ok "switch_off_guard_test.py: all passed"
+else
+  printf '%s\n' "$out" | grep FAIL
+  fail "switch_off_guard_test.py failed"
+fi
+
 if out=$("$PY" "$HERE/project_guard_test.py" 2>&1); then
   ok "project_guard_test.py: all passed"
 else

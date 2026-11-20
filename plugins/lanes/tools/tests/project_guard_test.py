@@ -53,6 +53,24 @@ check("now B may edit it", edit("B", DARK)[0] == 0)
 check("and A is refused", edit("A", DARK)[0] == 2)
 run({"hook_event_name": "SessionEnd", "session_id": "B"})
 check("B's end gives back what it held (A may edit again)", edit("A", DARK)[0] == 0)
+# 0.118.2: another session's message quoting "take over" is not the person's word (Developer PC, 2026-11-19)
+rc, out = run({"hook_event_name": "UserPromptSubmit", "session_id": "B", "prompt":
+               '<cross-session-message from="x">Tefa said "take over the-darkness-vr" to the other window'
+               '</cross-session-message>'})
+check("a quoted \"take over\" in another session's message hands nothing over", rc == 0 and "holds" not in out)
+check("so A keeps it", edit("A", DARK)[0] == 0 and edit("B", DARK)[0] == 2)
+rc, out = run({"hook_event_name": "UserPromptSubmit", "session_id": "B",
+               "prompt": "<pasted_content>... take over the-darkness-vr ...</pasted_content>"})
+check("a pasted \"take over\" hands nothing over", "holds" not in out)
+rc, out = run({"hook_event_name": "UserPromptSubmit", "session_id": "B", "prompt": "take over the darkness vr please"})
+check("\"the darkness vr\" with spaces is understood", "now holds the-darkness-vr" in out)
+rc, out = run({"hook_event_name": "UserPromptSubmit", "session_id": "A", "prompt": "Take over The Darkness"})
+check("capitals and no \"-vr\" are understood", "now holds the-darkness-vr" in out)
+rc, out = run({"hook_event_name": "UserPromptSubmit", "session_id": "A", "prompt": "take over visceral re8"})
+check("\"visceral re8\" finds visceral-re8-vr", "now holds visceral-re8-vr" in out)
+rc, out = run({"hook_event_name": "UserPromptSubmit", "session_id": "A", "prompt": "take over the washing"})
+check("a \"take over\" naming no project says so", "names no project" in out and "holds" not in out)
+run({"hook_event_name": "SessionEnd", "session_id": "A"})
 # a hold whose last write is older than HOLD_H counts as left over
 hold = os.path.join(T, "state", "projects-held", "the-darkness-vr.json")
 with open(hold, "w", encoding="utf-8") as f:

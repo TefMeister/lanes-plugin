@@ -30,6 +30,8 @@ printf 'began me 2026-11-14 10:00 +0200\ndone me 2026-11-14 10:00 +0200\ndone ot
   > "$T/lanes-sessions/end-log.txt"
 OFF="$T/switched-off"
 export LANES_SWITCH_OFF_CMD="$PY -c \"open(r'$OFF','a').write('off\\n')\""
+# 0.118.2: the asking session's end steps run before Windows is told; here a stand-in writes "end" first
+export LANES_SWITCH_OFF_ENDWORK_CMD="$PY -c \"open(r'$OFF','a').write('end\\n')\""
 SAVED="$PY -c \"print('everything saved')\""
 UNSAVED="$PY -c \"import sys; print('builds: 1 change not on GitHub'); sys.exit(1)\""
 so() { "$PY" "$TOOLS/switch_off.py" "$@" 2>&1; }
@@ -39,6 +41,9 @@ echo "all clear"
 out=$(LANES_SWITCH_OFF_SAVE_CMD="$SAVED" so check --session me); has "nothing stops it" "$out" "check: clear when nothing runs"
 out=$(LANES_SWITCH_OFF_SAVE_CMD="$SAVED" so now --session me); has "switches off in" "$out" "now: switches off when clear"
 [ -f "$OFF" ] && ok "the switch-off command ran" || fail "the switch-off command ran"
+[ "$(tr -d '\r' < "$OFF" | tr '\n' ' ')" = "end off " ] && ok "the session's end steps ran first, then the switch-off" \
+  || fail "the session's end steps ran first, then the switch-off (got: $(cat "$OFF"))"
+has "end steps for session me before the switch-off: done" "$(cat "$T/state/switch-off.log")" "the log names the end steps"
 rm -f "$OFF"
 
 echo "the asking session has not run its close-out (0.113.7)"
@@ -121,6 +126,25 @@ has "exit=0" "$(hook Bash 'grep -n shutdown notes.md')" "hook: a word in a searc
 has "exit=0" "$(hook Read 'shutdown /s')" "hook: only shell commands are looked at"
 printf 'shutdown_guard = off\n' > "$T/lanes.conf"
 has "exit=0" "$(hook Bash 'shutdown /s /t 0')" "hook: switched off, it lets everything through"
+
+echo "the audit: a switch-off that did not come through the guard (0.118.2)"
+EV="$T/events.xml"
+ev() { printf "<Event><System><TimeCreated SystemTime='%s'/><EventRecordID>%s</EventRecordID></System><EventData>\
+<Data Name='param1'>%s</Data><Data Name='param5'>power off</Data><Data Name='param6'>%s</Data></EventData></Event>\n" \
+  "$1" "$2" "$3" "$4"; }
+NOWZ=$("$PY" -c "import datetime; print(datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.0Z'))")
+{ ev "$NOWZ" 12 'C:\\Windows\\system32\\shutdown.exe (PC)' "Saved and checked. Shutting down in 90 seconds."
+  ev "$NOWZ" 11 'C:\\Windows\\system32\\shutdown.exe (PC)' "Lanes: every session has finished and saved."
+  ev "$NOWZ" 10 'C:\\Windows\\explorer.exe (PC)' ""; } > "$EV"
+out=$(LANES_SWITCH_OFF_EVENTS_FILE="$EV" so audit)
+has "SWITCH-OFF NOT THROUGH THE GUARD" "$out" "audit: names a bare switch-off"
+has "Saved and checked" "$out" "audit: quotes its comment"
+[ "$(printf '%s\n' "$out" | grep -c 'NOT THROUGH')" = "1" ] && ok "audit: the guard's own and a by-hand switch-off are not named" \
+  || fail "audit: the guard's own and a by-hand switch-off are not named"
+hasnt "NOT THROUGH" "$(LANES_SWITCH_OFF_EVENTS_FILE="$EV" so audit)" "audit: says each one once"
+ev "2020-01-01T00:00:00.0Z" 13 'C:\\Windows\\system32\\shutdown.exe (PC)' "old" > "$EV"
+rm -f "$T/state/switch-off-audit.json"
+hasnt "NOT THROUGH" "$(LANES_SWITCH_OFF_EVENTS_FILE="$EV" so audit)" "audit: the first look on a PC skips old ones"
 
 echo
 [ "$FAILED" -eq 0 ] && echo "switch-off-fixture: $N checks, 0 failed" || echo "switch-off-fixture: FAILURES above ($N checks)"

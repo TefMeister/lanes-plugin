@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# SessionStart part (0.118.2): was this PC switched off since the last look WITHOUT the guarded switch-off? Windows'
+# own log (event 1074) says who switched it off and with what comment; a bare `shutdown` from a session or a script is
+# said once, loudly, so the fault reaches the fault list instead of passing unseen (the Developer PC was switched off
+# that way on 2026-11-11, 11-19 01:19 and 22:27, each time with a session's end steps never run). Silent when the
+# extra `shutdown_guard` is off and on every failure path.
+#
+# LANES_SWITCH_OFF_AUDIT=0 turns it off.
+set -uo pipefail
+[ "${LANES_SWITCH_OFF_AUDIT:-1}" = "0" ] && exit 0
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+EMIT="${SCRIPT_DIR}/emit_context.py"
+[ -f "${PLUGIN_ROOT}/tools/switch_off.py" ] && [ -f "$EMIT" ] || exit 0
+
+PY=""
+for cand in python3 python py; do
+  command -v "$cand" >/dev/null 2>&1 || continue
+  "$cand" -c "" >/dev/null 2>&1 || continue
+  PY="$cand"; break
+done
+[ -n "$PY" ] || exit 0
+
+"$PY" "${PLUGIN_ROOT}/tools/features.py" is-on shutdown_guard >/dev/null 2>&1 || exit 0
+"$PY" "${PLUGIN_ROOT}/tools/switch_off.py" audit 2>/dev/null | "$PY" "$EMIT"
+exit 0

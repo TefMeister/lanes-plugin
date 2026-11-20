@@ -121,12 +121,41 @@ def on_edit(data, sid):
     return 0
 
 
+# 0.118.2 (2026-11-19, Developer PC): another session's message that QUOTED "take over atomic-fork-vr" handed the
+# project to the session that only received it, locking out the one working on it. What another session (or a paste)
+# brought in is not the person's word: those blocks are cut out before "take over" is looked for.
+NOT_THE_PERSON = re.compile(r"<(cross-session-message|pasted_content)\b.*?(?:</\1>|\Z)", re.S | re.I)
+TAKE_OVER = re.compile(r"\btake over\b([^\n.,;:!?]*)", re.I)
+WORDS_LOOKED_AT = 6
+
+
+def spoken(prompt):
+    return NOT_THE_PERSON.sub(" ", prompt or "")
+
+
+def project_named(rest, names):
+    """The project the words after "take over" name, typed as Tefa types it: "atomic fork vr", "Atomic-Fork",
+    "the darkness" (0.118.2: only the first word was read, so "atomic fork vr" matched nothing and said nothing)."""
+    words = [w.lower() for w in re.findall(r"[A-Za-z0-9._]+", rest)][:WORDS_LOOKED_AT]
+    for start in ([0, 1] if words[:1] == ["the"] else [0]):
+        for end in range(len(words), start, -1):
+            cand = "-".join(words[start:end])
+            for name in (cand, cand + "-vr", "the-" + cand, "the-" + cand + "-vr"):
+                if name in names:
+                    return name
+    return None
+
+
 def on_prompt(data, sid):
-    m = re.search(r"\btake over ([A-Za-z0-9._-]+)", data.get("prompt") or "", re.I)
-    if not m:
+    m = TAKE_OVER.search(spoken(data.get("prompt")))
+    if not m or not m.group(1).strip():
         return 0
-    project = m.group(1).lower()
-    if project not in projects():
+    project = project_named(m.group(1), projects())
+    if not project:
+        note = ("PROJECT GUARD: \"take over\" was heard, but \"%s\" names no project in this PC's games record, so "
+                "nothing was handed over. Tell the person, and ask for the project's name as the list writes it "
+                "(for example atomic-fork-vr)." % m.group(1).strip()[:60])
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": note}}))
         return 0
     old = read_hold(project)
     write_hold(project, sid)

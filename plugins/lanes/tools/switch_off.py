@@ -9,6 +9,8 @@
                                                          off as soon as nothing does, or gives up after MIN minutes
     python switch_off.py status                          a switch-off waiting? since when, for whom, until when
     python switch_off.py cancel                          take a waiting switch-off back (also stops a countdown)
+    python switch_off.py audit                           session start: a switch-off since the last look that did
+                                                         NOT come through this guard (Windows' own log), said once
 
 WHY. On 2026-11-12 the Developer PC was switched off by a session (a bare `shutdown`) four minutes after its own job
 ended. Another window had not run its end steps and held a clash-guard lock, and the builds store held a build that
@@ -26,6 +28,9 @@ WHAT STOPS IT (each named in plain words, never a folder path):
   - the asking session's own close-out not run yet (0.113.7): its end steps (the save, the board, the end report)
     happen in the close-out, and a PC switched off before them left the next start saying "the last session ended
     without its end steps" (2026-11-13 02:14, through this guard). With --wait it waits for the close-out too.
+BEFORE WINDOWS IS TOLD (0.118.2, 2026-11-20): the asking session's end steps (endwork.py run: locks given back, the
+end report on the board, logs shelved) are run here and waited for, because a switched-off PC never closes the window
+whose end hook would run them (2026-11-19 22:27: no end steps at all). Then a three-minute countdown, not one.
 The asking session's own lock and holds never stop it (pass --session, or it is read from CLAUDE_CODE_SESSION_ID).
 The guard never switches off by force: when the wait runs out it gives up and leaves a line in its log.
 The hook hooks/switch-off-guard.py refuses a bare shutdown typed by a session and points here.
@@ -49,7 +54,11 @@ LOG = os.path.join(STATE_DIR, "switch-off.log")
 # ---- settings (named numbers, one place) --------------------------------------------------------
 POLL_S = 180                    # the waiting program looks again this often
 DEFAULT_WAIT_MIN = 120          # `now --wait` with no number
-COUNTDOWN_S = 60                # Windows' own warning before it switches off (shutdown /a stops it)
+COUNTDOWN_S = 180               # Windows' own warning before it switches off (shutdown /a stops it); 60 until 0.118.2
+ENDWORK_TIMEOUT_S = 1800        # the asking session's end steps (endwork.py: five steps of at most 300 s each)
+AUDIT_FIRST_DAYS = 3            # the first audit on a PC looks this far back
+AUDIT_EVENTS = 30               # Windows' last switch-off records read per audit
+LANES_MARK = "Lanes:"           # how this guard's own switch-offs start their comment in Windows' log
 HELD_H = 3                      # same as hooks/project-guard.py and handover.py
 CHECK_TIMEOUT_S = 300           # the save check reads every copy on the PC
 SHOWN = 6                       # lines of a save check shown per reason
@@ -199,15 +208,28 @@ def reasons(session):
 
 
 # ---- switching off -----------------------------------------------------------------------------
-def switch_off(restart=False):
+def end_steps(session):
+    """The asking session's end steps, run and waited for before Windows is told (0.118.2). Its window never closes
+    on its own before the PC goes off, so its SessionEnd hook would never start them. Never stops the switch-off."""
+    if not session or skip("endwork"):
+        return
+    fake = os.environ.get("LANES_SWITCH_OFF_ENDWORK_CMD")         # tests: a command standing in for the end steps
+    cmd = fake or [sys.executable, os.path.join(HERE, "endwork.py"), "run", "--session=" + session]
+    code, _out = run(cmd, timeout=ENDWORK_TIMEOUT_S)
+    log("end steps for session %s before the switch-off: %s" % (session, "done" if code == 0 else "exit %d" % code))
+
+
+def switch_off(restart=False, session=""):
+    end_steps(session)
     fake = os.environ.get("LANES_SWITCH_OFF_CMD")                 # tests: never the real thing
     if fake:
         return run(fake)[0] == 0
     if os.name != "nt":
-        cmd = ["shutdown", "-r" if restart else "-h", "+1"]
+        cmd = ["shutdown", "-r" if restart else "-h", "+%d" % max(1, COUNTDOWN_S // MIN_S)]
     else:
         cmd = ["shutdown", "/r" if restart else "/s", "/t", str(COUNTDOWN_S), "/c",
-               "Lanes: every session has finished and saved. Switching off in a minute (shutdown /a stops it)."]
+               LANES_MARK + " every session has finished and saved. Switching off in %d minutes (shutdown /a stops it)."
+               % (COUNTDOWN_S // MIN_S)]
     return run(cmd, timeout=SMALL_TIMEOUT_S)[0] == 0
 
 
@@ -256,7 +278,7 @@ def cmd_now(a):
     word = "restart" if a.restart else "switch-off"
     if not found:
         log("%s now, asked by session %s: nothing stops it" % (word, a.session or "?"))
-        if switch_off(a.restart):
+        if switch_off(a.restart, a.session):
             print("SWITCH-OFF: nothing stops it; the PC %s in %d s (`shutdown /a` stops it)"
                   % ("restarts" if a.restart else "switches off", COUNTDOWN_S))
             return 0
@@ -298,7 +320,7 @@ def watch(rid):
         if not found:
             drop_request(rid)
             log("switch-off %s: nothing stops it any more, switching off" % rid)
-            return 0 if switch_off(d.get("restart")) else 2
+            return 0 if switch_off(d.get("restart"), d.get("session", "")) else 2
         if time.time() >= float(d.get("until", 0)):
             drop_request(rid)
             log("switch-off %s GAVE UP, the PC stays on; still: %s" % (rid, " | ".join(found)))
@@ -326,6 +348,85 @@ def cmd_cancel(_a):
     return 0
 
 
+# ---- the audit: switch-offs that did not come through this guard (0.118.2) --------------------------------------
+AUDIT_STATE = os.path.join(STATE_DIR, "switch-off-audit.json")
+EVENT = re.compile(r"<Event[ >].*?</Event>", re.S)
+
+
+def _field(ev, name):
+    m = re.search(r"<Data Name='%s'>(.*?)</Data>" % name, ev, re.S)
+    return (m.group(1) if m else "").strip()
+
+
+def switch_off_events():
+    """Windows' last switch-off records (event 1074), newest first, as dicts. A test passes a file of them."""
+    fake = os.environ.get("LANES_SWITCH_OFF_EVENTS_FILE")
+    if fake:
+        try:
+            with open(fake, encoding="utf-8") as f:
+                xml = f.read()
+        except OSError:
+            return []
+    elif os.name == "nt":
+        code, xml = run(["wevtutil", "qe", "System", "/q:*[System[(EventID=1074)]]", "/c:%d" % AUDIT_EVENTS,
+                         "/rd:true", "/f:xml"], timeout=SMALL_TIMEOUT_S)
+        if code:
+            return []
+    else:
+        return []
+    out = []
+    for ev in EVENT.findall(xml):
+        rid = re.search(r"<EventRecordID>(\d+)</EventRecordID>", ev)
+        when = re.search(r"SystemTime='([^']+)'", ev)
+        out.append({"id": int(rid.group(1)) if rid else 0, "when": when.group(1) if when else "",
+                    "process": _field(ev, "param1"), "kind": _field(ev, "param5"), "comment": _field(ev, "param6")})
+    return out
+
+
+def bypassed(ev):
+    """A switch-off typed by a session or a script (shutdown.exe) that is not this guard's own."""
+    return "shutdown.exe" in ev["process"].lower() and not ev["comment"].startswith(LANES_MARK)
+
+
+def local_time(iso):
+    try:
+        from datetime import datetime, timezone
+        dt = datetime.strptime(iso[:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc).astimezone()
+        return dt.strftime("%Y-%m-%d %H:%M"), dt.timestamp()
+    except (ValueError, OverflowError, OSError):
+        return iso[:16], 0.0
+
+
+def cmd_audit(_a):
+    events = switch_off_events()
+    try:
+        with open(AUDIT_STATE, encoding="utf-8") as f:
+            last = int(json.load(f).get("last_id", 0))
+    except (OSError, ValueError, AttributeError, TypeError):
+        last = None
+    found = []
+    for ev in events:
+        text, stamp = local_time(ev["when"])
+        new = ev["id"] > last if last is not None else stamp >= time.time() - AUDIT_FIRST_DAYS * 24 * HOUR_S
+        if new and bypassed(ev):
+            found.append((text, ev))
+    if events:
+        try:
+            os.makedirs(STATE_DIR, exist_ok=True)
+            with open(AUDIT_STATE, "w", encoding="utf-8") as f:
+                json.dump({"last_id": max(e["id"] for e in events), "checked": time.strftime("%Y-%m-%d %H:%M")}, f)
+        except OSError:
+            pass
+    for text, ev in reversed(found):
+        print("SWITCH-OFF NOT THROUGH THE GUARD: this PC was switched off (%s) at %s by a bare shutdown, comment: "
+              "\"%s\". The guarded switch-off (switch_off.py) and its checks were skipped, so a session may have ended "
+              "without its end steps. If a session did it, that is a Lanes fault: add a row to the fault list "
+              "(FAULTS.md) naming the time, and raise it for the Keeper." % (ev["kind"] or "off", text,
+                                                                            ev["comment"] or "none"))
+        log("audit: switch-off at %s not through the guard (comment: %s)" % (text, ev["comment"] or "none"))
+    return 0
+
+
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -337,7 +438,7 @@ def main(argv):
             p.add_argument("--wait", type=int, nargs="?", const=0, default=None,
                            help="minutes to keep looking (default %d)" % DEFAULT_WAIT_MIN)
             p.add_argument("--restart", action="store_true")
-    for name, fn in (("status", cmd_status), ("cancel", cmd_cancel)):
+    for name, fn in (("status", cmd_status), ("cancel", cmd_cancel), ("audit", cmd_audit)):
         sub.add_parser(name).set_defaults(fn=fn)
     p = sub.add_parser("_watch")
     p.add_argument("rid")
