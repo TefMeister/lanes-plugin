@@ -129,8 +129,43 @@ def cmd_windowcheck(a):
     say(event="windowcheck", **v)
 
 
+def sheet(images, labels, cols=None, bright=False):
+    """0.119.0: several small looks tiled into ONE labelled picture (Developer PC, RE4 2026-11-19: a hand-made sheet
+    cut the pictures read by about four in five). bright=True lifts dark scenes so they can be read."""
+    from PIL import Image, ImageDraw, ImageOps
+    n = len(images)
+    cols = cols or min(n, 3)
+    rows = (n + cols - 1) // cols
+    tw, th = images[0].size
+    band = 18
+    out = Image.new("RGB", (cols * tw, rows * (th + band)), (24, 24, 24))
+    d = ImageDraw.Draw(out)
+    for i, (im, label) in enumerate(zip(images, labels)):
+        if bright:
+            im = ImageOps.autocontrast(im, cutoff=1)
+        x, y = (i % cols) * tw, (i // cols) * (th + band)
+        out.paste(im.resize((tw, th)), (x, y + band))
+        d.text((x + 4, y + 3), label, fill=(255, 220, 90))
+    return out
+
+
 def cmd_look(a):
     import mom_window as W
+    if a.sheet and a.sheet > 1:
+        hwnd = need_window(a.window)
+        shots, labels, t0 = [], [], time.time()
+        for k in range(a.sheet):
+            im = W.capture(hwnd)
+            if a.region:
+                im = R.crop(im, R.parse_region(a.region))
+            shots.append(im.resize((max(1, int(im.width * a.scale)), max(1, int(im.height * a.scale)))))
+            labels.append("%d  +%.1f s" % (k + 1, time.time() - t0))
+            if k < a.sheet - 1:
+                time.sleep(a.every)
+        img = sheet(shots, labels, bright=a.bright)
+        img.save(a.out)
+        say(event="look", out=a.out, size=list(img.size), looks=a.sheet)
+        return
     img = W.capture(need_window(a.window))
     if a.region:
         img = R.crop(img, R.parse_region(a.region))
@@ -233,6 +268,12 @@ def cmd_add(a):
         route["steps"].append({"picture": a.picture})       # the route's result is a picture (a settings page)
     elif a.button:
         route["steps"].append({"button": a.button, "dialog": a.dialog})   # a launcher's Play button
+    elif a.key:
+        import mom_window as W
+        if a.key.lower() not in W.KEYS:
+            say(event="error", error=f"unknown key '{a.key}'")
+            sys.exit(2)
+        route["steps"].append({"key": a.key.lower()})   # 0.119.0: a key step written without pressing it
     else:
         route["steps"].append({"launch": a.launch})
     R.save(route, a.route)
@@ -424,7 +465,11 @@ def cmd_expect(a):
 def register_common(sub):
     """The commands both Menu-o-matiC and Move-o-matiC have."""
     s = sub.add_parser("look"); s.add_argument("window"); s.add_argument("out")
-    s.add_argument("--region"); s.add_argument("--scale", type=float, default=1.0); s.set_defaults(f=cmd_look)
+    s.add_argument("--region"); s.add_argument("--scale", type=float, default=1.0)
+    s.add_argument("--sheet", type=int, default=0, help="N looks tiled into one labelled picture (0.119.0)")
+    s.add_argument("--every", type=float, default=1.0, help="seconds between the looks of a sheet")
+    s.add_argument("--bright", action="store_true", help="lift dark scenes in a sheet so they can be read")
+    s.set_defaults(f=cmd_look)
     s = sub.add_parser("press"); s.add_argument("window"); s.add_argument("key")
     s.add_argument("--route"); s.add_argument("--changed"); s.set_defaults(f=cmd_press)
     s = sub.add_parser("click"); s.add_argument("window"); s.add_argument("point")
@@ -444,7 +489,7 @@ def register_common(sub):
     s.set_defaults(f=cmd_new)
     s = sub.add_parser("add"); s.add_argument("route"); g = s.add_mutually_exclusive_group(required=True)
     g.add_argument("--sleep", type=float); g.add_argument("--launch"); g.add_argument("--picture")
-    g.add_argument("--button"); s.add_argument("--dialog", default="")
+    g.add_argument("--button"); g.add_argument("--key"); s.add_argument("--dialog", default="")
     s.set_defaults(f=cmd_add)
     s = sub.add_parser("routes"); s.add_argument("folder"); s.set_defaults(f=cmd_routes)
     s = sub.add_parser("known"); s.add_argument("folder"); s.add_argument("--add", nargs=2, metavar=("SECTION", "TEXT"))

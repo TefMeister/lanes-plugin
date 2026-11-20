@@ -11,6 +11,7 @@ through for it. Poses are in the room (the LOCAL space), metres; orientations as
 import json
 import math
 import os
+import threading
 import time
 
 import vb_settings as S
@@ -81,7 +82,9 @@ def write(inp, path=None):
     """the layer must never read half a file: write a .tmp beside it, then swap it in (retried while it is open)"""
     path = path or S.INPUT_FILE
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    tmp = path + ".tmp"
+    # 0.119.0: one temporary name per writer (process and thread): two writers sharing input.json.tmp made one stop
+    # with FileNotFoundError on the swap and a held pose ended silently (Developer PC, RE2 pump test, 2026-11-19)
+    tmp = "%s.%d.%d.tmp" % (path, os.getpid(), threading.get_ident())
     with open(tmp, "w", encoding="utf-8") as f:
         f.write(inp.to_json())
     for _ in range(S.REPLACE_RETRIES):

@@ -303,7 +303,7 @@ or registry key before changing it.
   One API is never enough, and a single failed route is not evidence the app ignores input.
 - **✅ A held test ends with a tick, not a guess.** When the person is holding something for a capture
   (headset on, controllers up, a pose), the first line of the reply once the capture is in is
-  `✅ **You can stop**` (0.50.0, PROTOCOL §5). Then the reading, then the questions for their eyes.
+  `✅ **No test running right now, you don't need to do anything with the controllers.**` (0.50.0, PROTOCOL §5). Then the reading, then the questions for their eyes.
 - **✅ Say when the app may be closed.** When the person is running it for you, end a request with "keep it
   running" while you still need it, and open the reply with `✅ **You can quit the game now.**` the moment you do not
   (0.56.0, PROTOCOL §5; since 0.105.0 the reply check, §46, hands a reply back when the tick is missing).

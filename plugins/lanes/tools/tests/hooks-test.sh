@@ -553,7 +553,14 @@ rc_reply g1 "$(printf '\342\234\205 **You can quit the game now.**')"
 [ -z "$OUT" ] && ok "and passes with the tick" || fail "tick reply should pass (out=$OUT)"
 rc_reply h1 "Hold both controllers up in front of you."
 rc_reply h1 "The log shows the hands moved."
-assert_contains "You can stop" "$OUT" "after a hold request, a reply that does not free them is handed back"
+assert_contains "No test running right now" "$OUT" "after a hold request, a reply that does not free them is handed back"
+# 0.119.0: in a session Claude drives (/lm) the hold line is not asked for
+LMT="$NG/lm-transcript.jsonl"
+printf '{"type":"user","message":{"content":"<command-name>/lanes:lm</command-name> re2"}}\n' > "$LMT"
+rc_lm() { OUT=$("$PY" -c 'import json,sys; print(json.dumps({"session_id":sys.argv[1],"last_assistant_message":sys.argv[2],"transcript_path":sys.argv[3]}))' "$1" "$2" "$LMT" | "$PY" "$HOOKS/reply-check.py" 2>&1); }
+rc_lm h2 "Holding both controllers up in front of the simulator now: hold the controllers there."
+rc_lm h2 "The log shows the hands moved."
+[ -z "$OUT" ] && ok "in an /lm session a held stick needs no free line" || fail "/lm reply was handed back (out=$OUT)"
 rc_reply s1 "$(printf '| \360\237\224\246 x |')" 1
 [ -z "$OUT" ] && ok "never hands back twice in a row (stop hook already active)" || fail "should not block while active (out=$OUT)"
 printf 'reply_check = off\n' > "$LANES_CONFIG"

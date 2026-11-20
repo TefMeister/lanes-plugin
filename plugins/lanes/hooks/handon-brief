@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# SessionStart part (0.119.0): a hand-on close request still there after 5 minutes, with its window still open, is
+# said once (Developer PC 2026-11-19: four finished windows stayed open and nothing said so). Silent otherwise.
+set -uo pipefail
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+EMIT="${SCRIPT_DIR}/emit_context.py"
+[ -f "${PLUGIN_ROOT}/tools/handon.py" ] && [ -f "$EMIT" ] || exit 0
+PY=""
+for cand in python3 python py; do
+  command -v "$cand" >/dev/null 2>&1 || continue
+  "$cand" -c "" >/dev/null 2>&1 || continue
+  PY="$cand"; break
+done
+[ -n "$PY" ] || exit 0
+"$PY" "${PLUGIN_ROOT}/tools/handon.py" brief 2>/dev/null | "$PY" "$EMIT"
+exit 0

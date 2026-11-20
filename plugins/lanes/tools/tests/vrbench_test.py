@@ -182,6 +182,44 @@ class VrBenchTest(unittest.TestCase):
         with open(vb_settings.INPUT_FILE) as f:
             self.assertEqual(json.load(f)["v"], vb_settings.INPUT_VERSION)
 
+    def test_two_writers_at_once_never_stop(self):
+        # 0.119.0: one shared .tmp name made one of two writers stop with FileNotFoundError (2026-11-19)
+        import threading
+        errors = []
+
+        def writer(trig):
+            try:
+                for _ in range(150):
+                    vb_input.write(vb_input.Input().hand(vb_settings.HAND_LEFT, trigger=trig))
+            except Exception as e:  # noqa: BLE001
+                errors.append(repr(e))
+        ts = [threading.Thread(target=writer, args=(t,)) for t in (0.25, 0.75)]
+        for t in ts:
+            t.start()
+        for t in ts:
+            t.join()
+        self.assertEqual(errors, [])
+        left = [n for n in os.listdir(os.path.dirname(vb_settings.INPUT_FILE)) if n.endswith(".tmp")]
+        self.assertEqual(left, [])
+
+    def test_layer_start_and_stop_clear_the_hand_file(self):
+        # 0.119.0: the last run's hand file was still obeyed by the next game (Silent Hill 2, 2026-11-19)
+        calls = []
+        saved = (vb_layer.exe_bits, vb_layer.unregister_all, vb_layer.register, vb_layer.enable, vb_layer.disable)
+        vb_layer.exe_bits = lambda exe: 64
+        vb_layer.unregister_all = lambda: calls.append("unregister")
+        vb_layer.register = lambda bits: calls.append("register")
+        vb_layer.enable = lambda: calls.append("enable")
+        vb_layer.disable = lambda: calls.append("disable")
+        try:
+            for fn in (lambda: vb_layer.start("game.exe"), vb_layer.stop):
+                vb_input.write(vb_input.Input().hand(vb_settings.HAND_RIGHT, trigger=1.0))
+                self.assertTrue(os.path.exists(vb_settings.INPUT_FILE))
+                fn()
+                self.assertFalse(os.path.exists(vb_settings.INPUT_FILE))
+        finally:
+            (vb_layer.exe_bits, vb_layer.unregister_all, vb_layer.register, vb_layer.enable, vb_layer.disable) = saved
+
     def test_head_command_file(self):
         vb_sim.head(0, 1.7, 0, 30, 0)
         with open(os.path.join(vb_settings.SIM_DATA_DIR, vb_settings.HEAD_CMD)) as f:

@@ -252,6 +252,7 @@ ROWS = {
                            "activity log while the extra is on"),
     "hook:keeper-brief": READ_ONLY,
     "hook:switch-off-audit": free("reads Windows' own log at session start; writes only its own small audit file"),
+    "hook:handon-brief": free("reads the hand-on folder at session start; removes only close requests whose window is gone"),
     "command:keeper": free("the Keeper's round: one Keeper, and receiving holds its own lock"),
     "command:next": free("opens a window of its own and closes only its own"),
     "tool:keeper.py": free("each queued job is its own file; the jobs list is appended to, one line a time"),

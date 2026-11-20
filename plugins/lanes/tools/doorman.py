@@ -726,7 +726,10 @@ def main(argv):
         return 0 if r.get("ok") else 1
     if verb == "close" and len(argv) > 1 and argv[1].isdigit():
         r = close_session(int(argv[1])) if local else call("/close", {"pid": int(argv[1])})
-        print("doorman: session %s closed" % argv[1] if r.get("ok") else "doorman: " + r.get("error", "failed"))
+        # 0.119.0: without --local the OTHER PC is asked; its "not an open Claude session" read as a refusal here
+        where = "this PC" if local else "the other PC (add --local for a window on this PC)"
+        print("doorman: session %s closed on %s" % (argv[1], where) if r.get("ok")
+              else "doorman: asked %s: %s" % (where, r.get("error", "failed")))
         return 0 if r.get("ok") else 1
     if verb == "receive":
         r = call("/receive", {})

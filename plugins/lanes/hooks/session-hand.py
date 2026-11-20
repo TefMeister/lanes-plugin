@@ -18,9 +18,10 @@ def main():
     data = json.loads(raw or "{}")
     import handon
     records = handon.read_records(data.get("transcript_path") or "")
-    line = ""
-    if handon.is_on("hand_on"):
-        line = handon.close_if_safe(records)
+    # 0.119.0: a close request exists only because the person said yes to /lanes:next, so it is acted on whether or
+    # not the extra hand_on was ever chosen (Developer PC 2026-11-19: four finished windows stayed open, their close
+    # requests unread, because the extra read off).
+    line = handon.close_if_safe(records)
     if not line and handon.is_on("fresh_nudge") and not data.get("stop_hook_active"):
         line = handon.nudge(data.get("session_id", ""), records)
     if line:

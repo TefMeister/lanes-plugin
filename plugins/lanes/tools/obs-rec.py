@@ -1,7 +1,11 @@
 r"""obs-rec.py - record ONLY a game's window (and only its sound) during a test, with OBS (asked for by the maintainer, 2026-10-07).
 
     python obs-rec.py start <exe> <label> [--game <project>] [--class <cls>] [--also <exe>[:<cls>|:!<cls>]]
+                            [--size WxH|native] [--fps N] [--mbps N]
                                                                 start recording that game's window
+                                                                (--size native = the screen's real size; --mbps =
+                                                                a fixed bitrate instead of OBS's quality preset, which
+                                                                smooths fine grain away; 0.119.0)
     python obs-rec.py stop                                      stop; prints the file it wrote
     python obs-rec.py done                                      put your own OBS profile back; close OBS if we opened it
     python obs-rec.py status
@@ -82,6 +86,55 @@ START_LOCK_POLL_S = 1
 PROFILE = COLLECTION = "claude-tests"
 SCENE = "Game"
 VIDEO_W, VIDEO_H, FPS = 1280, 720, 60   # 60 fps
+REC_MBPS = None   # 0.119.0: a fixed bitrate (Mbps) for this recording instead of the preset; set by --mbps
+
+
+def screen_size():
+    """the main screen's real size in pixels, at any display scaling"""
+    import ctypes
+    u = ctypes.windll.user32
+    try:
+        u.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
+    except (AttributeError, OSError):
+        try:
+            u.SetProcessDPIAware()
+        except (AttributeError, OSError):
+            pass
+    return u.GetSystemMetrics(0), u.GetSystemMetrics(1)
+
+
+def apply_options(a):
+    """--size WxH|native, --fps N, --mbps N (Developer PC 2026-11-20: at 1280x720 with the presets the sky's fine
+    grain was lost, 0.19 left of 0.83, so the video showed rings the game does not have; native size at a fixed
+    60 Mbps kept it, 0.84). Sets the module's settings for this run and returns the arguments without them."""
+    global VIDEO_W, VIDEO_H, FPS, REC_MBPS
+    out, i = [], 0
+    while i < len(a):
+        k = a[i]
+        if k in ("--size", "--fps", "--mbps") and i + 1 < len(a):
+            v = a[i + 1]
+            if k == "--size":
+                if v.lower() == "native":
+                    VIDEO_W, VIDEO_H = screen_size()
+                else:
+                    w, _, h = v.lower().partition("x")
+                    if not (w.isdigit() and h.isdigit()):
+                        sys.exit("obs-rec: --size is WIDTHxHEIGHT (e.g. 3440x1440) or native")
+                    VIDEO_W, VIDEO_H = int(w), int(h)
+            elif k == "--fps":
+                if not v.isdigit():
+                    sys.exit("obs-rec: --fps is a whole number")
+                FPS = int(v)
+            else:
+                try:
+                    REC_MBPS = float(v)
+                except ValueError:
+                    sys.exit("obs-rec: --mbps is a number (e.g. 60)")
+            i += 2
+            continue
+        out.append(k)
+        i += 1
+    return out
 CONNECT_TRIES, CONNECT_GAP_S = 40, 0.5
 START_CHECKS, START_CHECK_GAP_S = 10, 0.5   # up to 5 s for the recording to really begin
 CLOSE_CHECKS, CLOSE_CHECK_GAP_S = 10, 0.5   # up to 5 s for OBS to close politely (the recording is saved by then)
@@ -239,6 +292,15 @@ def window_spec(exe, want=None, sim=False, must=True):
     esc = lambda s: s.replace(":", "#3A")
     return f"{esc(title)}:{esc(cls)}:{exe}"
 
+def rate_settings():
+    """with --mbps: record with Simple output's "same as stream" quality at that fixed bitrate (0.119.0); a later run
+    without it sets the preset back (the list above it puts "Small" first, these overwrite it)"""
+    if not REC_MBPS:
+        return []
+    return [("SimpleOutput", "StreamEncoder", "nvenc"), ("SimpleOutput", "VBitrate", str(int(REC_MBPS * 1000))),
+            ("SimpleOutput", "RecQuality", "Stream")]
+
+
 def wait_ready(cl):
     """OBS answers 207 'not ready' for a few seconds after it starts."""
     for _ in range(CONNECT_TRIES):
@@ -268,7 +330,7 @@ def ensure_setup(cl, state):
     time.sleep(1)
     for cat, name, val in [("Output", "Mode", "Simple"), ("SimpleOutput", "RecEncoder", "nvenc"),
                            ("SimpleOutput", "RecQuality", "Small"), ("SimpleOutput", "RecFormat2", "hybrid_mp4"),
-                           ("Output", "FilenameFormatting", "%CCYY-%MM-%DD_%hh-%mm-%ss")]:
+                           ("Output", "FilenameFormatting", "%CCYY-%MM-%DD_%hh-%mm-%ss")] + rate_settings():
         cl.set_profile_parameter(cat, name, val)
     if video_differs(cl.get_video_settings()):
         cl.set_video_settings(numerator=FPS, denominator=1, base_width=VIDEO_W, base_height=VIDEO_H,
@@ -611,7 +673,7 @@ def cmd_done():
     except OSError: pass
 
 def main():
-    a = sys.argv[1:]
+    a = apply_options(sys.argv[1:])
     if not a: sys.exit(__doc__)
     if a[0] == "start" and len(a) >= 3:
         project = a[a.index("--game") + 1] if "--game" in a else os.path.splitext(a[1])[0]

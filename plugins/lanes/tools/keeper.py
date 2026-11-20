@@ -121,9 +121,20 @@ def keep(paths, message):
     if not board():
         return
     git(["add", "--"] + paths)
-    if git(["commit", "-q", "-m", message, "--"] + paths).returncode == 0:
-        git(["pull", "-q", "--rebase"])
-        git(["push", "-q"])
+    if git(["commit", "-q", "-m", message, "--"] + paths).returncode != 0:
+        return True
+    # 0.119.0: an ask from the Developer PC was committed and never reached GitHub (SH2, 2026-11-15): a plain
+    # `pull --rebase` refuses while other sessions' edits sit unsaved in the same clone, so the push after it was
+    # refused too, both silently. Now the other edits are stashed round the pull, the push is tried twice, and a
+    # failure is said.
+    for attempt in range(2):
+        git(["pull", "-q", "--rebase", "--autostash"])
+        if git(["push", "-q"]).returncode == 0:
+            return True
+        time.sleep(0 if attempt else 3)
+    print("keeper: saved on this PC but NOT uploaded to GitHub (`git -C %s push` by hand; the other PC cannot see it"
+          " until then)" % board())
+    return False
 
 
 # ----- the regular jobs -----

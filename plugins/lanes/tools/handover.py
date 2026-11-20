@@ -89,6 +89,7 @@ LIVE_RE = re.compile(r"^[^:]+:status/([^:]+)\.md:LIVE:\s+(/\w+)\s+\S+\s+\S+\s+(\
 START_WRITE_MIN_AGE_S = 3600                        # a start report at most once an hour (fewer commits)
 GIT_TIMEOUT_S = 30
 FETCH_TIMEOUT_S = 90
+RECHECK_FETCH_S = 20   # 0.119.0: one look at GitHub before steps are called unsaved; short, it runs at a session start
 PUSH_TIMEOUT_S = 60
 TIME_FMT = "%Y-%m-%d %H:%M %z"
 ENDS_MISSING_DAYS = 2                               # another PC starting sessions this long with no end reported
@@ -274,6 +275,14 @@ def repo_state(repo):
     # commits on no remote branch at all: catches a branch that was never pushed, not only a stale upstream
     ok, n = git(["rev-list", "--count", "HEAD", "--not", "--remotes"], repo)
     unpushed = int(n) if ok and n.isdigit() else 0
+    if unpushed and os.environ.get("LANES_HANDOVER_NO_FETCH") != "1":
+        # 0.119.0: steps that reached GitHub another way (through another clone root, or a hand-over) still counted
+        # as "not pushed" here while this copy's view of GitHub was old: a /pd root showed 2 Silent Hill 2 steps
+        # unsaved that were on GitHub (Developer PC, 2026-11-19). Before calling steps unsaved, look at GitHub once.
+        # A fetch moves only this copy's record of GitHub, never the files or a branch.
+        if git(["fetch", "-q", "origin"], repo, timeout=RECHECK_FETCH_S)[0]:
+            ok, n = git(["rev-list", "--count", "HEAD", "--not", "--remotes"], repo)
+            unpushed = int(n) if ok and n.isdigit() else 0
     old_history = 0
     if unpushed:
         # Run 6 (2026-11-06): a copy still on the history from before a GitHub clean-up shows its old commits as "not

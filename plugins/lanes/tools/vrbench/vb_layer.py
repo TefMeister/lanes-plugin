@@ -129,8 +129,20 @@ def disable():
         pass
 
 
+def clear_input():
+    """0.119.0: the last run's hand file goes when the bench is switched on or off. A file left by another game's hold
+    tool was still obeyed, so the simulator's own controller presses never reached the next game (Developer PC,
+    Silent Hill 2 at PRESS ANY BUTTON, 2026-11-19)."""
+    for p in (S.INPUT_FILE,):
+        try:
+            os.remove(p)
+        except FileNotFoundError:
+            pass
+
+
 def start(exe):
     bits = exe_bits(exe)
+    clear_input()
     unregister_all()
     register(bits)
     enable()
@@ -139,6 +151,7 @@ def start(exe):
 
 def stop():
     disable()
+    clear_input()
     unregister_all()
 
 

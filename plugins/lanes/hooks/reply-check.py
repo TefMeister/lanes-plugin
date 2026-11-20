@@ -65,7 +65,27 @@ def reply_text(data):
     return "\n".join(reversed(parts))
 
 
-def findings(text, state):
+# 0.119.0 (Tefa 2026-11-16): the hold line is "useful when we in a ms session, but confusing when you drive the game and
+# tests". A session started with /lm (or /fullauto) is Claude driving: no hold line asked for there.
+CLAUDE_DRIVES = re.compile(r"<command-name>/(?:lanes:)?(?:lm|fullauto)</command-name>")
+FREE_LINE = "\u2705 **No test running right now, you don't need to do anything with the controllers.**"
+
+
+def claude_drives(data):
+    path = data.get("transcript_path") or ""
+    if not path or not os.path.isfile(path):
+        return False
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                if '"user"' in line and CLAUDE_DRIVES.search(line):
+                    return True
+    except OSError:
+        pass
+    return False
+
+
+def findings(text, state, drives=False):
     out = []
     if "\U0001F526" in text and "\U0001F41A" not in text:
         out.append("The write-up has the close-out box but no \U0001F41A line under it: add one line saying what of "
@@ -77,9 +97,9 @@ def findings(text, state):
     if state.get("game_in_hand") and not ticked and MAY_CLOSE.search(text):
         out.append("The person is running the game for this session and this reply means they may close or restart "
                    "it: add the line ✅ **You can quit the game now.** (or say plainly it must stay open).")
-    if state.get("holding") and not ticked and not HOLD.search(text) and not HOLD_GOES_ON.search(text):
-        out.append("The person was asked to hold something for the test and this reply does not free them: add "
-                   "✅ **You can stop** (or one line saying the hold goes on).")
+    if state.get("holding") and not drives and not ticked and not HOLD.search(text) and not HOLD_GOES_ON.search(text):
+        out.append("The person was asked to hold something for the test and this reply does not free them: add, on "
+                   "its own line, " + FREE_LINE + " (or one line saying the hold goes on).")
     return out
 
 
@@ -111,7 +131,7 @@ def main():
             state = json.load(f)
     except (OSError, ValueError):
         state = {}
-    found = [] if data.get("stop_hook_active") else findings(text, state)
+    found = [] if data.get("stop_hook_active") else findings(text, state, claude_drives(data))
     try:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:

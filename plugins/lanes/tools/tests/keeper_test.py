@@ -219,6 +219,22 @@ check("jobs.tsv" in git(["ls-tree", "-r", "--name-only", "main"], p("board.git")
 # ----- a job for the Keeper session: queued even when the Keeper cannot be reached -----
 rc, out = tool(KEEPER, ["ask", "refresh the front page row of proj", "--project", "proj"], DEV)
 check(rc == 1 and "job is queued" in out and "not reachable" in out, "a job is queued when the Keeper PC is off")
+check(any("refresh-the-front-page" in n for n in git(["ls-tree", "-r", "--name-only", "main"], p("board.git"))[1].split()),
+      "an ask reaches GitHub by itself")
+# 0.119.0: another session's unsaved edit in the same clone made the pull refuse and the push with it (2026-11-15)
+open(p("board", "README.md"), "a").write("someone else's unsaved line\n")
+git(["clone", "-q", p("board.git"), p("board-other")], T)
+open(p("board-other", "other.txt"), "w").write("x\n")
+git(["add", "other.txt"], p("board-other"))
+git(["commit", "-q", "-m", "the other PC"], p("board-other"))
+git(["push", "-q"], p("board-other"))
+rc, out = tool(KEEPER, ["ask", "a second job while the clone has unsaved edits"], DEV)
+check(any("a-second-job" in n for n in git(["ls-tree", "-r", "--name-only", "main"], p("board.git"))[1].split())
+      and "NOT uploaded" not in out, "an ask reaches GitHub even with other unsaved edits and a newer GitHub")
+check("someone else's unsaved line" in open(p("board", "README.md")).read(), "the other session's unsaved edit is kept")
+for n in os.listdir(p("board", "keeper", "queue")):
+    if "a-second-job" in n:
+        tool(KEEPER, ["finish", n], DEV)
 rc, out = tool(KEEPER, ["round"], DEV)
 check("refresh the front page row of proj" in out and "Uploaded since the last round" in out, "the round lists the queued job")
 check("the menu opens in the headset" in out, "the round shows each upload's note")

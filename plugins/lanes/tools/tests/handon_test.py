@@ -5,6 +5,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOOLS = os.path.dirname(HERE)
@@ -131,6 +132,21 @@ handon.save(req, {"new_name": "RE3 doors"})
 stays = handon.close_if_safe(saved_turn(1, end="Ready?"), pid=4242)
 check("asked but not safe: stays open and says why", "stays open" in stays and "question" in stays)
 check("no request: nothing at all", handon.close_if_safe(calm, pid=999999) == "")
+
+# 0.119.0: a close request left behind is said at a session start while its window is still open (2026-11-19)
+old = os.path.join(handon.HANDON_DIR, "close-5151.json")
+gone = os.path.join(handon.HANDON_DIR, "close-6161.json")
+handon.save(old, {"new_name": "RE2 pump"})
+handon.save(gone, {"new_name": "x"})
+past = time.time() - 600
+os.utime(old, (past, past))
+os.utime(gone, (past, past))
+st = handon.stale_closes(pids=[5151])
+check("a close asked 10 min ago, window still open: said", st and st[0][0] == 5151 and st[0][2] == "RE2 pump")
+check("a close whose window is gone: tidied away, not said", not os.path.isfile(gone) and len(st) == 1)
+handon.save(old, {"new_name": "RE2 pump"})
+check("a close asked just now: not said yet", handon.stale_closes(pids=[5151]) == [])
+os.remove(old)
 
 # the hooks, end to end
 log = os.path.join(TMP, "session.jsonl")

@@ -45,6 +45,8 @@ CLOSE_DELAY_S = 4.0                # after the reply ends, before /exit is typed
 LIGHT_TIMEOUT_S = 150.0
 MIN_PROMPT_CHARS = 400             # a hand-on prompt is long and accurate, never one line
 MARK = "LANES HAND-ON"
+DETACHED_PROCESS = 0x00000008      # Windows: the child gets no console of its own
+CREATE_NO_WINDOW = 0x08000000      # Windows: and no window flashes up
 PLACEHOLDER = re.compile(r"(?m)^[#\s]*[^\n<]*<[^<>\n]{3,}>\s*$")      # an outline line still unfilled
 ID_RE = r"[0-9]{8}-[0-9]{6}-[a-z0-9-]{1,40}"
 FIRST_RE = re.compile(MARK + r" (" + ID_RE + r"): read the hand-on prompt at (.+) in full and carry it out as your job\.")
@@ -397,8 +399,50 @@ def close_if_safe(records, pid=None):
     if os.environ.get("HANDON_TEST_NO_CLOSE"):
         return "\U0001F6AA Hand-on: would close now (test)."
     subprocess.Popen([sys.executable, os.path.abspath(__file__), "_exit", str(pid)],
-                     creationflags=0x00000008 | 0x08000000 if os.name == "nt" else 0, close_fds=True)
+                     creationflags=DETACHED_PROCESS | CREATE_NO_WINDOW if os.name == "nt" else 0, close_fds=True)
     return "\U0001F6AA Hand-on: '%s' has the next job; this window is saved and closes now." % new_name
+
+
+STALE_CLOSE_S = 300   # a close request older than this whose window is still open is said at a session start
+
+
+def stale_closes(now=None, pids=None):
+    """0.119.0: close requests older than STALE_CLOSE_S whose window is still open (nothing said so before)."""
+    now = now or time.time()
+    out = []
+    try:
+        names = [n for n in os.listdir(HANDON_DIR) if n.startswith("close-") and n.endswith(".json")]
+    except OSError:
+        return out
+    if names and pids is None:
+        import doorman
+        pids = doorman.session_pids()
+    for n in names:
+        path = os.path.join(HANDON_DIR, n)
+        try:
+            pid = int(n[6:-5])
+            age = now - os.path.getmtime(path)
+        except (ValueError, OSError):
+            continue
+        if age < STALE_CLOSE_S:
+            continue
+        if pid in (pids or []):
+            out.append((pid, int(age // 60), load(path, {}).get("new_name", "")))
+        else:
+            try:
+                os.remove(path)          # its window is gone: nothing left to say
+            except OSError:
+                pass
+    return out
+
+
+def brief():
+    lines = ["HAND-ON: window pid %d was asked to close %d min ago (its next job went to '%s') and is still open: "
+             "close it with `doorman.py close %d --local` once it is saved, and tell the person in one line." % (
+                 pid, mins, name or "a new window", pid) for pid, mins, name in stale_closes()]
+    if lines:
+        print("\n".join(lines))
+    return 0
 
 
 def exit_later(pid):
@@ -406,7 +450,7 @@ def exit_later(pid):
     import doorman
     if pid in doorman.session_pids():
         subprocess.run([sys.executable, os.path.join(HERE, "doorman.py"), "_type", str(pid)],
-                       creationflags=0x08000000 if os.name == "nt" else 0)
+                       creationflags=CREATE_NO_WINDOW if os.name == "nt" else 0)
     return 0
 
 
@@ -421,6 +465,8 @@ def main(argv):
             name = " ".join(argv[i + 1:i + 2])
             argv = argv[:i] + argv[i + 2:]
         return start(argv[1], name)
+    if verb == "brief":
+        return brief()
     if verb == "_exit" and len(argv) > 1:
         return exit_later(int(argv[1]))
     if verb == "status" and len(argv) > 1:

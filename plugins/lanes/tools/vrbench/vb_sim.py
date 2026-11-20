@@ -7,6 +7,7 @@ import json
 import math
 import os
 import subprocess
+import threading
 import time
 import uuid
 
@@ -16,7 +17,7 @@ import vb_settings as S
 def _command(name, payload, data_dir):
     os.makedirs(data_dir, exist_ok=True)
     path = os.path.join(data_dir, name)
-    tmp = path + ".tmp"
+    tmp = "%s.%d.%d.tmp" % (path, os.getpid(), threading.get_ident())   # one per writer (0.119.0)
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(payload, f)
     for _ in range(S.REPLACE_RETRIES):

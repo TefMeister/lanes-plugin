@@ -73,7 +73,7 @@ TELL ME: <the one or two things you need back: a number, yes/no, a screenshot, h
   whether it looks right.
 - **Screenshots:** they paste one or give a file path. Read it. If a picture decides the step, ask for it.
 - **✅ When a step has them holding something** (controllers up, a pose, the rifle on one spot) and the
-  session has what it needs, the NEXT reply opens with `✅ **You can stop**` on its own line, before
+  session has what it needs, the NEXT reply opens with `✅ **No test running right now, you don't need to do anything with the controllers.**` on its own line, before
   anything is read or explained (0.50.0). They cannot tell when "enough" has arrived; the tick is the
   only signal. If the capture failed and they must keep holding, say that in one line instead.
 - **✅ The same for the app:** while you still need it open (to read its log), say "keep it running"; the moment

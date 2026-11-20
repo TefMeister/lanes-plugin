@@ -339,4 +339,17 @@ assert_contains "new on GitHub, copied to this PC: demo-new" "$out" "a repo this
 out=$(LANES_STATE_DIR="$TP/D/state" LANES_LEVEL_REPOS="$LIST" LANES_CONFIG="$TP/D/lanes.conf" "$PY" "$TOOL" level 2>&1)
 assert_contains "every copy that could be brought level with GitHub already is" "$out" "a second run finds nothing to do"
 
+echo "0.119.0: steps that reached GitHub another way are not 'not pushed' in a copy with an old view of GitHub"
+rm -rf "$T/A/clones-pd/demo-clean"; mkdir -p "$T/A/clones-pd"; q git clone -q "$T/remote-clean" "$T/A/clones-pd/demo-clean"
+old=$(git -C "$T/A/clones-pd/demo-clean" rev-parse origin/main)
+( cd "$T/A/clones-pd/demo-clean" && echo p > p.txt && q git add p.txt && q git commit -q -m "pd work" && q git push -q origin main )
+q git -C "$T/A/clones-pd/demo-clean" update-ref refs/remotes/origin/main "$old"   # its view of GitHub is from before
+out=$(LANES_HANDOVER_NO_FETCH=1 LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" check 2>&1)
+assert_contains "demo-clean (/pd root): 1 commit(s) not pushed" "$out" "without a look at GitHub the old view counts it (the fault)"
+out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" check 2>&1)
+assert_not_contains "demo-clean (/pd root)" "$out" "with one look at GitHub first it is SAVED"
+( cd "$T/A/clones-pd/demo-clean" && echo q > q.txt && q git add q.txt && q git commit -q -m "really unsent" )
+out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" check 2>&1)
+assert_contains "demo-clean (/pd root): 1 commit(s) not pushed" "$out" "a step really not sent still counts"
+
 [ "$FAILED" = "0" ] && echo "handover-fixture: ALL PASSED" || { echo "handover-fixture: FAILED"; exit 1; }

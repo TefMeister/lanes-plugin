@@ -30,6 +30,8 @@ ROOT="$(cd "$PLUGIN/../.." && pwd)"
 cd "$ROOT" || exit 2
 REL="${PLUGIN#$ROOT/}"   # the plugin folder relative to the repo, so Windows Python can open it
 PY=""
+SHOW_LINES=20   # how many lines of a failed check are printed
+PULL_RETRY_S=20  # wait before the second try of a pull that failed
 for cand in python3 python py; do
   command -v "$cand" >/dev/null 2>&1 && "$cand" -c "" >/dev/null 2>&1 && { PY="$cand"; break; }
 done
@@ -80,19 +82,19 @@ ok "this copy has everything on GitHub"
 
 # 4. privacy
 if ! out=$("$PY" "$REL/tools/scrub-scan.py" . 2>&1); then
-  printf '%s\n' "$out" | head -20
+  printf '%s\n' "$out" | head -"$SHOW_LINES"
   stop "the privacy scan found something that identifies a person"
 fi
 ok "privacy scan clean"
 
 # 5. tests
 if ! out=$(bash "$HERE/tests/smoke-test.sh" 2>&1); then
-  printf '%s\n' "$out" | grep -E "FAIL" | head -20
+  printf '%s\n' "$out" | grep -E "FAIL" | head -"$SHOW_LINES"
   stop "the smoke test failed"
 fi
 ok "smoke test passed"
 if ! out=$(bash "$HERE/tests/hooks-test.sh" 2>&1); then
-  printf '%s\n' "$out" | grep -E "FAIL" | head -20
+  printf '%s\n' "$out" | grep -E "FAIL" | head -"$SHOW_LINES"
   stop "the hooks test failed"
 fi
 ok "hooks test passed"
@@ -104,7 +106,7 @@ fi
 
 echo "All checks passed. Publishing lanes $VERSION"
 # once (2026-11-16) a pull here failed with "Cannot rebase onto multiple branches" and worked a minute later: try twice
-git pull -q --rebase || { sleep 20; git pull -q --rebase; } || stop "could not bring the branch up to date"
+git pull -q --rebase || { sleep "$PULL_RETRY_S"; git pull -q --rebase; } || stop "could not bring the branch up to date"
 git push -q || stop "push failed"
 git tag "v$VERSION" && git push -q origin "v$VERSION" || stop "could not push the tag"
 gh release create "v$VERSION" --verify-tag --latest --title "$VERSION" --notes "$NOTES" || stop "the tag is pushed but the GitHub Release failed; run: gh release create v$VERSION --verify-tag --latest"

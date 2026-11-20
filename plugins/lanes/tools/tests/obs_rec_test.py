@@ -108,6 +108,18 @@ R.obs_running = lambda: True
 R.ensure_obs({})
 check(not ran and not popened, "a healthy OBS is left alone")
 
+# 0.119.0: size, frame rate and a fixed bitrate (Developer PC 2026-11-20, the sky's grain lost at 720p with the presets)
+check(R.rate_settings() == [], "no --mbps: the preset stays")
+rest = R.apply_options(["start", "game.exe", "sky", "--size", "3440x1440", "--fps", "30", "--mbps", "60", "--game", "g"])
+check(rest == ["start", "game.exe", "sky", "--game", "g"], "the new options are taken out, the rest kept")
+check((R.VIDEO_W, R.VIDEO_H, R.FPS) == (3440, 1440, 30), "--size and --fps set the video")
+check(("SimpleOutput", "VBitrate", "60000") in R.rate_settings() and ("SimpleOutput", "RecQuality", "Stream")
+      in R.rate_settings(), "--mbps 60 records at a fixed 60 Mbps")
+check(R.video_wanted()["output_width"] == 3440, "and OBS is asked for that size")
+R.screen_size = lambda: (2560, 1440)
+R.apply_options(["--size", "native"])
+check((R.VIDEO_W, R.VIDEO_H) == (2560, 1440), "--size native takes the screen's real size")
+
 print()
 print("obs_rec_test.py: %s" % ("all passed" if not fails else "%d FAILED" % fails))
 sys.exit(1 if fails else 0)
