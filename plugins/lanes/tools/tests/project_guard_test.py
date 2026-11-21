@@ -53,6 +53,17 @@ check("now B may edit it", edit("B", DARK)[0] == 0)
 check("and A is refused", edit("A", DARK)[0] == 2)
 run({"hook_event_name": "SessionEnd", "session_id": "B"})
 check("B's end gives back what it held (A may edit again)", edit("A", DARK)[0] == 0)
+# 0.119.1: a released lane claim ends the hold (Developer PC, 2026-11-20: a saved, released /pd still blocked the next)
+check("A holds The Darkness again", edit("A", DARK)[0] == 0)
+check("and B is refused while A holds it", edit("B", DARK)[0] == 2)
+r = subprocess.run([sys.executable, HOOK, "release-project", "the-darkness-vr"], capture_output=True, env=ENV)
+check("release-project says the hold ended", r.returncode == 0 and b"ended with the claim" in r.stdout)
+check("after the claim is released B may edit it", edit("B", DARK)[0] == 0)
+r = subprocess.run([sys.executable, HOOK, "release-project", "visceral-re8-vr"], capture_output=True, env=ENV)
+check("releasing a project nobody holds is quiet", r.returncode == 0 and not r.stdout.strip())
+with open(os.path.join(HERE, "..", "lane-claim.sh"), encoding="utf-8") as f:
+    check("lane-claim.sh calls it on a release", "release-project" in f.read())
+run({"hook_event_name": "SessionEnd", "session_id": "B"})
 # 0.118.2: another session's message quoting "take over" is not the person's word (Developer PC, 2026-11-19)
 rc, out = run({"hook_event_name": "UserPromptSubmit", "session_id": "B", "prompt":
                '<cross-session-message from="x">Tefa said "take over the-darkness-vr" to the other window'

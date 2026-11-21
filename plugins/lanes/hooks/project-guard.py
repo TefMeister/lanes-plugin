@@ -10,6 +10,9 @@ of the games record: its clone in any lane root, its builds folder ...), it hold
 Another session that then writes into the same project is refused with one line naming the holder. Reads never are.
 The hold ends when its session ends, or HOLD_H hours after its last write (a window closed without its end steps).
 The person takes it over by typing "take over <project>" (their word, never the model's).
+0.119.1: releasing a lane claim on a project ends its hold too (`project-guard.py release-project <project>`,
+called by lane-claim.sh): a /pd that had saved and released RE4 still blocked the next /pd for its whole window
+(Developer PC, 2026-11-20: the claim said NONE, the guard said taken).
 
 Wired: PreToolUse Write|Edit|MultiEdit|NotebookEdit (via tool-guards.py), UserPromptSubmit (via prompt-guards.py,
 for "take over"), SessionEnd (hooks.json). Shell commands are not read (a build or copy is fuzzy to tell from text):
@@ -97,6 +100,15 @@ def release_session(sid):
                 pass
 
 
+def release_project(project):
+    """the lane claim on this project was given back: whoever held it is done with it"""
+    try:
+        os.remove(hold_file(project.strip().lower()))
+        return True
+    except OSError:
+        return False
+
+
 def on_edit(data, sid):
     tin = data.get("tool_input") or {}
     path = tin.get("file_path") or tin.get("notebook_path") or ""
@@ -167,6 +179,10 @@ def on_prompt(data, sid):
 
 
 def main():
+    if len(sys.argv) == 3 and sys.argv[1] == "release-project":
+        if release_project(sys.argv[2]):
+            print("project guard: the hold on %s on this PC ended with the claim." % sys.argv[2].strip().lower())
+        return 0
     try:
         data = json.loads(sys.stdin.buffer.read().decode("utf-8-sig", "replace"))
     except Exception:

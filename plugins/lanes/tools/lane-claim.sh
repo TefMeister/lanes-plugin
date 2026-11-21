@@ -285,6 +285,13 @@ Lane: $lane $prefix"
           echo "CLAIMED: LIVE: $lane $stamp $HOST -> $file (pushed). Release it in your write-up: lane-claim.sh release $lane $prefix"
         else
           echo "RELEASED: $lane no longer claims $prefix (pushed)."
+          # 0.119.1: the project guard's hold on this project ends with the claim (Developer PC, 2026-11-20)
+          PG="$(dirname "$0")/../hooks/project-guard.py"
+          if [ -f "$PG" ]; then
+            for py in python3 python py; do
+              command -v "$py" >/dev/null 2>&1 && { "$py" "$PG" release-project "$prefix" 2>/dev/null; break; }
+            done
+          fi
         fi
         exit 0
       fi
