@@ -4,6 +4,8 @@ description: "(Guided Research) Public-research sweep across every project; writ
 
 `/gr` — **the per-project research lane.**
 
+**Role: Developer** (one-PC roles, 0.120.0, PROTOCOL §50): the first reply of this window says so in one line, beside the version line: `🧰 Developer — builds with no game running`.
+
 Argument: `$ARGUMENTS` — optional. Bare `/gr` sweeps every project; `/gr <name> …` scopes it to
 one or more; `/gr skip:<name>` excludes.
 

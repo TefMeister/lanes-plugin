@@ -36,7 +36,7 @@ printf 'board = %s/root/claude-memory\n' "$T" > "$T/lanes.conf"
 
 out=$("$PY" "$TOOL" take before)
 check "a snapshot names how many copies it holds" 'printf "%s" "$out" | grep -q "snapshot .before.: 3 copies"'
-out=$("$PY" "$TOOL" take after); "$PY" "$TOOL" diff >/dev/null; rc=$?
+out=$("$PY" "$TOOL" take after); "$PY" "$TOOL" diff >/dev/null; rc=$?; sleep 1   # 0.120.0: the next "before" must not land in the same second (same file name)
 out=$("$PY" "$TOOL" diff)
 check "nothing changed: every part says none, exit 0" '[ $rc -eq 0 ] && printf "%s" "$out" | grep -q "1. Changed with no saved step behind it (0): none"'
 

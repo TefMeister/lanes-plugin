@@ -4,6 +4,8 @@ description: "(Good-standing Sweep) Read-only hygiene pass over every repo: tags
 
 `/gs` — the hygiene pass.
 
+**Role: Keeper** (one-PC roles, 0.120.0, PROTOCOL §50): the first reply of this window says so in one line, beside the version line: `🧰 Keeper — uploads, the front page, the index and the regular check-ups`.
+
 Argument: `$ARGUMENTS` — optional. A date (`2026-08-20`) to override the delta window, or one
 project name to sweep that project only. Empty sweeps everything since the last logged sweep.
 

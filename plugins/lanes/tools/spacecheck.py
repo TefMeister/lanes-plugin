@@ -181,7 +181,7 @@ class Walk:
 
     def tree(self, top, depth=0, context=""):
         """walk a folder; returns (bytes, newest mtime). Judges files on the way, folders at OLD_FOLDER_DEPTH."""
-        if time.time() > self.deadline:
+        if time.time() >= self.deadline:
             self.cut_off = True
             return 0, 0
         total, newest = 0, 0
@@ -254,7 +254,7 @@ class Walk:
         total, newest = 0, 0
         stack = [top]
         while stack:
-            if time.time() > self.deadline:
+            if time.time() >= self.deadline:
                 self.cut_off = True
                 break
             d = stack.pop()

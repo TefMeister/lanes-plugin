@@ -1,4 +1,7 @@
-# Lanes on two PCs: the recommended setup
+# Lanes on two PCs
+
+**One PC is the recommended setup since 0.120.0** (`ONE-PC.md`): start there. This page is the extra for people
+with a second PC.
 
 Proven on the maintainer's own two PCs, 2026-10-28: both on one private link, each PC's Claude session able to type
 into the other's, and every piece of work still saved through GitHub. The maintainer, the same day: *"Home pc and Dev

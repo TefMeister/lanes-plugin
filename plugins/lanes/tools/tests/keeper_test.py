@@ -315,6 +315,12 @@ D.conf = lambda: dict(KEEPER_CONF, keeper_role="developer")
 check(not D.wake_on(), "and off on the PC that builds")
 D.conf = lambda: dict(KEEPER_CONF, keeper_wake="off")
 check(not D.wake_on(), "and off when keeper_wake = off")
+D.conf = lambda: {"keeper": "on", "keeper_mode": "this_pc   # one PC"}
+check(D.wake_on(), "one PC (0.120.0): the wake is on there too, a comment after the setting allowed")
+D.conf = lambda: {"keeper": "on", "keeper_mode": "this_pc", "keeper_wake": "off"}
+check(not D.wake_on(), "one PC: and off when keeper_wake = off")
+D.conf = lambda: {"keeper_mode": "this_pc"}
+check(not D.wake_on(), "one PC: and off when the keeper extra is off")
 D.conf = lambda: dict(KEEPER_CONF)
 
 waiting, opened, typed, sessions = [2], [], [], []
@@ -340,6 +346,17 @@ check(r.get("asked") and typed == [["_type", "77", "round"]] and len(opened) == 
 waiting[0] = 0
 r = D.wake_keeper()
 check(not r.get("asked") and "round_asked" not in D.read_state(), "the round done: the doorman forgets it asked")
+
+names = []
+D.conf = lambda: {"keeper": "on", "keeper_mode": "this_pc"}
+D.open_session = lambda name="", first="": (names.append((name, first)), {"ok": True, "pid": 88})[1]
+sessions[:] = [{"pid": 5, "by_doorman": False, "name": ""}]
+waiting[0] = 1
+D.write_state({})
+r = D.wake_keeper()
+check(r.get("asked") and names == [("Keeper", "/lanes:keeper")],
+      "one PC: news opens a window named Keeper that starts with the round, never the window opened by hand")
+D.conf = lambda: dict(KEEPER_CONF)
 
 print()
 print("keeper_test.py: %s" % ("all passed" if not fails else "%d FAILED" % fails))

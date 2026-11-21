@@ -458,8 +458,10 @@ def wake_on():
 
     def on(key, default):
         return c.get(key, default).strip().lower() in ("on", "yes", "true", "1")
-    return (on("keeper", "off") and on("keeper_wake", "on") and c.get("keeper_mode", "other_pc").strip() == "other_pc"
-            and c.get("keeper_role", "developer").strip() == "keeper")
+    mode = c.get("keeper_mode", "other_pc").split("#")[0].strip()
+    # two PCs: the Keeper PC's doorman wakes; one PC (0.120.0): the background upload wakes a Keeper window here
+    return (on("keeper", "off") and on("keeper_wake", "on")
+            and ((mode == "other_pc" and c.get("keeper_role", "developer").strip() == "keeper") or mode == "this_pc"))
 
 
 def round_wanted(pull=False):
@@ -511,7 +513,8 @@ def wake_keeper(pull=False):
         if not ok:
             how = "could not type the round into pid %d: %s" % (mine[0]["pid"], (p.stdout + p.stderr).strip())
     else:
-        r = open_session("", first=ROUND_TEXT)
+        one_pc = conf().get("keeper_mode", "other_pc").split("#")[0].strip() == "this_pc"
+        r = open_session("Keeper" if one_pc else "", first=ROUND_TEXT)   # keeper.LOCAL_SESSION_NAME on one PC
         ok = bool(r.get("ok"))
         how = "opened pid %s with the round" % r.get("pid") if ok else "could not open a window: %s" % r.get("error")
     log("wake: %d thing(s) wait for a round; %s" % (count, how))

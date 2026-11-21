@@ -7,6 +7,8 @@ description: "(Full scan) The weekly check-up in one go: Gold Digger, research, 
 go through everything in one go ... these slash commands still have to be available separately as well of course"*;
 the name chosen the same day. PROTOCOL §36.
 
+**Role: Keeper** (one-PC roles, 0.120.0, PROTOCOL §50): the first reply of this window says so in one line, beside the version line: `🧰 Keeper — uploads, the front page, the index and the regular check-ups`.
+
 **The habit: once a week**, on either PC, but never two runs at once anywhere (step 0b). A session-start line says when
 it has been 7 days on this PC. Never run it unasked. It costs a lot (research is the biggest part), and it needs no game and no person: a good one to start
 before leaving the PC.

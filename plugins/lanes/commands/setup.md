@@ -61,6 +61,22 @@ and **"Choose a name"** (they type it through "Other").
 - ⚠️ **Never suggest the computer's real name.**
 - Nobody set one? The first claim or reminder takes the next free PC number by itself.
 
+## 0.6.1 One PC or two? (0.120.0, asked third, every first run)
+
+Most people have one PC, and Lanes is made to run well on one (PROTOCOL §50, `docs/ONE-PC.md`). Check first:
+`pcs` in `lanes.conf`; set already: say it in one line and move on. Otherwise ask **one question**
+(AskUserQuestion): *"Will you use Lanes on this one PC, or on two or more?"* Options: **"One PC (Recommended)"**
+(*"everything happens here: one window builds, one runs the game, and saving to GitHub runs in the background"*)
+and **"Two or more PCs"** (*"the same, plus a link between the PCs; set up the second one after this one works"*).
+
+- **One PC:** write `pcs = 1` in `lanes.conf`; if the `keeper` extra is chosen in §0.6.2, also
+  `keeper_mode = this_pc`. Skip every step below marked "only if they use two or more PCs" (§0.9) and the
+  two-PC parts of §0.12.6. Point at `docs/ONE-PC.md` in one line.
+- **Two or more:** write `pcs = 2`. Set up this PC first, exactly as for one PC; the link, the transfer folder and
+  the Keeper on the other PC come after, from `docs/TWO-PCS.md`. Say that in one line, do not do it now.
+- A PC that later leaves the board (sold, wiped, moved to another GitHub account): `machine-name.py retire <name>`
+  on a PC that stays, so its lines stop appearing.
+
 ## 0.6.2 Which built-in extras? (0.82.0; sets and links 0.84.0; new installs only)
 
 Run `python "${CLAUDE_PLUGIN_ROOT}/tools/features.py" ask --json`. **Exit 1 means nothing to ask** (a PC that had

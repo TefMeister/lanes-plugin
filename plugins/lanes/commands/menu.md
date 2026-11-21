@@ -7,6 +7,8 @@ recorded route: start it, get through the intro, the title screen and
 the menus to where the work happens, and quit through the menu at the end. Built for game modding, where one
 session walks the same menus dozens of times.
 
+**Role: Tester** (one-PC roles, 0.120.0, PROTOCOL §50): the first reply of this window says so in one line, beside the version line: `🧰 Tester — the only role that starts a game, the headset or VR Bench`.
+
 The tool is `python "${CLAUDE_PLUGIN_ROOT}/tools/menu-o-matic/menu_o_matic.py"`, below `mom`. Its own `README.md`
 beside it explains the route format. Windows only; needs Pillow (`python -m pip install pillow`).
 

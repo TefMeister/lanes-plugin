@@ -4,6 +4,8 @@ description: "(Live Modding) Hands ONE game over to Claude while you are away: i
 
 `/lm` — **the live lane.** The only one allowed to run the thing.
 
+**Role: Tester** (one-PC roles, 0.120.0, PROTOCOL §50): the first reply of this window says so in one line, beside the version line: `🧰 Tester — the only role that starts a game, the headset or VR Bench`.
+
 Argument: `$ARGUMENTS` — optional. A project name, however you would naturally say it. If it
 matches more than one project, **list the candidates and ask** — never guess silently on an
 ambiguous name. If it is empty, auto-pick the next job for this machine.

@@ -8,6 +8,8 @@ the same time i hope this is not going to break things that actually work right 
 everything just in case something goes wrong"*; then, after the first pass, *"please make a slash command /ch for Code
 health and also add this slash command to the /fullscan function"*. PROTOCOL §37.
 
+**Role: Keeper** (one-PC roles, 0.120.0, PROTOCOL §50): the first reply of this window says so in one line, beside the version line: `🧰 Keeper — uploads, the front page, the index and the regular check-ups`.
+
 Argument: `$ARGUMENTS` — optional. A repo name (`/ch BeG0nE`) to look at only that one. Empty looks at every repo
 `ch.py repos` lists.
 

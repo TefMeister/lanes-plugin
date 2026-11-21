@@ -5,6 +5,9 @@
                                        PC1, PC2, ... and save it
     python machine-name.py suggest     print the name that would be taken, and change nothing
     python machine-name.py set NAME    call this PC NAME instead
+    python machine-name.py retire NAME a PC that has left this board (moved to another account, sold, wiped):
+                                       its files move to <board>/retired/NAME-<date>/, its name leaves
+                                       machines.txt, and the other PCs stop printing its lines (0.120.0)
 
 WHY (0.24.0)
   A live claim and a "this machine owes" reminder both say which PC wrote them, because two
@@ -121,6 +124,60 @@ def register(new, old=""):
     return "added to the board's %s and committed; it goes out with the next push" % REGISTRY
 
 
+# What a PC leaves on the board, by name (0.120.0). Moved, never deleted.
+RETIRE_FILES = ("handover/{n}.txt", "installed/{n}.json", "installed/{n}-games.tsv")
+
+
+def retire(name):
+    """Move NAME's own files on the board to retired/NAME-<date>/ and drop NAME from machines.txt.
+    Refuses this PC's own name. Returns (exit code, lines to print)."""
+    import datetime
+    import shutil
+    b = board()
+    if not b:
+        return 1, ["no board set (board = in lanes.conf): nothing to retire"]
+    me = current()
+    if me and me.lower() == name.lower():
+        return 1, ["%s is THIS PC's name: retire it from another PC, or rename this one with `set`" % name]
+    git(b, "pull", "-q", "--rebase")
+    names = registered(b)
+    known = [x for x in names if x.lower() == name.lower()]
+    dest_rel = "retired/%s-%s" % (name, datetime.date.today().isoformat())
+    moved, role = [], ""
+    for pat in RETIRE_FILES:
+        rel = pat.format(n=name)
+        src = os.path.join(b, rel)
+        if not os.path.isfile(src):
+            continue
+        if rel.startswith("handover/"):
+            for line in open(src, encoding="utf-8", errors="replace"):
+                if line.startswith("role ="):
+                    role = line.split("=", 1)[1].strip().upper()
+        os.makedirs(os.path.join(b, dest_rel), exist_ok=True)
+        shutil.move(src, os.path.join(b, dest_rel, os.path.basename(rel)))
+        moved.append(rel)
+    if not known and not moved:
+        return 1, ["%s is not on this board (machines.txt has: %s)" % (name, ", ".join(names) or "nobody")]
+    if known:
+        keep = [x for x in names if x.lower() != name.lower()]
+        with open(os.path.join(b, REGISTRY), "w", encoding="utf-8", newline="\n") as f:
+            f.write(REGISTRY_HEAD + "\n".join(keep) + ("\n" if keep else ""))
+    paths = [REGISTRY] + moved + [dest_rel]
+    out = ["%s retired: %s" % (name, ", ".join(moved) if moved else "no files of its own were on the board")]
+    owed = os.path.join(b, "owed", role) if role else ""
+    if owed and os.path.isdir(owed):
+        left = [x for x in os.listdir(owed) if x.endswith(".md") and x.lower() != "readme.md"]
+        if left:
+            out.append("%d reminder(s) still wait in owed/%s (that PC's role): clear them with owed.sh done, "
+                       "or raise them again for a PC that is still here" % (len(left), role))
+    git(b, "add", "-A", "--", *paths)
+    if not git(b, "commit", "-q", "-m", "machines: %s retired" % name, "--", *paths):
+        out.append("moved on this PC, but could not commit it")
+        return 0, out
+    out.append("committed and pushed" if git(b, "push", "-q") else "committed; it goes out with the next push")
+    return 0, out
+
+
 def current():
     v = conf_get(KEY)
     return v if VALID.match(v or "") and v.lower() not in real_names() else ""
@@ -142,6 +199,10 @@ def main(argv):
     if cmd == "suggest":
         print(current() or next_free(registered(board())))
         return 0
+    if cmd == "retire" and len(argv) == 2:
+        code, lines = retire(argv[1].strip())
+        print("\n".join(lines))
+        return code
     if cmd == "set" and len(argv) == 2:
         new, old = argv[1].strip(), current()
         if not VALID.match(new):

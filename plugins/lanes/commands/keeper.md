@@ -7,6 +7,8 @@ the Keeper is *"responsible only for maintaining the neatness and correctness of
 uploading, on a second PC or, with one PC, in a session that is *"opened and closed when needed"*. PROTOCOL §47,
 `docs/TWO-PCS.md`. On or off: `keeper` (features.py).
 
+**Role: Keeper** (one-PC roles, 0.120.0, PROTOCOL §50): the first reply of this window says so in one line, beside the version line: `🧰 Keeper — uploads, the front page, the index and the regular check-ups`.
+
 **Who runs this:** a session on the Keeper PC (`keeper_mode = other_pc`, `keeper_role = keeper`), or the Keeper
 session the building session opened on this PC (`keeper_mode = this_pc`). **Never the session that builds**: it hands
 over (`parcel.py send`) and asks (`keeper.py ask`), and that is all it does.

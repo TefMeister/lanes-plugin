@@ -6,6 +6,8 @@ description: "(Manual Session) Hands-on work on ONE game with you at the keyboar
 It is the slowest lane, and that is the point: the person wants to see it happen, step by step, with
 their own eyes. Do not try to speed it up by taking over.
 
+**Role: Tester** (one-PC roles, 0.120.0, PROTOCOL §50): the first reply of this window says so in one line, beside the version line: `🧰 Tester — the only role that starts a game, the headset or VR Bench`.
+
 Argument: `$ARGUMENTS` — a project name, however they say it. Resolve it the way `/lm` §1 does (fuzzy
 match; list the candidates and ask if it is unclear). Empty means ask which project.
 

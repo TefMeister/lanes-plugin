@@ -4,6 +4,8 @@ description: "(Sweep Research) Cross-project research sweep; writes only the sha
 
 `/sr` — **the cross-project research lane.**
 
+**Role: Developer** (one-PC roles, 0.120.0, PROTOCOL §50): the first reply of this window says so in one line, beside the version line: `🧰 Developer — builds with no game running`.
+
 Where `/gr` goes deep on one project, `/sr` looks for what is true across all of them, and puts it
 somewhere every project can reach.
 

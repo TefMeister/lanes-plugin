@@ -252,7 +252,7 @@ role = DEV
 # The Keeper (0.108.0, extra `keeper`): one session builds and never uploads; the Keeper uploads and keeps GitHub
 # right. Two PCs (other_pc) or one (this_pc). docs/TWO-PCS.md has the order to set it up.
 # keeper = on
-# keeper_mode = other_pc            # or this_pc
+# keeper_mode = other_pc            # or this_pc (one PC, docs/ONE-PC.md)
 # keeper_role = developer           # or keeper (two PCs only)
 # doorman_peer = <the Keeper PC's private-link address>          # on the PC that builds
 # doorman_allow = <the building PC's private-link address>       # on the Keeper PC
@@ -275,3 +275,6 @@ role = DEV
 # Installs with no Yes click (0.110.0; PROTOCOL section 49). Windows. Needs `quiet_install.py setup` once per PC
 # (that one time asks for a Yes click). Off = programs install the ordinary way; one that asks is skipped and listed.
 # quiet_installs = on
+
+# One PC or two (0.120.0, written by /lanes:setup §0.6.1). One PC is the recommended setup: docs/ONE-PC.md.
+# pcs = 1

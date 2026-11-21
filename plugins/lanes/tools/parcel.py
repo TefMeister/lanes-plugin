@@ -272,6 +272,20 @@ def send_new(repo_name, repo, branch, remote, f, note):
     return 0
 
 
+def wake_local_keeper():
+    """one PC (0.120.0): after a hand-over with a front-page sentence is uploaded, start the Keeper's round in a
+    Keeper window on this PC (the doorman's wake: once per batch, never beside the full scan, `keeper_wake = off`
+    switches it off). Never fails the upload."""
+    if os.environ.get("PARCEL_NO_WAKE"):
+        return
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import doorman
+        doorman.wake_keeper()
+    except Exception:  # noqa: BLE001 - the upload is done; a wake that cannot run is only a missed nudge
+        pass
+
+
 def push_direct(pid):
     """one PC: upload a handed-over project from its working copy, in the background, and write the receipt"""
     f = folders()
@@ -287,6 +301,8 @@ def push_direct(pid):
     if ok:
         done(f, label_path, label_path[:-5] + ".bundle")
         receipt(f, d, ON_GITHUB)
+        if d.get("note"):                                          # 0.120.0: news on one PC wakes the Keeper here
+            wake_local_keeper()
         return 0
     tail = " / ".join(l.strip() for l in out.splitlines()[-6:]
                       if l.strip() and "failed to push some refs" not in l and not l.startswith("To "))

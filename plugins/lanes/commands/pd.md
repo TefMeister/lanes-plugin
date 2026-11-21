@@ -5,6 +5,8 @@ description: "(Parallel Development) Moves a project on with no game running: st
 `/pd` — **Parallel Development**. Do everything that does **not** need the app running, so that the
 next live session spends its scarce time on the things that genuinely require it.
 
+**Role: Developer** (one-PC roles, 0.120.0, PROTOCOL §50): the first reply of this window says so in one line, beside the version line: `🧰 Developer — builds with no game running`.
+
 Argument: `$ARGUMENTS` — optional. A bare `/pd` **auto-picks one job**; `/pd <name> …` works one or
 more named projects; `/pd skip:<name> …` runs the full list minus some.
 

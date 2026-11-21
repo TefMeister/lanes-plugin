@@ -1949,3 +1949,25 @@ On or off: `quiet_installs` (asked on an update too, because of the trade below)
 - **After a Lanes update that changes the runner,** `status` says setup is wanted again (one Yes click): the task keeps
   running the copy that was checked in at setup, never a newer file by itself.
 - `quiet_install.py probe` proves the task answers with administrator rights without installing anything.
+
+## 50. One PC, three roles (0.120.0, 2026-11-21)
+
+Asked for by the maintainer: *"the 2 pc system, i want it to work on one pc. the developer and keeper working
+together and maybe we get to divide it even more and bring in the Tester"*, because *"most people don't have a 2 pc
+setup"*. One PC is the recommended setup (`docs/ONE-PC.md`); two PCs (`docs/TWO-PCS.md`) is the extra.
+
+- **Three roles, by the command a window starts with:** **Developer** (`/pd`, `/gr`, `/sr`, `/gd`: no game running),
+  **Tester** (`/lm`, `/ms`, `/lanes:bench`, `/lanes:menu`: the only role that starts a game, the headset or VR Bench),
+  **Keeper** (`/lanes:keeper`, `/fullscan`, `/gu`, `/od`, `/gs`, `/ch`: uploads, front page, index, check-ups; writes no
+  code). Each command's first reply says its role in one line beside the version line (`🧰 Developer — ...`).
+- **Nothing new keeps them apart:** the lane claim, the clash guard (§45), the full scan first (§48), one writer per file.
+- **Saving on one PC** is the `keeper` extra with `keeper_mode = this_pc` (§47): the upload runs in the background, a
+  Keeper window opens only when there is a job and closes after. **The wake on one PC (0.120.0):** the background
+  upload of a hand-over with a note calls the doorman's wake (`parcel.py` -> `doorman.wake_keeper`), which opens a
+  window named "Keeper" that starts with `/lanes:keeper`, or types the round into the one it opened before; never into
+  a window opened by hand, once per batch, not while the full scan runs; `keeper_wake = off` switches it off.
+- **Setup asks "one PC or two?"** (`/lanes:setup` §0.6.1) and writes `pcs = 1 | 2`; one PC skips the two-PC steps.
+- **A PC that leaves the board:** `machine-name.py retire <name>` on a PC that stays moves its handover, installed and
+  games files to `<board>/retired/<name>-<date>/` (kept), drops it from `machines.txt`, counts its waiting reminders,
+  and commits and pushes those paths only. It refuses this PC's own name. The other PCs' lines about it stop.
+- **The check:** `docs/ONE-PC-TEST.md` (O1 to O10).

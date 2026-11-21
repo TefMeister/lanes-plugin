@@ -8,6 +8,8 @@ all and a skills page 67 days old: *"a slash command now actually, that scans if
 github ... it must run before /gu ... and then add this function to the /fullscan as well so our github will always be
 shiny and has the latest stuff"*. The name was chosen the same day. PROTOCOL §41.
 
+**Role: Keeper** (one-PC roles, 0.120.0, PROTOCOL §50): the first reply of this window says so in one line, beside the version line: `🧰 Keeper — uploads, the front page, the index and the regular check-ups`.
+
 **When:** inside `/fullscan` every week, just before the tool check; on its own whenever something was built, renamed
 or released. Never run it unasked. On or off: `out_of_date` (features.py).
 

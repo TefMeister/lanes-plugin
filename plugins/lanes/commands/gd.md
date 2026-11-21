@@ -7,6 +7,8 @@ description: "(Gold Digger) Reads the logs and reports earlier runs left on the 
 (*"categorizin and "shelving" all the collected data after each run ... so that the actual /gd can more systematically go
 through all this, instead of being dropped into a sea of information"*). PROTOCOL §36.
 
+**Role: Developer** (one-PC roles, 0.120.0, PROTOCOL §50): the first reply of this window says so in one line, beside the version line: `🧰 Developer — builds with no game running`.
+
 Argument: `$ARGUMENTS` — optional. A game name to read only that game; a game and a shelf (`alice camera`) to read
 only that shelf. Empty reads every game with something waiting.
 

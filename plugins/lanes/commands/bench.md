@@ -8,6 +8,8 @@ VR Bench layer ([TefMeister/vr-bench](https://github.com/TefMeister/vr-bench)) p
 A learning run moves the head, the hands and every button in turn, takes a picture after each, and writes down
 what the game did.
 
+**Role: Tester** (one-PC roles, 0.120.0, PROTOCOL §50): the first reply of this window says so in one line, beside the version line: `🧰 Tester — the only role that starts a game, the headset or VR Bench`.
+
 The tool is `python "${CLAUDE_PLUGIN_ROOT}/tools/vrbench/vrbench.py"`, below `vrbench`. Design:
 `docs/specs/2026-10-17-vr-bench-design.md`. Windows only; needs Pillow.
 

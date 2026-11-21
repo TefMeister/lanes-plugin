@@ -94,5 +94,27 @@ echo "older claims"
 out=$(bash -c 'source <(sed -n "/^classify_line()/,/^}$/p" "$1"); NOW=$(date +%s); MAX_AGE_S=43200; classify_line "LIVE: /lm 2026-01-01 10:00 SOME-OLD-NAME"; echo "$C_STATE"' _ "$TOOLS/lane-claim.sh" 2>&1)
 [ "$out" = "STALE" ] && ok "a claim written before 0.24.0 still reads" || fail "an old claim no longer parses: $out"
 
+echo "retiring a PC that left the board (0.120.0)"
+git -C "$T/pc-a" pull -q --rebase 2>/dev/null
+mkdir -p "$T/pc-a/handover" "$T/pc-a/installed"
+printf 'machine = Attic\nrole = DEV\n' > "$T/pc-a/handover/Attic.txt"
+printf '{}\n' > "$T/pc-a/installed/Attic.json"; printf 'g\n' > "$T/pc-a/installed/Attic-games.tsv"
+printf 'machine = PC1\nrole = HOME\n' > "$T/pc-a/handover/PC1.txt"
+git -C "$T/pc-a" add -A && git -C "$T/pc-a" commit -qm "two PCs' files" && git -C "$T/pc-a" push -q 2>/dev/null
+out=$(LANES_CONFIG="$T/a.conf" "$PY" "$TOOLS/machine-name.py" retire PC1 2>&1); rc=$?
+[ $rc -ne 0 ] && [ -f "$T/pc-a/handover/PC1.txt" ] && ok "refuses to retire this PC itself" || fail "retired itself: $out"
+out=$(LANES_CONFIG="$T/a.conf" "$PY" "$TOOLS/machine-name.py" retire Attic 2>&1); rc=$?
+r=$(ls -d "$T/pc-a/retired/Attic-"* 2>/dev/null | head -1)
+[ $rc -eq 0 ] && [ -n "$r" ] && [ -f "$r/Attic.txt" ] && [ -f "$r/Attic.json" ] && [ -f "$r/Attic-games.tsv" ] \
+  && ok "its files move to retired/, kept, not deleted" || fail "retire: rc=$rc $out"
+[ ! -e "$T/pc-a/handover/Attic.txt" ] && [ ! -e "$T/pc-a/installed/Attic.json" ] && [ -f "$T/pc-a/handover/PC1.txt" ] \
+  && ok "the other PCs' readers no longer find it; this PC's own file stays" || fail "left behind: $(ls "$T/pc-a/handover" "$T/pc-a/installed")"
+! grep -qx Attic "$T/pc-a/machines.txt" && grep -qx PC1 "$T/pc-a/machines.txt" && ok "its name leaves machines.txt" || fail "machines.txt: $(cat "$T/pc-a/machines.txt")"
+echo "$out" | grep -q "reminder(s) still wait in owed/DEV" && ok "says the reminders still waiting for its role" || fail "no owed line: $out"
+git -C "$T/pc-b" pull -q --rebase 2>/dev/null
+[ -n "$(ls -d "$T/pc-b/retired/Attic-"* 2>/dev/null)" ] && ok "committed and pushed: the other clone sees it" || fail "not pushed: $out"
+out=$(LANES_CONFIG="$T/a.conf" "$PY" "$TOOLS/machine-name.py" retire Nobody 2>&1); rc=$?
+[ $rc -ne 0 ] && ok "a name not on the board is refused" || fail "retired a stranger: $out"
+
 echo
 [ "$FAILED" = 0 ] && echo "machine-label-fixture: $N checks, 0 failed" || { echo "machine-label-fixture: FAILED"; exit 1; }

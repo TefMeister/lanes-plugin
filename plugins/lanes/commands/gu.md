@@ -7,6 +7,8 @@ and updates them: a newer version on GitHub comes down to this PC, a newer versi
 two copies of a tool are brought back in step, and what sessions learned goes into the tools.
 Asked for by the maintainer, 2026-10-14. PROTOCOL §23.
 
+**Role: Keeper** (one-PC roles, 0.120.0, PROTOCOL §50): the first reply of this window says so in one line, beside the version line: `🧰 Keeper — uploads, the front page, the index and the regular check-ups`.
+
 **The habit: once a week.** A session-start line says when it has been 7 days or more on this PC. Never run it
 unasked; mention it in one line and carry on.
 
