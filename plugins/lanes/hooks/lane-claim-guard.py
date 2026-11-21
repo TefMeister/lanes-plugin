@@ -48,8 +48,8 @@ def read_conf(key):
             with open(path, encoding="utf-8") as f:
                 for line in f:
                     m = pat.match(line.rstrip("\r\n"))
-                    if m:
-                        return m.group(1).strip().strip('"')
+                    if m:   # a trailing "# note" (estate.py writes one) is not part of the value (0.121.0)
+                        return re.sub(r"\s#.*$", "", m.group(1)).strip().strip('"')
         except Exception:
             continue
     return None

@@ -220,8 +220,9 @@ privacy scan runs before every Lanes release.
 
 ## What `/lanes:setup` offers at first install
 
-Nothing is installed without your yes, and one "no" means it never asks again. First it asks what to
-call you and this PC, then a few yes/no questions (keep every build, switch on the Inspector, a synced
+Nothing is installed without your yes, and one "no" means it never asks again. Choosing "install everything
+recommended" is the yes for the whole list below at once (all but a few personal choices), with the steps that need
+you left to one list at the end. Going one by one, it asks what to call you and this PC, then a few yes/no questions (keep every build, switch on the Inspector, a synced
 folder for files that must not go on GitHub, keep conversations short). Then it checks what is already
 on your PC and offers the rest, one group at a time, either installing them for you or giving you the
 official links:
@@ -272,9 +273,12 @@ can simply ask Claude Code in your own words. Some examples:
 **Then close Claude Code and open it again.** A new plugin's commands only appear after a restart; typed
 straight after installing, `/lanes:setup` answers "Unknown skill".
 
-Then run `/lanes:setup`. It asks what to call you and this PC, then offers the optional tools:
-debuggers and decompilers, build tools, Blender and GIMP with their Claude links, VR helpers, and
-recording tools. Each one comes with what it is for and who made it (the full list, with links, is
+Then run `/lanes:setup`. It starts with one screen of three questions and then gives you two ways.
+**Install everything recommended and leave it running:** one Windows Yes click, then everything that needs
+nobody is installed while you are away (debuggers and decompilers, build tools, Blender and GIMP with their
+Claude links, VR helpers, recording tools, our own apps and other makers' tools), and the few steps that need
+you (a sign-in, two clicks inside Blender, a restart) wait in one list for when you are back. **Or go through
+everything one by one,** each tool with what it is for and who made it (the full list, with links, is
 [`plugins/lanes/docs/TOOLS.md`](plugins/lanes/docs/TOOLS.md)). Say no once and it never asks again.
 
 **The Inspector (optional, new in 0.37.0).** Switch it on and every piece of code Claude writes is
@@ -314,7 +318,7 @@ any project. Expect changes: `/lanes:update` tells you what is new and never ins
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Flat-to-VR AI modding with Claude: skills, helper programs and checks, and several sessions at once without them treading on each other. | `0.120.2`, public, in daily use |
+| [`lanes`](plugins/lanes/) | Flat-to-VR AI modding with Claude: skills, helper programs and checks, and several sessions at once without them treading on each other. | `0.121.0`, public, in daily use |
 
 ## Modding games?
 

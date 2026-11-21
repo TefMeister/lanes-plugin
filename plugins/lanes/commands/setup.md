@@ -1,5 +1,5 @@
 ---
-description: "(Setup) First-run walk-through: your name and this PC's name, then each optional tool, installed only on your yes."
+description: "(Setup) First-run setup: install everything recommended and leave it running, or go through each tool one by one."
 ---
 
 `/lanes:setup` walks the user through **optional** tools, one group at a time. The catalog, with
@@ -8,7 +8,8 @@ first, in full, every run. Never install from memory.
 
 ## 0. Ground rules
 
-- **Nothing is installed without a yes for that tool.** A yes for one group is not a yes for the next.
+- **Nothing is installed without a yes for that tool.** A yes for one group is not a yes for the next. The one
+  exception is the recommended way of §0.1: choosing it is the yes for the whole recommended set.
 - **Official sources only**, exactly as the catalog lists them.
 - **Say what each tool is for in one plain sentence** before asking about it. Many users are not
   programmers, and "pefile" means nothing to them. Say what the tool lets a session do.
@@ -23,6 +24,51 @@ first, in full, every run. Never install from memory.
   `offers.py made <name> <yes|no>`. The person can still ask for any of them by name later.
 - **Never touch a game folder.** Per-game frameworks (catalog section 7) are listed for reference
   only; a game's own session installs them.
+
+## 0.1 Two ways: the recommended set left running, or one by one (0.121.0, asked first, every first run)
+
+Tefa, 2026-11-21: *"the option to install everything and leave for work, then come back in the evening and it's all
+set up, leave the manual installs that need the user for the very last thing. or have the option to go through
+things one by one."* Skip this section when `python "${CLAUDE_PLUGIN_ROOT}/tools/setup_run.py" todo --count` prints
+more than 0: a recommended run was made already, so go through its list instead (below, "Coming back").
+
+**The first screen** is ONE AskUserQuestion call with three questions (write the answers straight away):
+1. *"How should setup go?"*: **"Install everything recommended and leave it running (Recommended)"** (*"I install
+   everything that needs nobody, with no Yes clicks after the first one; the few steps that need you wait in one list
+   for when you are back"*) / **"Go through everything one by one"** (*"each tool and setting is asked about, with a
+   line on what it is for"*).
+2. *"Will you use Lanes on this one PC, or on two or more?"* (as §0.6.1; write `pcs = 1` or `pcs = 2`).
+3. *"Can a real VR headset be used on this PC?"*: **"Yes"** / **"No, the pretend headset only"**; write
+   `bench_headset = real` or `bench_headset = none`. Nothing on the PC can tell this reliably.
+
+Then the two names in ONE plain chat message (§0.5 and §0.6 together), and save them.
+
+**The recommended way**, from there on, asks nothing more:
+1. **While they are still at the PC:** `python "${CLAUDE_PLUGIN_ROOT}/tools/setup_run.py" start`, the ONE Windows
+   Yes click (it sets up the no-click installer). Say it first: *"One Windows Yes click now, then nothing else needs
+   you."* If it fails or is refused, carry on: any install that would wait at a Yes goes on their list.
+2. Say in one line that they can go, about how long it takes (an hour or more; Visual Studio and the compiler are the
+   long ones), and that the steps needing them will be in one list at the end.
+3. `python "${CLAUDE_PLUGIN_ROOT}/tools/setup_run.py" run`, **in the background** (`run_in_background`), as ONE
+   command, so Claude Code asks permission once, not at every step while nobody is there. It switches on every extra
+   marked recommended (all but full conversation logs, the session hand-on, Remote Control, the rest reminder and
+   straight talk; Tefa's list), installs every catalog program the Windows catalogue has, the Python packages, the
+   live-game connectors, the pretend headset with VR Bench, Hand Freeze, all of our own apps and the other makers'
+   downloads, Ghidrust, Real-ESRGAN, the Blender link's outside part, x64dbg-skills and the superpowers skills, sets
+   the recommended answers of §0.7 to §0.14, and, when GitHub is signed in already, makes the GitHub setup (§0.6.5, all
+   private; Tefa: "by itself unless needs to be created first"). It can be run again: only what is left or failed runs.
+4. When it ends: `setup_run.py todo` and print **"What needs you"** as the reply's last section, one numbered row
+   per step, with what it gives and how. Failed steps are at the top. Then the restart line.
+Do NOT walk §0.6.2 to §5 in this way: the run covers them.
+
+**Coming back** (the next session, or "finish my setup"): the session start says how many steps wait. Go through
+`setup_run.py todo` with them, one at a time; do each step that Claude can do once they are there (a maker's
+installer, Visual Studio Build Tools with its one Yes, the x64dbg and GIMP links, the GitHub setup after `! gh auth
+login`: run `setup_run.py run` again, it picks up only what is left), and `setup_run.py done <n>` each one finished.
+
+**The one-by-one way** is the rest of this page, §0.5 onward, as before, with two differences: the extras' words in
+§0.6.2 are already the plain one-PC ones when `pcs = 1` (`features.py` picks them), and every step a person must do is
+still kept for the end where it can be (sign-ins, clicks inside other programs), in one block.
 
 ## 0.5 What should sessions call you? (asked first, every first run)
 
@@ -65,7 +111,7 @@ in your notes? Type a name, or 'PC2' if you don't mind."* Use the suggested name
 ## 0.6.1 One PC or two? (0.120.0, asked third, every first run)
 
 Most people have one PC, and Lanes is made to run well on one (PROTOCOL §50, `docs/ONE-PC.md`). Check first:
-`pcs` in `lanes.conf`; set already: say it in one line and move on. Otherwise ask **one question**
+`pcs` in `lanes.conf`; set already (the first screen of §0.1 asks it): say nothing and move on. Otherwise ask **one question**
 (AskUserQuestion): *"Will you use Lanes on this one PC, or on two or more?"* Options: **"One PC (Recommended)"**
 (*"everything happens here: one window builds, one runs the game, and saving to GitHub runs in the background"*)
 and **"Two or more PCs"** (*"the same, plus a link between the PCs; set up the second one after this one works"*).

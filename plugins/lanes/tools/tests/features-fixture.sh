@@ -82,6 +82,10 @@ OF="$HERE/../offers.py"
 "$PY" "$FE" on begone_record >/dev/null
 check "$(grep -c '^begone_record' "$T/twice.conf")" 1 "and lanes.conf holds it once"
 "$PY" "$OF" should superpowers >/dev/null; check $? 0 "an offer with no extra behind it is untouched"
+printf 'begone_record = yes
+' >> "$T/twice.conf"
+"$PY" "$FE" on begone_record >/dev/null
+check "$(grep -c '^begone_record' "$T/twice.conf")" 1 "an older double line is cleaned up on the next switch"
 
 echo "features-fixture: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

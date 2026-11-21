@@ -836,7 +836,7 @@ def others_report(board, me):
                 lines.append("HANDOVER: ⚠️ " + ends_missing(pc) + ".")
             if lanes_version.mismatch(pc["machine"], pc["lanes"]):
                 lines.append("HANDOVER: ⚠️ " + lanes_version.mismatch(pc["machine"], pc["lanes"]) + ".")
-    if not lines:
+    if not lines and (conf_values("pcs") or [""])[0] != "1":   # one PC: there is no other PC to hear from (0.121.0)
         lines.append("HANDOVER: no other PC has reported on the board yet.")
     if not fetched:
         lines.append(fetch_failed_line())

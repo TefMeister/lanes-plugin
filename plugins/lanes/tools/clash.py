@@ -215,7 +215,7 @@ ROWS = {
     "tool:scan_snapshot.py": part("fullscan"), "tool:od.py": part("od"), "tool:frontpage-scan.sh": part("od"), "tool:ch.py": part("ch"),
     "tool:gs-scan.sh": part("gs"), "tool:rule-reach-scan.py": part("gs"), "tool:inbox-correction-scan.py": part("gs"),
     "tool:ideas.py": part("ideas"),
-    "tool:setup-scan.py": part("setup"), "tool:estate.py": part("setup"), "tool:display-name.py": part("setup"),
+    "tool:setup-scan.py": part("setup"), "tool:setup_run.py": part("setup"), "tool:estate.py": part("setup"), "tool:display-name.py": part("setup"),
     "tool:machine-name.py": part("setup"), "tool:shortcut.py": part("setup"), "tool:remote-control.py": part("setup"),
     "tool:engine-mcp.py": part("setup"), "tool:openxr-sim.py": part("setup"), "tool:hand-freeze.py": part("setup"),
     "tool:ours.py": part("setup"), "tool:outside.py": part("setup"), "tool:thanks.py": part("setup"),

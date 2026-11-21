@@ -277,12 +277,20 @@ def open_session(name="", first=""):
             first = ""
     c = conf()
     lnk = expand(c.get("doorman_shortcut", os.path.join(HOME, "Desktop", "Lanes.lnk")))
-    if not os.path.isfile(lnk):
-        return {"ok": False, "error": "no terminal shortcut at the configured place (doorman_shortcut in lanes.conf)"}
+    if os.path.isfile(lnk):
+        sc = read_shortcut(lnk)
+    else:
+        # 0.121.0: a one-PC install never made the Desktop shortcut, so the Keeper's wake opened nothing (Workshop PC,
+        # one-PC test O3/O4). Without one, Windows Terminal is started directly in the home folder.
+        wt = os.path.join(os.environ.get("LOCALAPPDATA", os.path.join(HOME, "AppData", "Local")),
+                          "Microsoft", "WindowsApps", "wt.exe")
+        if not os.path.isfile(wt):
+            return {"ok": False, "error": "no terminal shortcut at the configured place (doorman_shortcut in "
+                                          "lanes.conf), and no Windows Terminal to open instead"}
+        sc = {"target": wt, "args": '-d "%s" claude' % HOME}
     name = clean_name(name) or clean_name(c.get("doorman_name", DEFAULT_NAME))
     before = set(session_pids())
     windows_before = terminal_windows()
-    sc = read_shortcut(lnk)
     target, args = sc.get("target", ""), (sc.get("args", "") or "").strip()
     named = False
     taken = {v.get("name") for k, v in read_state().get("opened", {}).items() if int(k) in before}

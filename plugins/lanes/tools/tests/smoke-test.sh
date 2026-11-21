@@ -774,6 +774,15 @@ else
   fail "session_name_test.py failed"
 fi
 
+echo "setup_run - setup's recommended way: everything that needs nobody, then one list for the person (0.121.0)"
+if out=$("$PY" "$HERE/setup_run_test.py" 2>&1); then
+  ok "setup_run_test.py: all passed"
+else
+  printf '%s
+' "$out" | grep FAIL
+  fail "setup_run_test.py failed"
+fi
+
 echo "project-guard - one session writes into a game's files at a time (0.106.1)"
 if out=$("$PY" "$HERE/switch_off_guard_test.py" 2>&1); then
   ok "switch_off_guard_test.py: all passed"

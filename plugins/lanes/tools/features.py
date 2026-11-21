@@ -14,6 +14,7 @@ installing."
     python features.py off <name>|all        switch one off
     python features.py is-on <name>          exit 0 = on, 1 = off (what hooks and commands ask)
     python features.py pending               the extras a new install has not answered yet (exit 1 = none)
+    python features.py recommended [--json]  setup's recommended set: every extra but the few marked not recommended
     python features.py ask [--json] [--all]  setup's questions: the unanswered extras grouped in their sets
     python features.py doc [--check]         write docs/EXTRAS.md from this list (--check: exit 1 if it is stale)
     python features.py lint                  every extra has a name, a description, a link and a set (exit 1 if not)
@@ -60,218 +61,202 @@ SETS = {
               "note": "The reminder brings the weekly tool check round, and the test builds make sure "
                       "an update it installs does not break what you build."},
     "checkup": {"title": "The weekly check-up", "together": True,
-                "note": "Gold Digger keeps every run's logs on shelves, and the full scan reads them once a week "
-                        "together with the research, tool and tidiness checks."},
+                "note": "Every game run's logs are kept on shelves, and the weekly check-up reads them together "
+                        "with the research, tool and tidiness checks."},
     "vr": {"title": "For VR mods", "together": True,
            "note": "One keeps the headset picture down to the gameplay, the other reports when that "
                    "picture or the hands are not smooth, so its reports are about the mod and not about blur."},
-    "recording": {"title": "Recording the BeG0nE tests", "together": True,
-                  "note": "One films the game during every BeG0nE headset test so each fault can be seen picture by "
+    "recording": {"title": "Filming the VR tests", "together": True,
+                  "note": "One films the game during every VR test so each fault can be seen picture by "
                           "picture, the other takes those videos off the PC again once nothing needs them."},
     "ours": {"title": "Our own apps and libraries", "together": False,
-             "note": "The other things we built for flat-to-VR work, each from its page on TefMeister's GitHub "
-                     "(tools/ours.py gets it). Each one is useful on its own."},
+             "note": "The other things we built for flat-to-VR work, each from its page on TefMeister's GitHub. "
+                     "Each one is useful on its own."},
     "outside": {"title": "Other people's tools", "together": False,
-                "note": "Downloads from other makers that help flat-to-VR work, each from its maker's GitHub "
-                        "(tools/outside.py gets it). Each one is useful on its own."},
+                "note": "Downloads from other makers that help flat-to-VR work, each from its maker's GitHub. "
+                        "Each one is useful on its own."},
 }
 
 # The extras. `link` is where to read more before switching it on: our GitHub, or the maker's.
 FEATURES = {
     "theme": {"label": "The green look", "set": "everyday",
-              "what": "puts the plugin's old-green-monitor look on this terminal, still by default (/lanes:theme animated adds a moving light that uses a bit more of the PC); /lanes:theme restore undoes it",
+              "what": "gives this terminal window the plugin's old green-monitor look; it can be taken off again any "
+                      "time",
               "link": GH + "commands/theme.md"},
     "version_line": {"label": "Lanes version first", "set": "everyday",
-                     "what": "every session opens with one line naming the Lanes version it runs (and \"test branch\" "
-                             "when a test copy is loaded), so two PCs on different versions are seen at a glance",
+                     "what": "every session opens with one line naming the Lanes version it runs, so an old copy is "
+                             "seen at a glance",
                      "link": GH + "hooks/version-line"},
     "talk_rule": {"label": "Check before agreeing", "set": "everyday",
                   "what": "Claude never says \"you are right\" before checking what you said",
                   "link": GH + "hooks/talk-rule"},
-    "straight_talk": {"label": "Straight talk", "set": "everyday",
+    "straight_talk": {"label": "Straight talk", "set": "everyday", "recommended": False,
                       "what": "Claude talks like a friend: warm but honest and direct, and when you miss something "
                               "obvious it says so with a light ribbing instead of \"easy to miss\"",
                       "link": GH + "hooks/straight-talk"},
     "reply_check": {"label": "Reply check", "set": "everyday",
-                    "what": "when a reply forgets one of the promised lines (the green tick when you may quit the "
-                            "game or stop holding, the line under the save box, no \"you're right\"), it is handed "
-                            "back to add it, in the same turn",
+                    "what": "when Claude forgets one of the lines it promised to put in a reply (for example the "
+                            "green tick that says you may close the game), it is made to add it straight away",
                     "link": GH + "hooks/reply-check.py"},
-    "git_queue": {"label": "Git queue", "set": "everyday",
-                  "what": "sessions on one PC save to GitHub one after another: a git command that writes waits while another session's runs, so several /pd sessions (pd_parallel) never commit into each other's work",
+    "git_queue": {"label": "Saving in turn", "set": "everyday",
+                  "what": "when several Claude windows work at once, they save to GitHub one after another, so one "
+                          "never saves into another's half-done work",
                   "link": GH + "hooks/git-queue.py"},
-    "project_guard": {"label": "Project guard", "set": "everyday",
-                      "what": "one session at a time writes into a game's files on a PC, whatever kind of session it is: the first one to edit a project holds it, a second one is stopped with one line until the first ends (or three hours after its last edit); typing \"take over <project>\" hands it over",
+    "project_guard": {"label": "One window per game", "set": "everyday",
+                      "what": "only one Claude window at a time changes a game's files; a second one is stopped with "
+                              "one line until the first is done, and saying \"take over <game>\" hands it over",
                       "link": GH + "hooks/project-guard.py"},
-    "rest_reminder": {"label": "Rest reminder", "set": "everyday",
-                      "what": "once a session, past the rest time you set (midnight by default), Claude says so in "
-                              "one line at the top of its reply",
+    "rest_reminder": {"label": "Rest reminder", "set": "everyday", "recommended": False,
+                      "what": "once a session, past the rest time you set (midnight unless you change it), Claude "
+                              "says so in one line at the top of its reply",
                       "link": GH + "hooks/rest-reminder.py"},
     "tools_rule": {"label": "Use the tools, grow the tools", "set": "everyday",
-                   "what": "Claude drives menus and tests with the tools this PC has (routes, VR Bench, BeG0nE, the "
-                           "live-game connectors) before doing it by hand, records what it learns, and adds a small "
-                           "tool or improvement whenever it does the same thing by hand twice",
+                   "what": "Claude uses the helper programs this PC has (menu routes, the pretend headset, the VR "
+                           "fault reports, the live game connectors) before doing a job by hand, writes down what it "
+                           "learns, and turns a job done by hand twice into a small tool",
                    "link": PROTO_LINK + "33-use-every-tool-you-have-record-what-helps-grow-the-toolset-0850-2026-10-24"},
     "privacy_guard": {"label": "Privacy guard", "set": "everyday",
-                      "what": "a git hook on this PC refuses any commit (and any gh issue, release or description) "
-                              "that carries the login name, a home-folder path or the e-mail address; public repos "
-                              "also never get machine names",
+                      "what": "nothing you save to GitHub can carry your Windows login name, your home folder's "
+                              "location or your e-mail address; anything that would is stopped before it leaves "
+                              "the PC",
                       "link": PROTO_LINK + "34-the-privacy-guard-no-login-no-home-paths-no-e-mail-on-github-0860-2026-10-25"},
     "games_check": {"label": "Games check at session start", "set": "everyday",
-                    "what": "each session starts by checking this PC's project games against its record: a game a "
-                            "store updated (a mod may need a fix), one taken off or moved, a changed main program, a "
-                            "new project with no game set (tools/games.py overview lists every project and where its "
-                            "game is)",
+                    "what": "each session starts by checking your project games: one a store has updated (a mod may "
+                            "need a fix), one removed or moved, a new project with no game found yet",
                     "link": GH + "tools/games.py"},
     "remote_control": {"label": "Remote Control in every session", "set": "everyday", "ask_on_update": True,
-                       "what": "every Claude Code session on this PC starts with Remote Control on, so it can be "
-                               "watched and typed into from the Claude phone app, claude.ai/code or a session on your "
-                               "other PC; without it, /remote-control (or /rc) turns it on in one session",
+                       "recommended": False,
+                       "what": "every Claude session on this PC can be watched and typed into from the Claude phone "
+                               "app or claude.ai, or from a session on your other PC; it needs a claude.ai account",
+                       "one_pc": "every Claude session on this PC can be watched and typed into from the Claude "
+                                 "phone app or claude.ai; it needs a claude.ai account",
                        "link": PROTO_LINK + "35-remote-control-in-every-session-0870-2026-10-26"},
     "taskbar_flash": {"label": "Blink when Claude is done", "set": "everyday",
-                      "what": "the terminal's taskbar button blinks when Claude finishes a reply or waits for an "
-                              "answer, so a session behind a game window is not missed (Windows Terminal; the "
-                              "first blink sets its bell to blink instead of beep)",
+                      "what": "the terminal's button on the taskbar blinks when Claude finishes or waits for an "
+                              "answer, so a window hidden behind a game is not missed",
                       "link": GH + "tools/taskbar_flash.py"},
-    "keep_transcripts": {"label": "Keep full conversation logs", "set": "everyday",
-                         "what": "copies each conversation out of Claude Code's 30-day clean-up, kept on this PC only",
+    "keep_transcripts": {"label": "Keep full conversation logs", "set": "everyday", "recommended": False,
+                         "what": "keeps a copy of every conversation on this PC after Claude Code's own 30-day "
+                                 "clean-up (about 1 GB a month of disk)",
                          "link": PROTO_LINK + "21-keep-conversations-short-an-earlier-summary-that-loses-nothing-0630-2026-10-13"},
     "gu_nudge": {"label": "Weekly tool reminder", "set": "tools",
-                 "what": "one line at session start when the weekly tool check (/lanes:gu) is a week old",
+                 "what": "one line at the start of a session when the weekly check for newer versions of your tools "
+                         "is due",
                  "link": PROTO_LINK + "23-the-weekly-tool-check-lanesgu-0670-2026-10-14"},
     "auto_update": {"label": "Lanes updates itself", "set": "tools", "ask_on_update": True,
-                    "what": "a new Lanes version installs by itself at a session start, in the background and with "
-                            "no question, then the next session says what each version added; it waits while a "
-                            "game, a game session, VR Bench or a release is running on the PC or updates are held "
-                            "for a test, and a failed update leaves the old version working and is said in one line",
+                    "what": "a new Lanes version installs by itself in the background, never while a game or a test "
+                            "is running, and the next session says what it added; a failed update leaves the old "
+                            "version working",
                     "link": GH + "tools/auto_update.py"},
     "fresh_nudge": {"label": "Fresh-session nudge", "set": "tools", "ask_on_update": True,
-                    "what": "when a job has just been saved and the session has grown big, one line says it is a good "
-                            "moment to start a fresh session, because every next step costs more; never in the middle "
-                            "of a job (the mark: fresh_nudge_tokens in lanes.conf)",
+                    "what": "when a job is finished and saved and the conversation has grown long, one line suggests "
+                            "starting a fresh one, because every step of a long one costs more; never in the middle "
+                            "of a job",
                     "link": GH + "tools/handon.py"},
-    "hand_on": {"label": "Session hand-on", "set": "tools", "ask_on_update": True,
-                "what": "on your yes to a next job, /lanes:next writes a long, exact prompt for it, opens a new window "
-                        "with it, and closes the old window once it is saved, no game or background task of its own "
-                        "runs and no question waits; otherwise the old one stays open and says why",
+    "hand_on": {"label": "Session hand-on", "set": "tools", "ask_on_update": True, "recommended": False,
+                "what": "on your yes to a next job, Claude writes the job down for a new window, opens it, and closes "
+                        "the old window once everything is saved",
                 "link": GH + "commands/next.md"},
     "update_hold": {"label": "Hold Lanes updates during a test", "set": "tools",
-                    "what": "while a test is running, `hold.py on \"why\"` stops every session on this PC from "
-                            "updating or reinstalling Lanes until it is lifted (or 12 hours pass)",
+                    "what": "while you test something, Lanes can be told not to update itself until the test is over "
+                            "(or 12 hours pass), so nothing changes under the test",
                     "link": PROTO_LINK + "43-hold-lanes-updates-while-a-test-runs-lanes-next-2026-11-01"},
     "update_safety": {"label": "Test builds before updates", "set": "tools",
-                      "what": "in the weekly tool check, an update that could break what you build (a compiler, "
-                              "Visual Studio, Python, Blender) is test-built first and put back if your work stops "
-                              "building",
+                      "what": "an update that could break what you build (a compiler, Visual Studio, Python, "
+                              "Blender) is tried on a test build first and undone if your work stops building",
                       "link": PROTO_LINK + "31-test-build-before-keeping-an-update-0830-2026-10-23"},
-    "gold_digger": {"label": "Gold Digger shelves", "set": "checkup",
-                    "what": "after every run, the game's logs and the BeG0nE reports are copied onto shelves (camera, "
-                            "guns, jitter, menus and so on) in your transfer folder, never deleted, so /lanes:gd can "
-                            "read them shelf by shelf and hand the new facts to the notes",
+    "gold_digger": {"label": "Keep every run's logs", "set": "checkup",
+                    "what": "after every game run its logs and fault reports are kept on labelled shelves (camera, "
+                            "guns, jitter, menus and so on) in your transfer folder, never deleted, and read once a "
+                            "week for anything new",
+                    "one_pc": "after every game run its logs and fault reports are kept on labelled shelves (camera, "
+                              "guns, jitter, menus and so on) in a folder on this PC, never deleted, and read once a "
+                              "week for anything new",
                     "link": GH + "commands/gd.md"},
-    "fullscan": {"label": "Weekly full scan", "set": "checkup",
-                 "what": "one line at session start when the weekly full scan (/lanes:fullscan: Gold Digger, research, "
-                         "the tool check, the tidiness pass, then save) is a week old",
+    "fullscan": {"label": "Weekly check-up reminder", "set": "checkup",
+                 "what": "one line at the start of a session when the weekly check-up (the logs, research, tool "
+                         "versions, tidiness, then save) is due",
                  "link": GH + "commands/fullscan.md"},
     # lanes-next 2026-11-05: the clash guard took over "fullscan_guard" (the full scan's lock was its first piece).
-    "clash_guard": {"label": "Clash guard", "set": "everyday",
-                    "what": "things that must not run at the same time (two full scans, the full scan and one of its "
-                            "parts, two research runs on one project, two Lanes installs on one PC, two recordings, a "
-                            "second game, or VR Bench and Menu-o-matiC beside another session's game) "
-                            "are kept apart, on one PC and across both: the second one is refused with one line saying "
-                            "what is running where (docs/CLASHES.md has the whole table)",
+    "clash_guard": {"label": "No clashes", "set": "everyday",
+                    "what": "things that must not run at the same time (two weekly check-ups, two Lanes installs, two "
+                            "recordings, a second game beside a running one) are kept apart on both your PCs: the "
+                            "second is stopped with one line saying what is running where",
+                    "one_pc": "things that must not run at the same time (two weekly check-ups, two Lanes installs, "
+                              "two recordings, a second game beside a running one) are kept apart: the second is "
+                              "stopped with one line saying what is running",
                     "link": GH + "docs/CLASHES.md"},
     "keep_level": {"label": "Copies kept level with GitHub", "set": "everyday", "ask_on_update": True,
-                   "what": "after each session ends, every copy on this PC that is only behind GitHub is brought up "
-                           "to it, and a project the other PC started is copied over, so a PC that mostly reads "
-                           "never works from week-old notes; a copy with unsaved work, or one a session is "
-                           "writing into, is never touched",
+                   "what": "after each session, every copy on this PC that is only behind GitHub is brought up to "
+                           "date, and a project your other PC started is copied here; a copy with unsaved work is "
+                           "never touched",
+                   "one_pc": "after each session, every copy on this PC that is only behind GitHub is brought up to "
+                             "date, so no window works from old notes; a copy with unsaved work is never touched",
                    "link": GH + "docs/TWO-PCS.md"},
-    "keeper": {"label": "A Keeper for GitHub (one PC or two)", "set": "everyday", "ask_on_update": True,
-               "what": "the session that builds never uploads: it saves its steps and hands them over, and a "
-                       "Keeper uploads them, keeps the front page, the index and the downloads right and runs "
-                       "the regular check-ups; the Keeper is a second PC (always linked, a small always-on "
-                       "program uploads with no session) or, on one PC, a background upload plus a session "
-                       "opened only while there is a job for it; the end of a write-up is one light line "
-                       "instead of the close-out box",
-               "link": GH + "docs/TWO-PCS.md"},
+    "keeper": {"label": "Saving to GitHub in the background", "set": "everyday", "ask_on_update": True,
+               "what": "the windows that build never upload: they save their work and hand it over, and a keeper "
+                       "on your second PC uploads it and keeps your GitHub pages up to date",
+               "one_pc": "the windows that build never upload: they save their work and hand it over, and it is "
+                         "uploaded in the background, with your GitHub pages kept up to date",
+               "link": GH + "docs/ONE-PC.md"},
     "shutdown_guard": {"label": "Switch off only when everything is saved", "set": "everyday",
-                       "what": "a session asked to switch the PC off when it is done uses the guarded switch-off: "
-                               "it waits while a game runs, another session is still working or holds a lock, a "
-                               "claim is held, work is not on GitHub (or not handed to the Keeper), or the asking "
-                               "session has not run its own close-out yet, then switches off by itself; it never forces, and a bare shutdown typed by a session is refused",
+                       "what": "when you ask Claude to switch the PC off after its work, it waits until no game runs, "
+                               "no other window is busy and everything is on GitHub, then switches off by itself; it "
+                               "never forces",
                        "link": GH + "tools/switch_off.py"},
-    "scan_priority": {"label": "The full scan goes first", "set": "checkup",
-                      "what": "while the full scan (or one of its parts run alone) is going on a PC, every other "
-                              "session there is told to finish its step, save and wait, and is called back when the "
-                              "scan has ended; ten minutes after being told, anything but a save is refused. "
-                              "Hand-overs from the other PC wait in order and are uploaded afterwards",
+    "scan_priority": {"label": "The weekly check-up goes first", "set": "checkup",
+                      "what": "while the weekly check-up runs, the other Claude windows on this PC finish their step, "
+                              "save and wait, and carry on when it is done",
                       "link": PROTO_LINK + "48-the-full-scan-goes-first-01100-2026-11-11"},
     "netcheck": {"label": "Network safety check", "set": "checkup",
-                 "what": "the weekly full scan reads this PC's network safety, without changing anything: Windows "
-                         "Firewall, the antivirus, Remote Desktop and old file sharing, recent Windows updates, and "
-                         "what changed since last week (a program newly open to the network, a new firewall opening, "
-                         "something new at Windows start, a remote-access program, the name server, the hosts file); "
-                         "programs you keep on purpose go in netcheck_known and are never flagged",
+                 "what": "once a week, without changing anything, checks this PC's firewall, antivirus, remote "
+                         "logins and Windows updates, and says what changed since last week",
                  "link": GH + "tools/netcheck.py"},
     "spacecheck": {"label": "Forgotten space finder", "set": "checkup",
-                   "what": "the weekly full scan walks this PC's drives and lists what sits there taking space, in "
-                           "three groups (safe to clear, probably safe, yours to decide): the Recycle Bin, old temporary "
-                           "files and caches, old downloads and crash dumps, big files untouched for half a year, the "
-                           "same big file kept twice, folders untouched for a year; it never deletes anything, and "
-                           "never names programs, games, saved builds, project copies or folders in spacecheck_keep",
+                   "what": "once a week, lists what takes space on your drives in three groups (safe to clear, "
+                           "probably safe, yours to decide); it never deletes anything",
                    "link": GH + "tools/spacecheck.py"},
     "quiet_installs": {"label": "Installs with no Yes click", "set": "tools", "ask_on_update": True,
-                       "what": "one Yes click, once per PC, makes a Windows task that installs and updates programs "
-                               "from the Windows package catalogue with administrator rights, so the weekly tool "
-                               "check and the full scan never sit waiting at a Yes click nobody is there to give; the "
-                               "task can do nothing else, and an install that would still ask is skipped and listed. "
-                               "The trade: any program running under your login can then have a catalogue program "
-                               "installed without the click",
+                       "what": "one Windows Yes click, once, lets Lanes install and update programs from Windows' own "
+                               "catalogue without asking again, so nothing ever sits waiting for a click while you "
+                               "are away; it can do nothing else",
                        "link": PROTO_LINK + "49-installs-with-no-yes-click-01100-2026-11-11"},
-    "collector": {"label": "Always-on collector", "set": "checkup",
-                  "what": "every launch of a project game, flat or VR, with or without a session, is collected "
-                          "quietly while it runs (the program's and the graphics card's load, memory and "
-                          "temperature, hangs, focus, the logs it wrote, crash dumps) and put on the Gold Digger "
-                          "shelves the moment it closes, so /lanes:gd finds it; no model reads anything while "
-                          "collecting",
+    "collector": {"label": "Every game run noted", "set": "checkup",
+                  "what": "every time one of your project games runs, its load, temperature, hangs, logs and crashes "
+                          "are noted quietly and kept with the other run logs",
                   "link": PROTO_LINK + "44-the-always-on-collector-lanes-next-2026-11-04"},
     "code_health": {"label": "Code health", "set": "checkup",
-                    "what": "/lanes:ch re-reads your own tools with the Inspector on, saves a working copy to GitHub "
-                            "and a backup folder first, and tidies only what cannot change how they work; the weekly "
-                            "full scan runs it after the tool check",
+                    "what": "once a week, your own helper programs are read through again and tidied only where it "
+                            "cannot change how they work, after a working copy is saved",
                     "link": GH + "commands/ch.md"},
     "out_of_date": {"label": "Out of Date", "set": "checkup",
-                    "what": "/lanes:od checks that everything you published on GitHub is as new as the work behind "
-                            "it (downloads older than their program, tools with no download, pages and descriptions "
-                            "behind) and brings it level; the weekly full scan runs it before the tool check",
+                    "what": "once a week, checks that everything you published on GitHub is as new as the work "
+                            "behind it, and brings it level",
                     "link": GH + "commands/od.md"},
-    "begone_ride": {"label": "BeG0nE recorders", "set": "vr",
-                    "what": "a quiet helper that starts with every session and turns each headset test of a mod wired "
-                            "to it into a short report on jitter and hand faults",
+    "begone_ride": {"label": "VR fault reports", "set": "vr",
+                    "what": "a quiet helper turns each headset test of a mod into a short report on stepped "
+                            "movement and hands that do not follow the controllers",
                     "link": "https://github.com/TefMeister/BeG0nE"},
     # 0.101.0 (2026-11-05): the rider only ever FILED reports; a session had to save them, and a session that ended
     # first left them on the PC only (eight Village reports on 2026-11-05). Pushes to GitHub, so asked once.
-    "begone_autosave": {"label": "BeG0nE reports save themselves", "set": "vr", "ask_on_update": True,
-                        "what": "the BeG0nE helper puts each report it files on GitHub by itself (only its own new "
-                                "report files, and only when the BeG0nE folder is a git copy), so a session that "
-                                "ends early no longer leaves reports on this PC only",
+    "begone_autosave": {"label": "VR fault reports save themselves", "set": "vr", "ask_on_update": True,
+                        "what": "each VR fault report is saved to GitHub by itself, so one is never left only on "
+                                "this PC",
                         "link": "https://github.com/TefMeister/BeG0nE"},
     "vr_effects_off": {"label": "Gameplay only in VR", "set": "vr",
                        "what": "sessions switch off every blur and screen effect a game paints over the picture, such "
                                "as motion blur, blood on the screen and the low-health tint",
                        "link": PROTO_LINK + "19-gameplay-only-every-blur-and-screen-effect-off-in-vr-0600-2026-10-12"},
     # Both off until asked: one films, the other deletes (0.90.0; begone_record was a setup-only offer since 0.80.0)
-    "begone_record": {"label": "Automatic BeG0nE recordings", "set": "recording", "ask_on_update": True,
-                      "what": "OBS films the game's own window (never the screen) for the whole of every BeG0nE "
-                              "headset or pretend-headset test, and each report is cut at its faulty seconds as "
-                              "frames; needs the BeG0nE recorders and OBS",
+    "begone_record": {"label": "Film every VR test", "set": "recording", "ask_on_update": True,
+                      "what": "OBS films the game's own window (never the whole screen) during every VR test, so each "
+                              "fault in the report can be looked at picture by picture",
                       "link": PROTO_LINK + "26-the-recording-and-the-jitter-log-side-by-side-0760-2026-10-17"},
-    "begone_video_tidy": {"label": "BeG0nE videos clean up after themselves", "set": "recording",
+    "begone_video_tidy": {"label": "Test videos clean up after themselves", "set": "recording",
                           "ask_on_update": True,
-                          "what": "the videos recorded beside a BeG0nE test are taken off the PC once nothing needs "
-                                  "them: when the game is tested again on a later day, or after two weeks; the cut "
-                                  "frames and the reports stay",
+                          "what": "the videos of VR tests are taken off the PC once nothing needs them (the game was "
+                                  "tested again on a later day, or two weeks passed); the cut pictures and the "
+                                  "reports stay",
                           "link": PROTO_LINK + "38-beg0ne-videos-clean-up-after-themselves-0900-2026-10-27"},
 }
 # Other people's tools (0.92.0): one extra each, described and linked from tools/outside.py's own list, so the two
@@ -317,13 +302,35 @@ def pairs(name):
     return [n for n in FEATURES if n != name and FEATURES[n]["set"] == s] if SETS[s]["together"] else []
 
 
-def describe(name):
+def one_pc():
+    return conf_value("pcs") == "1"
+
+
+def what_of(name):
+    """The description for this PC: the one-PC wording when lanes.conf says pcs = 1 and the extra has one."""
     f = FEATURES[name]
-    text = f["what"][0].upper() + f["what"][1:] + "."
+    return f["one_pc"] if one_pc() and f.get("one_pc") else f["what"]
+
+
+def recommended_names():
+    """setup's recommended set (0.121.0): every extra, except those marked "recommended": False (a personal choice,
+    something that needs an account, or one that uses a lot of disk); Tefa, 2026-11-21: "keep the list"."""
+    return [n for n, f in FEATURES.items() if f.get("recommended", True)]
+
+
+# Words a newcomer cannot know, kept out of what setup shows for the built-in extras (0.121.0; the Workshop PC's
+# newcomer met /lanes:gu, pd_parallel, hold.py, BeG0nE, claim and fast-forward in them). `lint` refuses them.
+JARGON = ("/lanes:", "pd_parallel", "hold.py", "BeG0nE", "claim", "fast-forward", ".py", "lanes.conf", "/pd",
+          "/lm", "Gold Digger", "Inspector", "rider", "MCP")
+
+
+def describe(name):
+    what = what_of(name)
+    text = what[0].upper() + what[1:] + "."
     p = pairs(name)
     if p:
         text += " Goes well with: " + ", ".join(FEATURES[n]["label"] for n in p) + "."
-    return text + " Read more: " + f["link"]
+    return text + " Read more: " + FEATURES[name]["link"]
 
 
 def conf_file():
@@ -355,7 +362,8 @@ def set_conf(key, value, note):
     out, done = [], False
     for line in lines:
         if line.partition("=")[0].strip() == key:
-            out.append(f"{key} = {value}")
+            if not done:                 # a second line for the same key (an older setup wrote one by hand) is dropped
+                out.append(f"{key} = {value}")
             done = True
         else:
             out.append(line)
@@ -431,6 +439,7 @@ def questions(only=None):
             chunk = members[i:i + MAX_OPTIONS]
             out.append({"set": key, "title": s["title"], "together": s["together"], "note": s["note"],
                         "options": [{"name": n, "label": FEATURES[n]["label"], "description": describe(n),
+                                     "recommended": FEATURES[n].get("recommended", True),
                                      "link": FEATURES[n]["link"], "goes_well_with": pairs(n)} for n in chunk]})
     return out
 
@@ -472,6 +481,13 @@ def lint():
                 problems.append(f"{n}: no {field}")
         if f.get("set") not in SETS:
             problems.append(f"{n}: unknown set '{f.get('set')}'")
+        if f.get("set") not in ("ours", "outside"):     # those two carry their makers' own product names
+            shown = " ".join([f.get("label", ""), f.get("what", ""), f.get("one_pc", "")])
+            problems += [f"{n}: the words shown at setup use \"{w}\", which a newcomer cannot know"
+                         for w in JARGON if w in shown]
+    for key, s in SETS.items():
+        problems += [f"set '{key}': its words use \"{w}\", which a newcomer cannot know"
+                     for w in JARGON if w in s["title"] + " " + s["note"]]
         link = str(f.get("link", ""))
         if not link.startswith("https://"):
             problems.append(f"{n}: the link is not a web address")
@@ -504,7 +520,7 @@ def main(argv):
     a = argv[1:]
     cmd = a[0] if a else "status"
     if cmd == "status":
-        rows = {n: dict(zip(("on", "why"), why(n)), label=FEATURES[n]["label"], what=FEATURES[n]["what"],
+        rows = {n: dict(zip(("on", "why"), why(n)), label=FEATURES[n]["label"], what=what_of(n),
                         link=FEATURES[n]["link"], goes_well_with=pairs(n)) for n in FEATURES}
         if "--json" in a:
             print(json.dumps({"kind": kind(), "features": rows}, indent=1))
@@ -521,6 +537,10 @@ def main(argv):
         return 0
     if cmd == "is-on" and len(a) > 1:
         return 0 if is_on(names(a[1])[0]) else 1
+    if cmd == "recommended":
+        r = recommended_names()
+        print(json.dumps(r) if "--json" in a else "\n".join(r))
+        return 0
     if cmd == "pending":
         p = pending()
         print("\n".join(p) if p else "none")

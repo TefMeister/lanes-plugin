@@ -74,7 +74,7 @@ if [ -z "$REPO" ]; then
   for conf in "${LANES_CONFIG:-}" "$HOME/.claude/lanes.conf" "$HOME/.config/lanes/lanes.conf"; do
     [ -n "$conf" ] && [ -f "$conf" ] || continue
     REPO=$(sed -n 's/^[[:space:]]*board[[:space:]]*=[[:space:]]*//p' "$conf" | head -1 |
-           sed 's/[[:space:]]*$//; s/^"//; s/"$//')
+           sed 's/[[:space:]]#.*$//; s/[[:space:]]*$//; s/^"//; s/"$//')   # a trailing "# note" is not the path (0.121.0)
     [ -n "$REPO" ] && break
   done
 fi
@@ -91,7 +91,7 @@ detect_role() {
   local r="" conf
   for conf in "${LANES_CONFIG:-}" "$HOME/.claude/lanes.conf" "$HOME/.config/lanes/lanes.conf"; do
     [ -n "$conf" ] && [ -f "$conf" ] || continue
-    r=$(sed -n 's/^[[:space:]]*role[[:space:]]*=[[:space:]]*//p' "$conf" | head -1 |
+    r=$(sed -n 's/^[[:space:]]*role[[:space:]]*=[[:space:]]*//p' "$conf" | head -1 | sed 's/[[:space:]]#.*$//' |
         sed 's/[[:space:]]*$//; s/^"//; s/"$//')
     [ -n "$r" ] && break
   done
