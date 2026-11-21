@@ -24,6 +24,8 @@ make_pc() {
 }
 export LANES_STATE_DIR="$T/pc/.claude/lanes" LANES_CONFIG="$T/pc/.claude/lanes.conf"
 export LANES_INSPECTOR_HOME="$T/pc/.claude/lanes-inspector" LANES_UNINSTALL_DRY_TOOLS=1
+# 0.120.0: the PC-wide pieces are looked for in scratch places, never this PC's own
+export APPDATA="$T/appdata" LANES_QUIET_ROOT="$T/programdata/LanesQuietInstall" LANES_UNINSTALL_FAKE_LOOK=0
 
 make_pc
 out="$("$PY" "$TOOL" plan)"
@@ -57,6 +59,40 @@ make_pc
 "$PY" "$TOOL" do --keep-settings --keep-plugin >/dev/null
 check "--keep-settings keeps lanes.conf" '[ -f "$LANES_CONFIG" ]'
 check "--keep-plugin does not remove the plugin" '! "$PY" "$TOOL" do --keep-settings --keep-plugin | grep -q "claude plugin uninstall"'
+
+# 0.120.0: what the first real uninstall test (the Workshop PC, 2026-11-21) found left behind
+make_pc
+mkdir -p "$T/appdata/Microsoft/Windows/Start Menu/Programs/Startup" "$LANES_QUIET_ROOT"
+echo x > "$T/appdata/Microsoft/Windows/Start Menu/Programs/Startup/Lanes doorman.lnk"
+mkdir -p "$T/pc/.claude/lanes-sessions" "$T/pc/.claude/plugins/cache/lanes-plugin/x" "$T/pc/.claude/plugins/data/lanes-lanes-plugin"          "$T/pc/.claude/plugins/data/other-plugin" "$T/pc/.claude/lanes-transcripts"
+echo '{}' > "$T/pc/.claude/lanes-tandem.json"
+echo a > "$T/pc/.claude/lanes.conf.bak-1"; echo b > "$T/pc/.claude/lanes.conf.bak-before-one-pc"
+echo talk > "$T/pc/.claude/lanes-transcripts/s.jsonl"
+out="$(LANES_UNINSTALL_FAKE_RULE=1 LANES_UNINSTALL_FAKE_LOOK=1 "$PY" "$TOOL" plan)"
+for what in "the doorman" "the doorman's firewall rule" "Lanes quiet install" "sessions' saved state"             "2 backup(s) of the settings file" "copies of the plugin" "Lanes' look files"; do
+  check "plan lists: $what" 'printf "%s" "$out" | grep -F "$what" | grep -q "yes"'
+done
+check "plan keeps the conversation logs, with their size" 'printf "%s" "$out" | grep -q "kept  your full conversation logs"'
+out="$(LANES_UNINSTALL_FAKE_RULE=1 LANES_UNINSTALL_FAKE_LOOK=1 "$PY" "$TOOL" do)"
+check "the doorman, the task and the look are taken off by their own tools"   'printf "%s" "$out" | grep -q "doorman.py uninstall" && printf "%s" "$out" | grep -q "quiet_install.py uninstall" && printf "%s" "$out" | grep -q "theme.py sweep"'
+check "the sessions' saved state is gone" '[ ! -e "$T/pc/.claude/lanes-sessions" ] && [ ! -e "$T/pc/.claude/lanes-tandem.json" ]'
+check "the settings backups are put aside, not deleted"   '[ ! -e "$T/pc/.claude/lanes.conf.bak-1" ] && [ -f "$T/pc/.claude/lanes.conf-backups.uninstalled-"*/lanes.conf.bak-1 ]'
+check "Claude Code's copies of the plugin are gone, another plugin's data stays"   '[ ! -e "$T/pc/.claude/plugins/cache/lanes-plugin" ] && [ ! -e "$T/pc/.claude/plugins/data/lanes-lanes-plugin" ] && [ -d "$T/pc/.claude/plugins/data/other-plugin" ]'
+check "the conversation logs stay" '[ -f "$T/pc/.claude/lanes-transcripts/s.jsonl" ]'
+check "the firewall rule is printed for the person, with the exact line" 'printf "%s" "$out" | grep -q "netsh advfirewall firewall delete rule"'
+
+# theme.py sweep on a scratch terminal settings file: the look comes off, the person's profile stays
+mkdir -p "$T/wt"; WT="$T/wt/settings.json"
+printf '{"profiles": {"list": [
+ {"name": "Matrix Claude", "colorScheme": "RobCo", "experimental.pixelShaderPath": "%s/lanes.hlsl", "experimental.pixelShaderImagePath": "%s/lanes-sheet.png"},
+ {"name": "Green Monitor Claude", "experimental.pixelShaderPath": "%s/lanes-still.hlsl"},
+ {"name": "PowerShell"}]}}
+' "$T/wt" "$T/wt" "$T/wt" > "$WT"
+echo s > "$T/wt/lanes.hlsl"; echo s > "$T/wt/lanes-still.hlsl"; echo s > "$T/wt/lanes-sheet.png"; echo s > "$T/wt/mine.hlsl"
+out="$(LANES_WT_SETTINGS="$WT" LANES_CLAUDE_DIR="$T/pc/.claude" "$PY" "$HERE/../theme.py" sweep)"
+check "sweep: the person's profile stays, without Lanes' shader"   '"$PY" -c "import json,sys; d=json.load(open(sys.argv[1])); p=[x for x in d[\"profiles\"][\"list\"] if x[\"name\"]==\"Matrix Claude\"][0]; sys.exit(0 if \"experimental.pixelShaderPath\" not in p and p[\"colorScheme\"]==\"RobCo\" else 1)" "$WT"'
+check "sweep: the profile Lanes made is removed, others untouched"   '! grep -q "Green Monitor Claude" "$WT" && grep -q "PowerShell" "$WT"'
+check "sweep: Lanes' look files deleted, the person's own shader kept"   '[ ! -e "$T/wt/lanes.hlsl" ] && [ ! -e "$T/wt/lanes-sheet.png" ] && [ -f "$T/wt/mine.hlsl" ] && [ -f "$WT.before-lanes-uninstall" ]'
 
 echo "uninstall-fixture: $pass checks, $fail failed"
 [ "$fail" -eq 0 ]

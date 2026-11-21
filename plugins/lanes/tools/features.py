@@ -358,6 +358,13 @@ def kind():
                             if n != os.path.basename(STATE_FILE)] if os.path.isdir(STATE_DIR) else [])
     had_lanes = any(os.path.exists(p) and os.path.getmtime(p) < cutoff for p in old)
     k = "update" if had_lanes else "new"
+    # 0.120.0: just uninstalled (the settings put aside, none in their place): the window that ran the uninstall still
+    # has Lanes loaded until restart, and must not write Lanes' state folder back (the Workshop PC's test found it did)
+    cf = conf_file()
+    folder = os.path.dirname(cf) or "."
+    if not os.path.exists(cf) and os.path.isdir(folder) and any(
+            n.startswith(os.path.basename(cf) + ".uninstalled-") for n in os.listdir(folder)):
+        return k
     os.makedirs(STATE_DIR, exist_ok=True)
     with open(STATE_FILE, "w", encoding="utf-8") as f:
         json.dump({"kind": k, "since": VERSION}, f)

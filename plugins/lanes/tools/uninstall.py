@@ -17,6 +17,12 @@ WHAT IT TAKES AWAY, in this order (each one only if it is there):
      lanes-plugin`. Last on purpose: until the plugin is gone its session-start hooks would put the look back.
      The session that runs this keeps the plugin loaded until Claude Code is restarted.
 
+  0.120.0 (from the first uninstall test on a real PC): also the look left on terminal profiles by an older install
+  (theme.py sweep), the doorman and its Startup shortcut, the quiet-install task, the sessions' saved state, the
+  settings backups (put aside), and Claude Code's own cache and data copies of the plugin. The doorman's firewall rule
+  needs an administrator window: the exact line is printed. The full conversation logs (lanes-transcripts) are the
+  person's records: listed with their size and kept.
+
 WHAT IT NEVER TOUCHES: any repo, board, note, build archive, recording or transfer folder; game folders; the tools
 setup installed (Git, Python, Blender ... they are listed, with how to remove them, and left in place); the
 terminal font (harmless, and other things may use it: Windows Settings -> Fonts removes it).
@@ -44,6 +50,15 @@ RIDER = os.path.join(os.path.dirname(HERE), "begone", "rider.py")
 RIDER_PID = os.path.join(os.environ.get("LOCALAPPDATA") or HOME, "BeG0nE", "ride.pid")
 DRY_TOOLS = os.environ.get("LANES_UNINSTALL_DRY_TOOLS") == "1"
 TOOL_TIMEOUT_S = 60
+CLAUDE_HOME = os.path.dirname(CONF)                # ~/.claude, or the test's scratch folder
+# 0.120.0 (the Workshop's uninstall test): what the first uninstall left behind
+DOORMAN_LNK = os.path.join(os.path.expandvars(r"%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"),
+                           "Lanes doorman.lnk")
+DOORMAN_RULE = "Lanes doorman - private link only"
+QUIET_FOLDER = os.environ.get("LANES_QUIET_ROOT") or os.path.join(os.environ.get("ProgramData", r"C:\ProgramData"),
+                                                                   "LanesQuietInstall")
+SESSION_FILES = ("lanes-sessions", "lanes-tandem.json")   # beside lanes.conf: each session's saved state
+TRANSCRIPTS = os.path.join(CLAUDE_HOME, "lanes-transcripts")
 PLUGIN_ID = "lanes@lanes-plugin"
 MARKETPLACE = "lanes-plugin"
 
@@ -115,6 +130,61 @@ def hooks_path_is_ours():
     return bool(hp) and hp.startswith(STATE_DIR.replace("\\", "/").lower())
 
 
+def doorman_rule():
+    """the doorman's firewall rule is there (removing it needs an administrator window)"""
+    if DRY_TOOLS:
+        return os.environ.get("LANES_UNINSTALL_FAKE_RULE") == "1"
+    try:
+        r = subprocess.run(["netsh", "advfirewall", "firewall", "show", "rule", "name=" + DOORMAN_RULE],
+                           capture_output=True, text=True, timeout=20)
+        return r.returncode == 0 and DOORMAN_RULE in r.stdout
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+def plugin_leftovers():
+    """Claude Code's own copies of the plugin it keeps after `plugin uninstall`: the download cache and data folders"""
+    base = os.path.join(CLAUDE_HOME, "plugins")
+    out = []
+    cache = os.path.join(base, "cache", MARKETPLACE)
+    if os.path.isdir(cache):
+        out.append(cache)
+    data = os.path.join(base, "data")
+    if os.path.isdir(data):
+        out += [os.path.join(data, n) for n in sorted(os.listdir(data)) if n.lower().startswith("lanes")]
+    return out
+
+
+def conf_backups():
+    try:
+        return sorted(os.path.join(CLAUDE_HOME, n) for n in os.listdir(CLAUDE_HOME)
+                      if n.startswith("lanes.conf.bak"))
+    except OSError:
+        return []
+
+
+def folder_mb(path):
+    total = 0
+    for dirpath, _, files in os.walk(path):
+        for f in files:
+            try:
+                total += os.path.getsize(os.path.join(dirpath, f))
+            except OSError:
+                pass
+    return total // (1024 * 1024)
+
+
+def look_left():
+    if os.environ.get("LANES_UNINSTALL_FAKE_LOOK"):
+        return os.environ["LANES_UNINSTALL_FAKE_LOOK"] == "1"
+    try:
+        sys.path.insert(0, HERE)
+        import theme
+        return bool(theme.leftovers()) or theme.claude_theme_left()
+    except Exception:  # noqa: BLE001 - when the check cannot run, the state file still decides
+        return False
+
+
 def items():
     """What Lanes put on this PC: (key, present, what it is, what removing it does)."""
     shortcut = (read_json(os.path.join(STATE_DIR, "shortcut-state.json")) or {}).get("path", "")
@@ -128,6 +198,21 @@ def items():
         ("shortcut", bool(shortcut) and os.path.isfile(shortcut), "the 'Lanes' Desktop shortcut", "deleted"),
         ("theme", bool(theme.get("applied")), "the green-monitor terminal look",
          "the terminal and Claude Code's theme go back to how they were"),
+        ("look", look_left(), "Lanes' look files still used by a terminal profile, or Claude Code's RobCo colours "
+         "(an older install, or a look made from Lanes' files)",
+         "taken off those profiles (the profiles stay) and the files deleted; a backup of the terminal settings first"),
+        ("doorman", os.path.isfile(DOORMAN_LNK), "the doorman (the Keeper's link program) in Windows' Startup folder",
+         "stopped and taken out of Startup"),
+        ("firewall", doorman_rule(), "the doorman's firewall rule",
+         "listed for you: removing it needs an administrator window (the exact line is printed)"),
+        ("quiet", os.path.isdir(QUIET_FOLDER), "the 'Lanes quiet install' Windows task and its folder",
+         "taken off (Windows asks one Yes click)"),
+        ("sessions", any(os.path.exists(os.path.join(CLAUDE_HOME, n)) for n in SESSION_FILES),
+         "the sessions' saved state (%s)" % ", ".join(SESSION_FILES), "deleted"),
+        ("confbaks", bool(conf_backups()), "%d backup(s) of the settings file (lanes.conf.bak...)" % len(conf_backups()),
+         "put aside with the settings file, not deleted"),
+        ("plugincache", bool(plugin_leftovers()), "Claude Code's own download and data copies of the plugin",
+         "deleted after the plugin itself is removed"),
         ("privacy", hooks_path_is_ours(), "the privacy guard's machine-wide git hooks",
          "git's hook setting goes back to how it was"),
         ("state", os.path.isdir(STATE_DIR), "Lanes' own state folder (%s)" % STATE_DIR,
@@ -157,6 +242,9 @@ def plan():
     if tools:
         say("  kept  tools setup installed for you: %s. Remove any of them in Windows Settings -> Apps (or "
             "`winget uninstall <name>`)." % ", ".join(tools))
+    if os.path.isdir(TRANSCRIPTS):
+        say("  kept  your full conversation logs (%s, %d MB): they are your records; delete the folder by hand if you "
+            "do not want them" % (TRANSCRIPTS, folder_mb(TRANSCRIPTS)))
     say("  kept  every repo, board, note, build, recording and game folder, and the terminal font.")
     say("  last  the plugin itself is removed from Claude Code (and its source list), after everything above.")
     return 0
@@ -187,6 +275,23 @@ def do(keep_settings, keep_plugin):
         step("Desktop shortcut removed", *run_tool([os.path.join(HERE, "shortcut.py"), "remove"]))
     if present["theme"]:
         step("terminal look put back", *run_tool([os.path.join(HERE, "theme.py"), "restore"]))
+    if present["look"]:
+        step("Lanes look taken off the terminal profiles", *run_tool([os.path.join(HERE, "theme.py"), "sweep"]))
+    if present["doorman"]:
+        step("doorman stopped and out of Startup", *run_tool([os.path.join(HERE, "doorman.py"), "uninstall"]))
+    if present["quiet"]:
+        step("quiet-install task taken off", *run_tool([os.path.join(HERE, "quiet_install.py"), "uninstall"]))
+    if present["sessions"]:
+        try:
+            for n in SESSION_FILES:
+                p = os.path.join(CLAUDE_HOME, n)
+                if os.path.isdir(p) and not os.path.islink(p):
+                    shutil.rmtree(p)
+                elif os.path.exists(p):
+                    os.remove(p)
+            step("sessions' saved state deleted", True, "")
+        except OSError as e:
+            step("sessions' saved state deleted", False, str(e))
     if present["privacy"]:
         step("privacy guard's git hooks switched off", *run_tool([os.path.join(HERE, "privacy-guard.py"), "uninstall"]))
     if present["state"]:
@@ -226,6 +331,15 @@ def do(keep_settings, keep_plugin):
             step("settings put aside", True, dest)
         except OSError as e:
             step("settings put aside", False, str(e))
+    if present["confbaks"] and not keep_settings:
+        aside = os.path.join(CLAUDE_HOME, "lanes.conf-backups.uninstalled-" + datetime.date.today().isoformat())
+        try:
+            os.makedirs(aside, exist_ok=True)
+            for b in conf_backups():
+                os.replace(b, os.path.join(aside, os.path.basename(b)))
+            step("settings backups put aside", True, aside)
+        except OSError as e:
+            step("settings backups put aside", False, str(e))
     elif present["conf"]:
         say("  kept  lanes.conf (--keep-settings)")
     if keep_plugin:
@@ -233,7 +347,17 @@ def do(keep_settings, keep_plugin):
     else:
         step("plugin removed from Claude Code", *run_claude(["plugin", "uninstall", PLUGIN_ID]))
         step("plugin source removed", *run_claude(["plugin", "marketplace", "remove", MARKETPLACE]))
+        if present["plugincache"]:
+            try:
+                for d in plugin_leftovers():
+                    shutil.rmtree(d)
+                step("Claude Code's copies of the plugin deleted", True, "")
+            except OSError as e:
+                step("Claude Code's copies of the plugin deleted", False, str(e))
         say("Restart Claude Code to finish: this window still has Lanes loaded until then.")
+    if present["firewall"]:
+        say("  FOR YOU  the doorman's firewall rule: in an administrator window type")
+        say('           netsh advfirewall firewall delete rule name="%s"' % DOORMAN_RULE)
     say("Nothing of your own work was touched.")
     return 1 if problems else 0
 

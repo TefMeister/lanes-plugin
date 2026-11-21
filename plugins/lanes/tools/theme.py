@@ -16,6 +16,8 @@ with a light slowly running down the screen, is one command away.
     python theme.py restore                       put back exactly what was there before
     python theme.py status                        what was done, and where the backup is
     python theme.py upgrade                       move a profile still showing an older shipped look
+    python theme.py sweep                         take Lanes' look off every terminal profile still pointing at its
+                                                  files (an older install, a look made by hand), and delete them (0.120.0)
                                                   to the current one (the start-up hook runs this once)
 
 Exit 0 = done or nothing to do, 1 = could not (the reason is printed), 2 = not applicable here.
@@ -436,6 +438,114 @@ def restore():
     return 0
 
 
+# 0.120.0 (the Workshop's uninstall test): an older Lanes, or a look made by hand from Lanes' files, can leave profiles
+# pointing at Lanes' shader files with no theme-state.json to say so. These are every look file Lanes ever shipped.
+LOOK_FILES = ("lanes.hlsl", "lanes-still.hlsl", "lanes-sheet.png", "lanes.png", "starburst.hlsl")
+LOOK_KEYS = (SHADER_KEY, IMAGE_KEY, "backgroundImage")
+
+
+def _is_look(value):
+    return isinstance(value, str) and os.path.basename(value.replace("\\", "/")).lower() in LOOK_FILES
+
+
+def leftovers():
+    """[(settings path, [profile names pointing at a Lanes look file], [Lanes look files beside the settings])]"""
+    found = []
+    paths = [os.environ["LANES_WT_SETTINGS"]] if os.environ.get("LANES_WT_SETTINGS") else list(WT_SETTINGS_CANDIDATES)
+    for path in paths:
+        if not os.path.isfile(path):
+            continue
+        try:
+            data = load_jsonc(path)
+        except (OSError, ValueError):
+            continue
+        names = [pr.get("name", "?") for pr in data.get("profiles", {}).get("list", [])
+                 if isinstance(pr, dict) and any(_is_look(pr.get(k)) for k in LOOK_KEYS)]
+        folder = os.path.dirname(path)
+        files = sorted(n for n in os.listdir(folder) if n.lower() in LOOK_FILES)
+        if names or files:
+            found.append((path, names, files))
+    return found
+
+
+def claude_theme_left():
+    """Claude Code still set to Lanes' RobCo colours, or the RobCo theme file still there"""
+    sel = ""
+    try:
+        with open(os.path.join(CLAUDE_DIR, "settings.json"), encoding="utf-8-sig") as f:
+            sel = json.load(f).get("theme", "")
+    except (OSError, ValueError, AttributeError):
+        pass
+    return sel == "custom:" + CLAUDE_THEME or os.path.isfile(os.path.join(CLAUDE_DIR, "themes", CLAUDE_THEME + ".json"))
+
+
+def sweep_claude_theme():
+    settings = os.path.join(CLAUDE_DIR, "settings.json")
+    try:
+        with open(settings, encoding="utf-8-sig") as f:
+            data = json.load(f)
+        if data.get("theme") == "custom:" + CLAUDE_THEME:
+            data.pop("theme", None)
+            save_json(settings, data, indent=2)
+    except (OSError, ValueError, AttributeError):
+        pass
+    try:
+        os.remove(os.path.join(CLAUDE_DIR, "themes", CLAUDE_THEME + ".json"))
+    except OSError:
+        pass
+    say("Claude Code's own colours go back to its default at the next start.")
+
+
+def sweep():
+    """take Lanes' look off every profile still pointing at one of its files, then delete those files. A profile Lanes
+    made itself (its name) is removed; any other profile keeps everything but the Lanes keys. A backup is made first."""
+    found = leftovers()
+    if claude_theme_left():
+        sweep_claude_theme()
+    if not found:
+        say("no Lanes look left in Windows Terminal.")
+        return 0
+    bad = 0
+    for path, names, files in found:
+        try:
+            data = load_jsonc(path)
+            shutil.copyfile(path, path + ".before-lanes-uninstall")
+        except (OSError, ValueError) as e:
+            say("could not read %s: %s" % (os.path.basename(path), e))
+            bad += 1
+            continue
+        plist = data.get("profiles", {}).get("list", [])
+        kept = []
+        for pr in plist:
+            if not isinstance(pr, dict) or not any(_is_look(pr.get(k)) for k in LOOK_KEYS):
+                kept.append(pr)
+                continue
+            if pr.get("name") == PROFILE_NAME:
+                continue                                           # Lanes made it: it goes
+            for k in LOOK_KEYS:
+                if _is_look(pr.get(k)):
+                    pr.pop(k, None)
+            kept.append(pr)
+        if isinstance(data.get("profiles"), dict):
+            data["profiles"]["list"] = kept
+        try:
+            save_json(path, data)
+        except OSError as e:
+            say("could not write %s: %s" % (os.path.basename(path), e))
+            bad += 1
+            continue
+        for n in files:
+            try:
+                os.remove(os.path.join(os.path.dirname(path), n))
+            except OSError:
+                bad += 1
+        say("Lanes look taken off %s (profiles: %s); files deleted: %s; backup: %s" % (
+            os.path.basename(os.path.dirname(os.path.dirname(path))) or "Windows Terminal", ", ".join(names) or "none",
+            ", ".join(files) or "none", os.path.basename(path) + ".before-lanes-uninstall"))
+    remove_state()
+    return 1 if bad else 0
+
+
 def remove_state():
     try:
         os.remove(STATE_FILE)
@@ -477,6 +587,8 @@ def main(argv):
         return status()
     if cmd == "upgrade":
         return upgrade()
+    if cmd == "sweep":
+        return sweep()
     print(__doc__)
     return 2
 
