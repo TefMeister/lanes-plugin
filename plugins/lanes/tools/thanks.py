@@ -80,7 +80,9 @@ def gh(*args):
     try:
         r = subprocess.run([GH, *args], capture_output=True, text=True, timeout=GH_TIMEOUT_S)
         return r.returncode, (r.stdout or "") + (r.stderr or "")
-    except (OSError, subprocess.TimeoutExpired) as e:
+    except subprocess.TimeoutExpired:
+        return 124, "gh did not answer in time"
+    except OSError as e:
         return 127, str(e)
 
 
@@ -89,6 +91,8 @@ def gh_state():
     code, out = gh("auth", "status")
     if code == 127:
         return False, False, "GitHub's command-line tool (gh) is not installed"
+    if code == 124:  # a slow answer is not a missing gh (issue #4)
+        return False, False, "gh did not answer in time (a slow network, most likely); try again in a minute"
     if "Logged in" not in out and code != 0:
         return False, False, "gh is not logged in"
     m = re.search(r"Token scopes:\s*(.*)", out)
@@ -129,7 +133,10 @@ def ready():
         return 2
     logged, may_follow, words = gh_state()
     if not logged:
-        print(f"cannot: {words}. Log in with `gh auth login`, then run this again.")
+        if words.startswith("gh did not answer"):
+            print(f"cannot right now: {words}.")
+        else:
+            print(f"cannot: {words}. Log in with `gh auth login`, then run this again.")
         return 1
     if not may_follow:
         print(f"cannot follow yet: GitHub has not given this PC permission to follow people. Run once: `! {SCOPE_FIX}`")

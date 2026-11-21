@@ -1267,7 +1267,8 @@ def write_heartbeat(board, me, role, event, green, problem_lines):
     # came back in its staging area. The clash guard's locks are saved the same way (fullscan_lock.push_change).
     import fullscan_lock as FL
     rel = HEARTBEAT_DIR + "/" + me + ".txt"
-    msg = "handover: %s (%s) %s, %s" % (me, role, event, "SAVED" if green else "NOT SAVED")
+    # no role on a one-PC setup: no empty "()" in the message (lanes-plugin issue #7, 0.121.1)
+    msg = "handover: %s%s %s, %s" % (me, " (%s)" % role if role else "", event, "SAVED" if green else "NOT SAVED")
     ok = False
     for _attempt in range(PUSH_ATTEMPTS):
         git(["fetch", "-q", "origin"], board, timeout=FETCH_TIMEOUT_S)

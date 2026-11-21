@@ -652,10 +652,15 @@ def release_session(c, session, local_only=False):
     return out
 
 
-def sweep(c, fetch=True):
+def sweep(c, fetch=True, ended=""):
     """Give back this PC's GitHub locks whose file here is gone: the window that held them closed before its end
     steps reached GitHub (Run 5 B3b/B7/A1, real windows too). Run by endwork.py after every session end and at every
-    session start. Never touches the other PC's locks, nor one younger than ORPHAN_MIN_AGE_S."""
+    session start. Never touches the other PC's locks, nor one younger than ORPHAN_MIN_AGE_S.
+
+    ended (0.121.1): the session that has just ended (endwork.py passes it). ITS locks go at any age: until then a
+    window closed within three minutes of starting /gu left the lock on GitHub, and the sweep run straight after said
+    "no left-over locks" (the Workshop's one-PC test, 2026-11-21). A young lock of any other session is still left for
+    the next sweep (a start may be writing it), and the sweep now says so instead of saying there is none."""
     b = FL.board(c)
     if not b:
         return []
@@ -669,6 +674,7 @@ def sweep(c, fetch=True):
         if rec["job"] in JOBS and age_h(rec["when"]) >= JOBS[rec["job"]].get("stale_h", STALE_H):
             drop_local(os.path.join(LOCAL_DIR, key(rec["job"], rec["project"]) + ".lock"))
     here = {(r["job"], r["project"]) for r in local_locks()}
+    young = []
     for rec in remote_locks(b):
         if rec["job"] not in JOBS:
             continue
@@ -683,11 +689,16 @@ def sweep(c, fetch=True):
             continue
         if (rec["job"], rec["project"]) in here:
             continue
-        if rec["when"] and age_h(rec["when"]) * 3600 < ORPHAN_MIN_AGE_S:
+        if rec["when"] and age_h(rec["when"]) * 3600 < ORPHAN_MIN_AGE_S and not (ended and rec.get("session") == ended):
+            young.append(k)
             continue
         ok = FL.push_change(b, None, "clash guard: %s gives back %s (its window closed first)" % (me, k), rel=rec["rel"])
         out.append("CLASH GUARD: %s %s." % (k, "given back on GitHub: its window closed before its end steps did"
                                             if ok else "is left over on GitHub and could NOT be removed now"))
+    if young:
+        out.append("CLASH GUARD: %s of this PC on GitHub %s under %d minutes old with no file here (a start may still be "
+                   "writing it); the next sweep gives it back if its window is gone."
+                   % (", ".join(young), "is" if len(young) == 1 else "are", ORPHAN_MIN_AGE_S // 60))
     return out
 
 
@@ -855,7 +866,8 @@ def main(argv):
         print(line)
         return 0 if ok else 1
     if cmd == "sweep":
-        lines = sweep(c)
+        ended = next((x[len("--session="):] for x in a if x.startswith("--session=")), "")
+        lines = sweep(c, ended=ended)
         print("\n".join(lines) if lines else "CLASH GUARD: no left-over locks of this PC on GitHub.")
         return 0
     if cmd == "status":

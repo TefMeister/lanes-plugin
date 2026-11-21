@@ -478,8 +478,15 @@ while IFS= read -r hit; do
     offv_mention=$((offv_mention+1))
   fi
   offv=$((offv+1))
-done < <(grep -rnoE '`\[[a-zA-Z][a-zA-Z0-9_-]*' --include=*.md "${SEARCH_DIRS[@]}" 2>/dev/null |
-         grep -Ev "$VOCABDOCS" | sed 's/`\[/|/' |
+done < <({ grep -rnoE '`\[[a-zA-Z][a-zA-Z0-9_-]*' --include=*.md "${SEARCH_DIRS[@]}" 2>/dev/null | sed 's/`\[/|/'
+          # 0.121.1 (lanes-plugin issue #6): tags are often written BARE, `[verified 2026-11-21]` with no
+          # backticks, and 3b never saw them (40 missed in one /gr pass). A bare bracket is mostly links and
+          # prose, so only a bare tag carrying a date or n= is taken (a claim, by the convention's own shape),
+          # never a markdown link `[..](..)`, never one already in backticks (the line above has it).
+          grep -rnoE '(^|[^`])\[[a-zA-Z][a-zA-Z0-9_-]*[^]`]*(v?[0-9]{4}-[0-9]{2}-[0-9]{2}|n=)[^]`]*\]([^(]|$)' \
+            --include=*.md "${SEARCH_DIRS[@]}" 2>/dev/null |
+            sed -E 's/^([^:]*:[0-9]+:)[^[]?\[([a-zA-Z][a-zA-Z0-9_-]*).*/\1|\2/'; } |
+         grep -Ev "$VOCABDOCS" | sort -u |
          # The loop's first two tests (an exact vocabulary name: skip; no confidence-claiming stem: skip), done
          # here in ONE pass. 2026-11-11: 18,000 hits each started two small programs in the loop, 4.5 of the
          # scan's minutes; the loop now sees only the few dozen candidates. The tests inside stay as they were.
@@ -615,6 +622,10 @@ if [ -d "$CMDDIR" ]; then
     [ "$pasted" -gt 0 ] && echo "  ($pasted pasted-back block(s). Fix: cut it back to the stub - CONVENTIONS.md -> 'Shared lane preamble'. Owner: modding.)"
     [ "$dead" -gt 0 ] && echo "  ($dead dead sentinel(s): the check cannot see those blocks until the phrase is repaired)"
   fi
+elif ! git -C "$ROOT/$BOARD_DIR" cat-file -e "${DEDUPE_COMMIT}^{commit}" 2>/dev/null; then
+  # 0.121.1 (lanes-plugin issue #7): a board that never had lane command files of its own (every board but the
+  # maintainer's, where they were de-duplicated in a319ae9) has nothing to check; that is not a skipped check.
+  echo "  (not needed here: this board never kept lane command files of its own)"
 else
   echo "  ($BOARD_DIR/commands not found under $ROOT - check SKIPPED, which is NOT clean)"
 fi
@@ -684,22 +695,33 @@ for d in */; do
   r="${d%/}"
   git -C "$r" log --since="$SINCE" --format='@@C%n%B%n@@E' --name-status 2>/dev/null |
     awk -v R="$r" '
-      $0 == "@@C" { if (open) print "C\t" (lane == "" ? "?" : lane); open = 1; inmsg = 1; lane = ""; next }
+      $0 == "@@C" { if (open) print "C\t" (lane == "" ? "?" : lane); open = 1; inmsg = 1; lane = ""; first = 1; next }
       $0 == "@@E" { inmsg = 0; next }
+      inmsg && first {
+        first = 0
+        # 0.121.1 (lanes-plugin issue #7): a commit the Lanes tools wrote by themselves (the hand-over report, the
+        # clash guard, a claim, the Keeper, a reminder, a new project) is not a lane writing; it is counted apart
+        # instead of as "missing a Lane: line", so a fresh setup does not start out "not a pass".
+        s1 = tolower($0)
+        if (s1 ~ /^(handover|clash guard|claim|keeper|keeper queue|owed|owed home|owed dev|deployed):/ ||
+            s1 ~ /: (board page|start, from the lanes plugin|start, with the lane folders)$/) lane = "@tool"
+      }
       inmsg {
         # the first line starting "Lane:" in any case; the word itself cut when written Lane: or lane:
-        if (lane == "" && tolower($0) ~ /^lane:/) { lane = $0; sub(/^[Ll]ane:[ \t]*/, "", lane) }
+        if ((lane == "" || lane == "@tool") && tolower($0) ~ /^lane:/) { lane = $0; sub(/^[Ll]ane:[ \t]*/, "", lane) }
         next
       }
       index($0, "\t") {
         st = $0; sub(/\t.*/, "", st); pth = $0; sub(/^[^\t]*\t/, "", pth)
-        if (pth == "") next
+        if (pth == "" || lane == "@tool") next
         sub(/[0-9].*/, "", st)
         print "F\t" R "/" pth "\t" (lane == "" ? "?" : lane) "\t" st
       }
       END { if (open) print "C\t" (lane == "" ? "?" : lane) }'
 done > "$TMPF8" 2>/dev/null
 tot8=$(grep -c '^C	' "$TMPF8")
+tool8=$(grep -c '^C	@tool$' "$TMPF8" || true)
+tot8=$(( tot8 - tool8 ))
 tagged8=$(( tot8 - $(grep -c '^C	?$' "$TMPF8") ))
 # group by file; a file written under two DIFFERENT non-"?" lanes is the finding.
 # An inbox path touched by two lanes is the create-only protocol working: the
@@ -734,6 +756,9 @@ unattr=$(printf '%s\n' "$grouped" | grep -c '^U	')
 crosslane=$(printf '%s\n' "$grouped" | awk -F'\t' '$1 == "X" { print "  " $2; for (i = 3; i <= NF; i++) print "      " $i }')
 [ -n "$crosslane" ] && crosslane="$crosslane
 "
+if [ "${tool8:-0}" -gt 0 ]; then
+  echo "  ($tool8 commit(s) written by Lanes' own tools by themselves - hand-over, clash guard, claims, Keeper - need no Lane: line and are not counted)"
+fi
 if [ "$tot8" -eq 0 ]; then
   echo "  (no commits in the window)"
 else

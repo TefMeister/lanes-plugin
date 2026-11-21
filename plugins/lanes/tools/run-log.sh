@@ -62,7 +62,7 @@ read_conf() {
   for conf in "${LANES_CONFIG:-}" "$HOME/.claude/lanes.conf" "$HOME/.config/lanes/lanes.conf"; do
     [ -n "$conf" ] && [ -f "$conf" ] || continue
     v=$(sed -n "s/^[[:space:]]*$key[[:space:]]*=[[:space:]]*//p" "$conf" | head -1 |
-        sed 's/[[:space:]]*$//; s/^"//; s/"$//')
+        sed 's/[[:space:]][[:space:]]*#.*$//; s/[[:space:]]*$//; s/^"//; s/"$//')
     [ -n "$v" ] && break
   done
   printf '%s' "$v"

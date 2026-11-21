@@ -187,7 +187,10 @@ role = DEV
 #                                            in Git's bash. Only scripts that build and test, never install.
 #   critical = <part of a winget Id or pip name> | <what it could break>   one more build-critical tool
 #   update_safety = off                      no test builds at all (an extra, 0.84.0; see docs/EXTRAS.md)
-#   texts = <folder of clones>               where /lanes:od reads each public repo's front page (0.69.0)
+#   texts = <folder of clones>               where /lanes:od reads each public repo's front page (0.69.0;
+#                                            default: the clone root, `root =`)
+#   library = <clone>                        the shared research library /lanes:sr curates (0.121.1; none on a
+#                                            fresh setup: /sr says so and offers to make one)
 #   texts_owner = <GitHub account>           whose repos /lanes:od checks (default: the account gh is signed in as)
 #   od_skip = <repo>                         a repo /lanes:od leaves alone (0.94.0)
 #   ch_repo = <clone>                        a repo /lanes:ch looks after (0.89.0; default: every `ours =` line)

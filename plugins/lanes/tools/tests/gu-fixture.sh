@@ -117,7 +117,9 @@ check "texts: an engine version is not a mod version" '! printf "%s" "$out" | gr
 check "texts: public repo calling itself private" 'printf "%s" "$out" | grep -q "noclone: description says it is private"'
 check "texts: current texts and private repos stay quiet" '! printf "%s" "$out" | grep -q "fresh:\|hidden:"'
 check "texts: a pre-release counts when there is no full release" 'printf "%s" "$out" | grep -q "pre: description names an older version than the newest release v0.1.8-alpha"'
-check "texts: not set up says so" 'printf "%s" "$(LANES_CONFIG="$T/none.conf" "$PY" "$OD" scan)" | grep -q "not set up (texts"'
+check "texts: not set up says so" 'printf "%s" "$(LANES_GU_GH_LOGIN= LANES_CONFIG="$T/none.conf" "$PY" "$OD" scan)" | grep -q "not set up (texts"'
+# 0.121.1 (issue #7): with no texts_owner the account gh is logged into is used, so a fresh PC is not "not set up"
+check "texts: no texts_owner falls back to the gh login" 'printf "%s" "$(LANES_GU_GH_LOGIN=me LANES_GU_FAKE_REPOS="$T/repos.json" LANES_GU_TODAY=2026-10-15 LANES_CONFIG="$T/none.conf" "$PY" "$OD" scan)" | grep -q "public repos of me checked"'
 
 # 6. Lanes and the skills page keep up (0.93.0; /od section 4 since 0.94.0): a public tool of ours Lanes does not offer (and a private one, an
 # offered one and a skipped one that stay quiet); a connector and a plugin the skills page never names, a page gone stale
@@ -142,7 +144,7 @@ check "coverage: a connector the skills page never names" 'printf "%s" "$out" | 
 check "coverage: a plugin the skills page never names" 'printf "%s" "$out" | grep -q "plugin .shiny. is in use"'
 check "coverage: named and skipped connectors stay quiet" '! printf "%s" "$out" | grep -q "x64dbg\|superpowers\|hush"'
 check "coverage: a stale skills page" 'printf "%s" "$out" | grep -q "unchanged for 87 days"'
-check "coverage: skills page not set up says so" 'LANES_CONFIG="$T/none.conf" "$PY" "$OD" scan | grep -q "skills page: not set up"'
+check "coverage: skills page not set up says so" 'LANES_GU_GH_LOGIN= LANES_CONFIG="$T/none.conf" "$PY" "$OD" scan | grep -q "skills page: not set up"'
 # the skills page as GitHub shows it (0.94.1): GitHub's copy names fancy-mcp and is new, this clone was never pulled
 git -C "$T/six/kit" checkout -q -b newer
 printf '# Skills\n\nx64dbg MCP, fancy-mcp and the Superpowers plugin.\n' > "$T/six/kit/SKILLS.md"

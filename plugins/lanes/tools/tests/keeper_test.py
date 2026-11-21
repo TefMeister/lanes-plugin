@@ -207,9 +207,16 @@ check(not os.path.isdir(p("transfer", "parcels", "outbox")) or not os.listdir(p(
 
 # ----- the regular jobs: reminded until done -----
 rc, out = tool(KEEPER, ["due"], DEV)
+check(rc == 0 and "KEEPER JOB DUE" not in out,
+      "a fresh install is not told on day one that the weekly job is due (Workshop 2026-11-21)")
+from datetime import date as _date, timedelta as _td
+rc, out = tool(KEEPER, ["due"], dict(DEV, LANES_TEST_TODAY=(_date.today() + _td(days=6)).isoformat()))
+check(rc == 0, "nor on day six")
+DAY7 = dict(DEV, LANES_TEST_TODAY=(_date.today() + _td(days=7)).isoformat())
+rc, out = tool(KEEPER, ["due"], DAY7)
 check(rc == 1 and "KEEPER JOB DUE" in out and "/lanes:fullscan" in out and "every session until it is done" in out,
-      "a regular job never done is due, with the exact thing to type")
-rc, out = tool(KEEPER, ["due"], DEV)
+      "a regular job never done is due one interval after it was first seen, with the exact thing to type")
+rc, out = tool(KEEPER, ["due"], DAY7)
 check(rc == 1, "and it is due again at the next start (it does not stop by being said)")
 rc, out = tool(KEEPER, ["done", "fullscan"], KEEP if False else DEV)
 rc, out = tool(KEEPER, ["due"], DEV)

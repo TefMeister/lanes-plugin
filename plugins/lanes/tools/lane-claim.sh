@@ -92,7 +92,7 @@ detect_role() {
   for conf in "${LANES_CONFIG:-}" "$HOME/.claude/lanes.conf" "$HOME/.config/lanes/lanes.conf"; do
     [ -n "$conf" ] && [ -f "$conf" ] || continue
     r=$(sed -n 's/^[[:space:]]*role[[:space:]]*=[[:space:]]*//p' "$conf" | head -1 | sed 's/[[:space:]]#.*$//' |
-        sed 's/[[:space:]]*$//; s/^"//; s/"$//')
+        sed 's/[[:space:]][[:space:]]*#.*$//; s/[[:space:]]*$//; s/^"//; s/"$//')
     [ -n "$r" ] && break
   done
   echo "${r:-DEV}"
@@ -110,7 +110,7 @@ machine_label() {
   for conf in "${confs[@]}"; do
     [ -f "$conf" ] || continue
     v=$(sed -n 's/^[[:space:]]*machine_name[[:space:]]*=[[:space:]]*//p' "$conf" | head -1 |
-        sed 's/[[:space:]]*$//; s/^"//; s/"$//' | tr -cd 'A-Za-z0-9._-')
+        sed 's/[[:space:]][[:space:]]*#.*$//; s/[[:space:]]*$//; s/^"//; s/"$//' | tr -cd 'A-Za-z0-9._-')
     [ -n "$v" ] && { echo "$v"; return; }
   done
   here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

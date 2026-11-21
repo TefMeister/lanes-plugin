@@ -434,8 +434,10 @@ def games_with_places(pc):
 def begone_games():
     home = conf("begone")
     out = set()
+    if not home:  # BeG0nE not set up here: no games (a "\0" path made glob raise ValueError on Windows, issue #3)
+        return out
     for tool in BEGONE_TOOLS:
-        for d in glob.glob(os.path.join(home or "\0", tool, "data", "*")):
+        for d in glob.glob(os.path.join(home, tool, "data", "*")):
             if os.path.isdir(d):
                 out.add(os.path.basename(d))
     return out

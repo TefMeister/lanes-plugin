@@ -115,7 +115,7 @@ echo "Published lanes $VERSION"
 # 0.113.1: a test copy that is not the public one (2026-11-12: 0.112.0 was released on the test copy alone and called
 # public). With `release_public = <the public copy's folder>` in lanes.conf, the last line names the step still to do.
 CONF="${LANES_CONFIG:-$HOME/.claude/lanes.conf}"
-PUB=$(sed -n 's/^release_public *= *//p' "$CONF" 2>/dev/null | head -n 1 | tr -d '\r')
+PUB=$(sed -n 's/^release_public *= *//p' "$CONF" 2>/dev/null | head -n 1 | tr -d '\r' | sed 's/[[:space:]][[:space:]]*#.*$//; s/[[:space:]]*$//')
 if [ -n "$PUB" ] && [ -d "$PUB" ]; then
   HERE_TOP=$(git rev-parse --show-toplevel 2>/dev/null)
   PUB_TOP=$(git -C "$PUB" rev-parse --show-toplevel 2>/dev/null)

@@ -49,6 +49,12 @@ nothing to do. Name anything it `SKIPPED` or `FAILED` in the write-up.
 
 ## 1. Orient
 
+**Find the library first.** It is `library = <folder>` in lanes.conf, else a clone in the clone root named
+`*-cross-engine-research` or `research-library`. **None on this PC** (a fresh setup does not make one): say so
+in one plain line ("there is no shared research library yet, so /sr has nowhere to write"), offer to make one
+(a private repo named `research-library`, only on the person's yes, then `library = ` in lanes.conf), and stop
+there. Never write the library's pages into a game project instead.
+
 **Drain the library's `inbox/` first.** Read the whole inbox before draining any of it, and
 `grep` for `Supersedes:` headers before you start — draining oldest-first writes a claim into the
 library and only then meets its withdrawal. Drain by explicit filename list, never by glob.

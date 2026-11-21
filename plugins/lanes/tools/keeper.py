@@ -173,13 +173,36 @@ def last_done():
     return out
 
 
+def first_seen(name, today):
+    """The day this PC first met a regular job that was never done (kept in keeper-state.json).
+
+    0.121.1 (Workshop, 2026-11-21): a job never done counted as due at once, so a brand-new install was told on day
+    one, in every window, that the weekly full scan was due. A never-done job's clock now starts the day it is first
+    seen, so the first reminder comes one interval after setup."""
+    st = state()
+    seen = st.setdefault("jobs_first_seen", {})
+    if name not in seen:
+        seen[name] = today.isoformat()
+        save_state(st)
+    try:
+        return datetime.strptime(seen[name], "%Y-%m-%d").date()
+    except ValueError:
+        return today
+
+
+def today_date():
+    t = os.environ.get("LANES_TEST_TODAY")   # tests only
+    return datetime.strptime(t, "%Y-%m-%d").date() if t else date.today()
+
+
 def due_jobs(today=None):
-    today = today or date.today()
+    today = today or today_date()
     done, out = last_done(), []
     for j in read_jobs():
         last = done.get(j["name"], "")
-        late = (today - datetime.strptime(last, "%Y-%m-%d").date()).days - j["every"] if last else 0
-        if not last or late >= 0:
+        start = datetime.strptime(last, "%Y-%m-%d").date() if last else first_seen(j["name"], today)
+        late = (today - start).days - j["every"]
+        if late >= 0:
             out.append(dict(j, last=last, late=late))
     return out
 

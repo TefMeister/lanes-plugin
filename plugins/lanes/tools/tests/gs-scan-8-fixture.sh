@@ -47,6 +47,12 @@ echo y >> "$TMP/beta/other.md"; git -C "$TMP/beta" add other.md
 c beta -m "tagged" -m "Lane: /pd beta"
 echo z > "$TMP/beta/single.md"; git -C "$TMP/beta" add single.md
 c beta -m "single" -m "Lane: /pd beta"
+# 0.121.1 (issue #7): commits Lanes' own tools write by themselves are counted apart, and their files are not
+# "unattributed" (beta/other.md is touched here a third time and must stay out of the multi-touch list's count)
+echo w >> "$TMP/beta/single.md"; git -C "$TMP/beta" add single.md
+c beta -m "handover: Workshop start, SAVED"
+echo v >> "$TMP/beta/single.md"; git -C "$TMP/beta" add single.md
+c beta -m "clash guard: Workshop takes gu"
 
 out=$(cd "$TMP" && bash "$SCAN" "$TMP" 2000-01-01 </dev/null 2>/dev/null | sed -n '/^--- 8\./,/scan complete/p')
 
@@ -55,6 +61,7 @@ want() { printf '%s\n' "$out" | grep -qxF -- "$1" || { echo "MISSING: $1"; fail=
 never() { printf '%s\n' "$out" | grep -qF -- "$1" && { echo "SHOULD NOT APPEAR: $1"; fail=1; }; }
 
 want "  trailer coverage: 6 of 7 commits carry a Lane: line (85%)"
+want "  (2 commit(s) written by Lanes' own tools by themselves - hand-over, clash guard, claims, Keeper - need no Lane: line and are not counted)"
 want "  ⚠️ FILES WRITTEN BY MORE THAN ONE LANE:"
 want "  alpha/notes.md"
 want "      /gr alpha"

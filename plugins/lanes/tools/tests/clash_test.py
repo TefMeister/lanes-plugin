@@ -175,6 +175,18 @@ def main():
     check(any(r["job"] == "sr" for r in C.remote_locks(c1["board"])), "... and by its own PC's sweep")
     C.release(c1, "sr")
 
+    # 0.121.1 (Workshop one-PC test, 2026-11-21): a window that ends within minutes of taking /gu. Its end gives the
+    # file here back; the sweep straight after skipped the young GitHub copy and said "no left-over locks".
+    on("pc1")
+    check(C.take(c1, "gu", session="o7-a")[0], "a fresh /gu lock (on GitHub too)")
+    C.release_session(c1, "o7-a", local_only=True)
+    lines = C.sweep(c1)
+    check(any(r["job"] == "gu" for r in C.remote_locks(c1["board"])) and any("minutes old" in l for l in lines),
+          "a plain sweep leaves a young lock of an unknown session alone, and SAYS so (not 'none left over')")
+    lines = C.sweep(c1, ended="o7-a")
+    check(not any(r["job"] == "gu" for r in C.remote_locks(c1["board"])) and any("given back" in l for l in lines),
+          "the sweep after that session's end gives its young lock back on GitHub")
+
     # the hook
     conf = os.path.join(T, "pc2.conf")
     with open(conf, "w") as f:

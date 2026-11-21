@@ -5,9 +5,12 @@ Asked for by the maintainer, 2026-11-15: "can you now update lanes automatically
 session told the person a new version was out and waited for a yes (/lanes:update); the other PC then sat a version
 or two behind until someone said yes there.
 
-    python auto_update.py start [--wait]   (the session-start hook) when a newer Lanes is published and nothing on this
+    python auto_update.py start [--wait] [--skill]
+                                           (the session-start hook) when a newer Lanes is published and nothing on this
                                            PC stops it, start the update in the background and say so in one line per
-                                           version; also report how the last update went. --wait: run it here (tests)
+                                           version; also report how the last update went. --wait: run it here (tests).
+                                           --skill: called by /lanes:update, which holds the clash guard's `update`
+                                           lock itself, so that lock is not read as "an update is running" (0.121.1)
     python auto_update.py run              (started by `start`) run the update commands, check the version, keep the
                                            result for the next session start
     python auto_update.py status           the last result, in plain words
@@ -87,8 +90,9 @@ def check(force=False):
         return {}
 
 
-def blockers():
-    """plain reasons the update must wait now; [] = go"""
+def blockers(own_lock=False):
+    """plain reasons the update must wait now; [] = go. own_lock: the caller (/lanes:update) holds the `update` lock
+    itself; until 0.121.1 it read its own lock as "a Lanes update is running" and never installed (Workshop U1)."""
     out = []
     fake = os.environ.get("AUTO_UPDATE_TEST_GAMES")
     if fake is not None:
@@ -102,6 +106,8 @@ def blockers():
     try:
         import clash
         for rec in clash.local_locks():
+            if own_lock and rec.get("job") == "update":
+                continue
             if rec.get("job") in BLOCKING_JOBS and not clash.dead_tool_lock(rec) \
                     and clash.age_h(rec.get("when")) < clash.STALE_H:
                 out.append("%s is running (since %s)" % (clash.JOBS.get(rec["job"], {}).get("label", rec["job"]),
@@ -124,12 +130,53 @@ def changes_text(info):
     return "; ".join(lines) + (" (+%d more)" % more if more > 0 else "")
 
 
-def report_last():
+def installed_plugins_version(market=None):
+    """The Lanes version Claude Code itself lists as installed (installed_plugins.json), newest entry; None if unknown.
+
+    0.121.1 (Workshop, 2026-11-21): the after-check ran update-check.py from the OLD version's folder, which reads its
+    own plugin.json, so a good update 0.120.0 -> 0.120.1 was marked FAILED. Claude Code's own list is what counts."""
+    path = os.environ.get("AUTO_UPDATE_TEST_INSTALLED") or os.path.join(
+        os.path.expanduser("~"), ".claude", "plugins", "installed_plugins.json")
+    data = _read(path)
+    best = None
+    for key, entries in (data.get("plugins") or {}).items():
+        name, _, mk = key.partition("@")
+        if name != "lanes" or (market and mk != market):
+            continue
+        for e in entries if isinstance(entries, list) else [entries]:
+            v = e.get("version") if isinstance(e, dict) else None
+            if v and (best is None or vtuple(v) > vtuple(best)):
+                best = v
+    return best
+
+
+def vtuple(v):
+    out = []
+    for part in str(v or "0").split("."):
+        digits = "".join(ch for ch in part if ch.isdigit())
+        out.append(int(digits) if digits else 0)
+    return tuple(out)
+
+
+def newest_of(*versions):
+    vs = [v for v in versions if v]
+    return max(vs, key=vtuple) if vs else None
+
+
+def report_last(info=None):
     """one line about the last update, once: how it went"""
     r = _read(RESULT)
     if not r or r.get("reported"):
         return ""
     r["reported"] = time.strftime("%Y-%m-%d %H:%M")
+    if not r.get("ok"):
+        # 0.121.1 (Workshop U2): a failure a later update has since put right is old news, not a fault: this PC already
+        # has the version that "failed" (or newer), so the line is dropped instead of being printed again.
+        have = newest_of((info or {}).get("installed"), installed_plugins_version((info or {}).get("marketplace")))
+        if have and r.get("latest") and vtuple(have) >= vtuple(r.get("latest")):
+            r["superseded_by"] = have
+            _write(RESULT, r)
+            return ""
     _write(RESULT, r)
     if r.get("ok"):
         return ("LANES UPDATED ITSELF (auto_update): %s -> %s at %s. Sessions started from now on run it; say so in "
@@ -139,19 +186,19 @@ def report_last():
             % (r.get("from", "?"), r.get("latest", "?"), r.get("when", "?"), r.get("error", "no reason given")))
 
 
-def cmd_start(wait=False):
+def cmd_start(wait=False, skill=False):
     lines = []
-    last = report_last()
+    info = check()
+    last = report_last(info)
     if last:
         lines.append(last)
-    info = check()
     if info.get("newer") and running_now():
         lines.append("Lanes %s is being installed in the background already." % info.get("latest"))
     elif info.get("newer") and info.get("held"):
         lines.append("Lanes %s is out; it installs by itself once the update hold on this PC is lifted (%s)."
                      % (info.get("latest"), (info.get("hold") or {}).get("why", "a test is running")))
     elif info.get("newer"):
-        why = blockers()
+        why = blockers(own_lock=skill)
         if why:
             lines.append("Lanes %s is out; it installs by itself at a session start when nothing stops it (now: %s)."
                          % (info.get("latest"), "; ".join(why)))
@@ -160,7 +207,7 @@ def cmd_start(wait=False):
                          % info.get("latest"))
         else:
             if wait:
-                cmd_run()
+                cmd_run(own_lock=skill)
             else:
                 flags = (CREATE_NO_WINDOW | DETACHED_PROCESS) if os.name == "nt" else 0
                 subprocess.Popen([sys.executable, os.path.abspath(__file__), "run"], creationflags=flags,
@@ -176,7 +223,7 @@ def cmd_start(wait=False):
     return 0
 
 
-def cmd_run():
+def cmd_run(own_lock=False):
     if running_now():
         return 0
     os.makedirs(DIR, exist_ok=True)
@@ -186,7 +233,7 @@ def cmd_run():
         info = check(force=True)
         if not info.get("newer"):
             return 0
-        why = blockers()
+        why = blockers(own_lock=own_lock)
         if why or info.get("held"):
             log("waited: " + "; ".join(why or ["held"]))
             return 0
@@ -206,7 +253,8 @@ def cmd_run():
                 error = "%s did not finish (%s)" % (cmd.split()[0], e.__class__.__name__)
                 break
         after = check(force=True) if not error else {}
-        now_v = after.get("installed")
+        # the newest of what the check says and what Claude Code's own list says (the check may run from the OLD copy)
+        now_v = newest_of(after.get("installed"), installed_plugins_version(info.get("marketplace"))) if not error else None
         if not error and now_v != latest:
             error = "the installer finished but this PC still has %s" % now_v
         _write(RESULT, {"when": time.strftime("%Y-%m-%d %H:%M"), "from": frm, "latest": latest, "to": now_v,
@@ -233,7 +281,7 @@ def cmd_status():
 def main(argv):
     verb = argv[0] if argv else ""
     if verb == "start":
-        return cmd_start(wait="--wait" in argv)
+        return cmd_start(wait="--wait" in argv, skill="--skill" in argv)
     if verb == "run":
         return cmd_run()
     if verb == "status":

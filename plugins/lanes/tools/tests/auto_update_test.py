@@ -15,6 +15,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 TOOL = os.path.join(os.path.dirname(HERE), "auto_update.py")
 STATE = os.path.join(T, "state")
 CHECK = os.path.join(T, "check.json")
+INSTALLED = os.path.join(T, "installed_plugins.json")   # stands in for Claude Code's own list (absent until written)
 MARK = os.path.join(T, "ran.txt").replace("\\", "/")
 INSTALL = os.path.join(T, "pretend_install.py").replace("\\", "/")
 with open(INSTALL, "w", encoding="utf-8") as f:
@@ -47,7 +48,8 @@ def pretend(newer=True, installed="0.115.0", latest="0.117.0", held=False, ok=Tr
 
 
 def run(*args, games=""):
-    env = dict(os.environ, LANES_STATE_DIR=STATE, AUTO_UPDATE_TEST_CHECK=CHECK, AUTO_UPDATE_TEST_GAMES=games)
+    env = dict(os.environ, LANES_STATE_DIR=STATE, AUTO_UPDATE_TEST_CHECK=CHECK, AUTO_UPDATE_TEST_GAMES=games,
+               AUTO_UPDATE_TEST_INSTALLED=INSTALLED)
     r = subprocess.run([sys.executable, TOOL] + list(args), env=env, capture_output=True, text=True,
                        encoding="utf-8", errors="replace")
     return r.returncode, (r.stdout + r.stderr).strip()
@@ -110,6 +112,48 @@ pretend()
 rc, out = run("start", "--wait")
 check("being installed in the background already" in out and not os.path.exists(MARK), "never two updates at once")
 os.remove(os.path.join(STATE, "auto-update", "running.lock"))
+
+# U1 (Workshop 2026-11-21): /lanes:update holds the clash guard's `update` lock itself; with --skill it must not
+# read that lock as "a Lanes update is running" (it did, and never installed anything)
+ulock = os.path.join(STATE, "clash", "update.lock")
+open(ulock, "w", encoding="utf-8").write("machine = A\nsince = %s\njob = update\nproject = *\nsession = s-9\n" % since)
+pretend()
+rc, out = run("start", "--wait")
+check("a Lanes update is running" in out and not os.path.exists(MARK),
+      "U1: another window's update lock still makes the session-start update wait")
+pretend(after={"installed": "0.117.0", "newer": False})
+rc, out = run("start", "--wait", "--skill")
+check(os.path.exists(MARK) and "a Lanes update is running" not in out,
+      "U1: /lanes:update (--skill) is not stopped by its own update lock")
+os.remove(ulock)
+os.remove(MARK)
+
+# the false failure (Workshop 2026-11-21): the after-check ran from the OLD copy and still said the old version,
+# while Claude Code's own list had the new one; the update counts as done
+os.remove(os.path.join(STATE, "auto-update", "result.json"))
+pretend(after={"installed": "0.115.0", "newer": True})
+json.dump({"version": 2, "plugins": {"lanes@lanes-plugin": [{"scope": "user", "version": "0.117.0"}]}},
+          open(INSTALLED, "w", encoding="utf-8"))
+rc, out = run("start", "--wait")
+res = json.load(open(os.path.join(STATE, "auto-update", "result.json"), encoding="utf-8"))
+check(res.get("ok") and res.get("to") == "0.117.0",
+      "an update the old copy's check cannot see is still marked done (Claude Code's list says 0.117.0)")
+os.remove(INSTALLED)
+os.remove(MARK)
+
+# U2 (Workshop 2026-11-21): an old failure that a later update has put right is not printed again
+json.dump({"when": "2026-11-21 17:29", "from": "0.115.0", "latest": "0.116.0", "to": "0.115.0", "ok": False,
+           "error": "the installer finished but this PC still has 0.115.0"},
+          open(os.path.join(STATE, "auto-update", "result.json"), "w", encoding="utf-8"))
+pretend(newer=False, installed="0.117.0")
+rc, out = run("start", "--wait")
+check("COULD NOT UPDATE" not in out, "U2: an old failure is not printed once this PC has that version or newer")
+res = json.load(open(os.path.join(STATE, "auto-update", "result.json"), encoding="utf-8"))
+check(res.get("superseded_by") == "0.117.0", "U2: and the old result is marked as put right")
+json.dump({"when": "2026-11-21 17:29", "from": "0.115.0", "latest": "0.118.0", "to": "0.115.0", "ok": False,
+           "error": "network down"}, open(os.path.join(STATE, "auto-update", "result.json"), "w", encoding="utf-8"))
+rc, out = run("start", "--wait")
+check("COULD NOT UPDATE" in out, "U2: a failure this PC has NOT got past is still said")
 
 rc, out = run("status")
 check(rc == 0 and "auto_update:" in out, "status says how the last one went")

@@ -296,6 +296,10 @@ def tool_ideas(path, since):
 
 
 def lessons(since):
+    """0.121.1 (lanes-plugin issue #7): on the first /gu of a PC (no last run) the whole history of the route catalogue
+    came out, about 30 old lines that read as this PC's to-do. The first run now only sets the starting point."""
+    if not since:
+        return []
     out = []
     for root in conf_values("routes"):
         apps = sorted(os.listdir(root)) if os.path.isdir(root) else []
@@ -323,8 +327,31 @@ def installed_apps():
     return sorted(names)
 
 
+def gh_login():
+    """the GitHub account gh is logged into here, or '' (a fresh PC's default for texts_owner; 0.121.1, issue #7)"""
+    fake = os.environ.get("LANES_GU_GH_LOGIN")   # tests: the account gh would name ("" = not logged in)
+    if fake is not None:
+        return fake
+    try:
+        r = subprocess.run(["gh", "api", "user", "--jq", ".login"], capture_output=True, text=True, timeout=20)
+        return r.stdout.strip() if r.returncode == 0 else ""
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+
+
+def texts_owner():
+    """texts_owner from lanes.conf; when it is not set, the account this PC's gh is logged into (issue #7: on a fresh
+    setup /od said "not set up" for everything, and setup never asks)"""
+    return (conf_values("texts_owner") or [""])[-1] or gh_login()
+
+
+def texts_roots():
+    """texts from lanes.conf; when it is not set, the clone root (`root =`), which is where setup put the clones"""
+    return conf_values("texts") or conf_values("root")[-1:]
+
+
 def texts_report():
-    roots, owner = conf_values("texts"), (conf_values("texts_owner") or [""])[-1]
+    roots, owner = texts_roots(), texts_owner()
     if not roots and not owner:
         return None
     return gu_texts.scan(roots, owner, today(), catalogs=conf_values("catalog"), ours=conf_values("ours"),
@@ -469,11 +496,13 @@ def scan(as_json):
                 print(f"      from: {o['url']}")
         else:
             print(f"   {o['name']}: {o['newest'] or 'no releases'}, already noted")
-    print("4. Lessons for the tools since the last run")
+    print("4. Lessons for the tools since the last run (ideas noted for our helper tools; for whoever looks after"
+          " those tools, not a to-do for this PC)")
     for l in report["lessons"]:
         print(f"   {l['app']}: {l['line']}")
     if not report["lessons"]:
-        print("   none")
+        print("   none" if report["last_run"] else "   none yet: this is the first check on this PC, so new lines show"
+              " from the next one")
     print("5. GitHub pages, downloads and the skills page: /lanes:od (od.py scan), run before this check")
     return 0
 

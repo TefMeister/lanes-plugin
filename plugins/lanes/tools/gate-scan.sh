@@ -105,7 +105,7 @@ if [ -z "$MEM" ]; then
   for conf in "${LANES_CONFIG:-}" "$HOME/.claude/lanes.conf" "$HOME/.config/lanes/lanes.conf"; do
     [ -n "$conf" ] && [ -f "$conf" ] || continue
     MEM=$(sed -n 's/^[[:space:]]*board[[:space:]]*=[[:space:]]*//p' "$conf" | head -1 |
-          sed 's/[[:space:]]*$//; s/^"//; s/"$//')
+          sed 's/[[:space:]][[:space:]]*#.*$//; s/[[:space:]]*$//; s/^"//; s/"$//')
     [ -n "$MEM" ] && break
   done
 fi
@@ -140,7 +140,7 @@ detect_role() {
   for conf in "${LANES_CONFIG:-}" "$HOME/.claude/lanes.conf" "$HOME/.config/lanes/lanes.conf"; do
     [ -n "$conf" ] && [ -f "$conf" ] || continue
     r=$(sed -n 's/^[[:space:]]*role[[:space:]]*=[[:space:]]*//p' "$conf" | head -1 |
-        sed 's/[[:space:]]*$//; s/^"//; s/"$//')
+        sed 's/[[:space:]][[:space:]]*#.*$//; s/[[:space:]]*$//; s/^"//; s/"$//')
     [ -n "$r" ] && break
   done
   echo "${r:-DEV}"

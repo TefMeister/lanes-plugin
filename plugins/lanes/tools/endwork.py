@@ -194,7 +194,7 @@ def run(session):
                     log("lock file here: " + line)
             except Exception as e:  # noqa: BLE001
                 log("lock files here: FAILED (%s)" % type(e).__name__)
-            step("locks given back", [os.path.join(HERE, "clash.py"), "sweep"])
+            step("locks given back", [os.path.join(HERE, "clash.py"), "sweep"] + (["--session=" + session] if session else []))
         if os.environ.get("LANES_HANDOVER", "1") != "0":
             step("end reported", [os.path.join(HERE, "handover.py"), "end", "--write", "--session=" + session])
         if os.environ.get("LANES_HANDOVER", "1") != "0":

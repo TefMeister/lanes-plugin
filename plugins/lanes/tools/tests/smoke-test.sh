@@ -958,6 +958,16 @@ else
   fail "auto_update_test.py failed"
 fi
 
+echo "fresh_pc_faults_test.py - a fresh PC's first full scan: no BeG0nE set, a slow gh, a # note in lanes.conf (0.121.1)"
+if out=$("$PY" "$HERE/fresh_pc_faults_test.py" 2>&1); then
+  ok "$(printf '%s
+' "$out" | tail -n 1)"
+else
+  printf '%s
+' "$out" | grep FAIL
+  fail "fresh_pc_faults_test.py failed"
+fi
+
 echo "netcheck.py - the network check reads only, says what is unsafe and what changed (0.116.0)"
 if out=$("$PY" "$HERE/netcheck_test.py" 2>&1); then
   ok "$(printf '%s\n' "$out" | tail -n 1)"

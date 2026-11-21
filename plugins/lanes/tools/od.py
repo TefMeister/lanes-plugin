@@ -105,8 +105,9 @@ def downloads(owner):
 
 
 def scan(as_json):
-    owner = (gu.conf_values("texts_owner") or [""])[-1]
-    behind, missing, err = downloads(owner) if owner else ([], [], "not set up (texts_owner = <account>)")
+    owner = gu.texts_owner()   # 0.121.1: falls back to the account gh is logged into (issue #7)
+    behind, missing, err = downloads(owner) if owner else (
+        [], [], "not set up: gh is not logged in here and lanes.conf has no texts_owner = <account>")
     report = {"behind": behind, "missing": missing, "error": err, "texts": gu.texts_report(),
               "coverage": gu.coverage_report()}
     if as_json:

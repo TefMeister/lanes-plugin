@@ -32,7 +32,7 @@ description: "(Update) Checks GitHub for a newer Lanes, says in plain words what
 
    **With the extra `auto_update` on** (`python "${CLAUDE_PLUGIN_ROOT}/tools/features.py" is-on auto_update`,
    exit 0; 0.117.0, the maintainer 2026-11-15: *"update lanes automatically, without asking me"*): do not ask.
-   Run `python "${CLAUDE_PLUGIN_ROOT}/tools/auto_update.py" start --wait` and say in plain words what it printed
+   Run `python "${CLAUDE_PLUGIN_ROOT}/tools/auto_update.py" start --wait --skill` and say in plain words what it printed
    (it waits by itself while a game, a test or a hold is on). Then go to step 6.
 
    Otherwise **ask** whether you may update it now. Print this question **word for word, on a line of its

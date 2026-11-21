@@ -219,7 +219,7 @@ def finish_clone(folder, name, owner, public, message):
             if rc != 0:
                 return False, f"{' '.join(args[:2])} failed: {err[:200]}"
     ok, detail = push_new(folder, name, public)
-    return ok, ("made here earlier but refused by GitHub then; now " + detail) if ok else detail
+    return ok, ("made here, not on GitHub yet; now " + detail) if ok else detail
 
 
 # ---------- what goes in each new repo ----------
@@ -318,6 +318,11 @@ Every claim carries a tag saying how well it is known: [verified-live YYYY-MM-DD
 Other lanes drop findings for this folder here, as NEW files named `YYYY-MM-DD-<lane>-<slug>.md`. Never edit
 or delete a file in here; the owner folds each one into the dossier at session start and deletes only the files
 it read.
+
+A drop that corrects an earlier one is a new file whose first line is `Supersedes: <the earlier file's name>`;
+the owner applies the correction, never the claim it withdraws. Every claim carries one of the eight confidence
+tags (`[verified-live <date>, n=<k>]`, `[measured]`, `[verified-numerically]`, `[compile-verified]`,
+`[inferred-static]`, `[reported]`, `[hypothesis]`, `[disproved]`).
 """,
     "external-research/INDEX.md": """# {name}: what others have published
 
@@ -328,6 +333,11 @@ One line per lead: what it is, where it is (a link), when it was checked, and it
 
 Working sessions drop their verdicts on a lead here ("tried it, it worked"), as NEW files named
 `YYYY-MM-DD-<lane>-<slug>.md`. Never edit or delete a file in here; /gr folds them into INDEX.md.
+
+A drop that corrects an earlier one is a new file whose first line is `Supersedes: <the earlier file's name>`;
+the owner applies the correction, never the claim it withdraws. Every claim carries one of the eight confidence
+tags (`[verified-live <date>, n=<k>]`, `[measured]`, `[verified-numerically]`, `[compile-verified]`,
+`[inferred-static]`, `[reported]`, `[hypothesis]`, `[disproved]`).
 """,
 }
 

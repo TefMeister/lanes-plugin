@@ -49,6 +49,9 @@ VALID, must NOT fire: the basis is column-major `[verified-numerically 2026-09-0
 VALID, must NOT fire: `[inferred-static 2026-09-02]` and `[hypothesis]`.
 MENTION, lands in UNDATED: this pass corrected an off-vocabulary `[verified-static]` tag.
 REAL but UNDATED - the 2026-09-05 four-lane case: the branch is absent `[inferred]` intentional.
+BARE, the 2026-11-21 Workshop case (issue #6), no backticks: the hook is at +0x18 [verified 2026-11-21].
+BARE and VALID, must NOT fire: the stride is 0x40 [measured 2026-11-21, n=4].
+A LINK, must NOT fire: see [the reported fix 2026-11-21](https://example.invalid/x).
 CHANGELOG, a DATED tag QUOTED inside correction prose - the 2026-09-07 case: drained the tag drop, `[inferred 2026-09-02, n=1, by eye]` was not in the eight-name vocabulary, both copies now read `[measured 2026-09-02]`.
 EOF
 
@@ -78,7 +81,9 @@ expect "the historic DOOM-shaped tag is DATED"       '\[verified \.\.\.'
 expect "a dated invented tag is DATED"               '\[confirmed-static \.\.\.'
 expect "the prose mention lands in UNDATED"          '\[verified-static\]'
 expect "an UNDATED real use is still printed"        '\[inferred\]'
-expect "a dated tag quoted in correction prose is NOT dated" '\(2 dated, 2 undated, 1 quoted'
+expect "a bare dated invented tag is DATED (issue #6)" 'fixture.md:11 +-> +\[verified '
+expect "a dated tag quoted in correction prose is NOT dated" '\(3 dated, 2 undated, 1 quoted'
+refute "a markdown link is not read as a tag"         '\[the '
 # prints as "[inferred ..." (dated form); the UNDATED real use prints as
 # "[inferred]", so this regex matches the quoted one and only it.
 expect "the quoted changelog tag is still printed"   '\[inferred \.\.\.'
