@@ -22,13 +22,18 @@ The base repos (all PRIVATE):
     session-logs  every session's write-up, one folder per project (tools/session-log.py)
 
 Run `make` again on a second PC with the same names: whatever is already on GitHub is cloned, nothing is made twice.
-LANES_GH points at a different gh (tests); LANES_CONFIG at a different lanes.conf.
+A repo GitHub refused once (a new account may make only so many an hour) is made by the next run: a local copy with
+no link to GitHub is finished, not "left alone" (0.120.2). "Too many repositories, too quickly" is waited out by
+itself, with growing pauses (about an hour in all), saying so in plain words.
+LANES_GH points at a different gh (tests); LANES_CONFIG at a different lanes.conf; LANES_ESTATE_WAITS at different
+pauses in seconds, comma-separated (tests: "0,0").
 """
 import os
 import re
 import shutil
 import subprocess
 import sys
+import time
 from datetime import date
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -39,6 +44,11 @@ GIT_TIMEOUT_S = 120
 SYNC_TIMEOUT_S = 600      # root-sync.sh copying every repo into four lane roots
 LANE_SUFFIXES = ("-pd", "-gr", "-sr", "-gs")   # the lane roots root-sync.sh finds by itself
 NAME_OK = re.compile(r"^[A-Za-z0-9._-]{1,100}$")
+# GitHub's limit on how fast an account (a new one most of all) makes repos: its words, and the pauses before each
+# new try. 2 + 5 + 10 + 15 + 30 minutes: the Workshop PC's new account (2026-11-21) was refused at its 11th repo of
+# the day, and the limit lifts within the hour.
+RATE_LIMIT_WORDS = ("too many repositories", "too quickly", "secondary rate limit", "abuse detection")
+RATE_LIMIT_WAITS_S = (120, 300, 600, 900, 1800)
 
 # key: (default repo name, lanes.conf key or None, what it is)
 BASE = {
@@ -128,6 +138,41 @@ def is_clone(path):
     return os.path.isdir(os.path.join(path, ".git"))
 
 
+def has_origin(path):
+    return run(["git", "remote", "get-url", "origin"], cwd=path)[0] == 0
+
+
+def rate_limited(err):
+    low = (err or "").lower()
+    return any(w in low for w in RATE_LIMIT_WORDS)
+
+
+def limit_waits():
+    env = os.environ.get("LANES_ESTATE_WAITS")
+    if env is not None:
+        return [float(x) for x in env.split(",") if x.strip()]
+    return list(RATE_LIMIT_WAITS_S)
+
+
+def gh_create(name, *args):
+    """Make the GitHub repo <name> (gh's create), waiting out "too many repositories, too quickly" by itself.
+    Returns (rc, out, err); a refusal that outlasted every pause says so plainly in err."""
+    waits = limit_waits()
+    for attempt in range(len(waits) + 1):
+        rc, out, err = gh("repo", "create", name, *args)
+        if rc == 0 or not rate_limited(err):
+            return rc, out, err
+        if attempt == len(waits):
+            break
+        mins = max(1, round(waits[attempt] / 60)) if waits[attempt] else 0
+        print(f"{name}: GitHub says this account made too many repos too quickly (a new account may make only so "
+              f"many in an hour). Waiting {mins} min, then trying again by myself (try {attempt + 2} of "
+              f"{len(waits) + 1}).", flush=True)
+        time.sleep(waits[attempt])
+    return rc, out, (err + " | GitHub still refuses after about an hour of waiting. Nothing is lost: run the same "
+                     "command again later and it carries on from where it stopped.")
+
+
 def commit_identity(owner):
     """-c options for a commit when git has no name/e-mail set, so the first commit never stops a beginner.
     Uses the display name and GitHub's private no-reply address, never anything personal."""
@@ -147,11 +192,34 @@ def first_push(folder, name, owner, public, message):
         rc, _, err = run(args, cwd=folder)
         if rc != 0:
             return False, f"{' '.join(args[:2])} failed: {err[:200]}"
+    return push_new(folder, name, public)
+
+
+def push_new(folder, name, public):
+    """Make the GitHub repo from a local copy that has at least one commit, link it as origin and push."""
     vis = "--public" if public else "--private"
-    rc, _, err = gh("repo", "create", name, vis, "--source", folder, "--remote", "origin", "--push")
+    rc, _, err = gh_create(name, vis, "--source", folder, "--remote", "origin", "--push")
     if rc != 0:
-        return False, f"GitHub would not make it: {err[:300]}"
+        return False, f"GitHub would not make it: {err[:400]}"
     return True, "made on GitHub (" + ("PUBLIC" if public else "private") + ") and pushed"
+
+
+def finish_clone(folder, name, owner, public, message):
+    """A clone found here already. Normal case: linked to GitHub, left alone. A copy an earlier run made but GitHub
+    refused (no origin; Workshop PC 2026-11-21): make the repo now. Returns (ok, detail)."""
+    if has_origin(folder):
+        return True, "already cloned here, left alone"
+    if on_github(owner, name):
+        return False, (f"STOPPED: {owner}/{name} is on GitHub but this copy is not linked to it; nothing was changed. "
+                       "Move the folder aside and run this again to clone it, or link it by hand.")
+    if run(["git", "rev-parse", "-q", "--verify", "HEAD"], cwd=folder)[0] != 0:
+        ident = commit_identity(owner)
+        for args in (["git", "add", "-A"], ["git", *ident, "commit", "-q", "-m", message]):
+            rc, _, err = run(args, cwd=folder)
+            if rc != 0:
+                return False, f"{' '.join(args[:2])} failed: {err[:200]}"
+    ok, detail = push_new(folder, name, public)
+    return ok, ("made here earlier but refused by GitHub then; now " + detail) if ok else detail
 
 
 # ---------- what goes in each new repo ----------
@@ -319,7 +387,8 @@ def sync_lane_roots(root):
     if not bash:
         return "the lane roots were made, but bash was not found to copy the repos into them: run tools/root-sync.sh --fix"
     rc, out, err = run([bash, os.path.join(HERE, "root-sync.sh"), "--fix", root], timeout=SYNC_TIMEOUT_S)
-    return "every lane root holds every repo" if rc == 0 else f"copying into the lane roots failed: {(err or out)[:300]}"
+    return ("every lane root holds a copy of every repo but builds (saved builds stay in one place on purpose)"
+            if rc == 0 else f"copying into the lane roots failed: {(err or out)[:300]}")
 
 
 def cmd_check():
@@ -358,8 +427,12 @@ def cmd_make(argv, dry):
     for key, name in names.items():
         default, ck, what = BASE[key]
         folder = os.path.join(root, name)
-        if is_clone(folder):
-            act = "already cloned here, left alone"
+        if is_clone(folder) and dry:
+            act = ("already cloned here, left alone" if has_origin(folder)
+                   else "made here earlier but not on GitHub yet: make it on GitHub now")
+        elif is_clone(folder):
+            ok, act = finish_clone(folder, name, owner, False, f"{name}: start, from the lanes plugin")
+            failed |= not ok
         elif os.path.exists(folder) and os.listdir(folder):
             act = "STOPPED: that folder exists and is not a clone; move it or pick another --name"
             failed = True
@@ -380,7 +453,8 @@ def cmd_make(argv, dry):
             line += f"; lanes.conf {ck}: {conf_set(ck, folder, what)}"
         print(line)
     if dry:
-        print("  lane roots: " + ", ".join(lane_roots(root)) + " (made, and given a copy of every repo)")
+        print("  lane roots: " + ", ".join(lane_roots(root)) + " (made, and given a copy of every repo but builds, "
+              "which stays in one place on purpose)")
         print("  lanes.conf: root and the places above")
         return 0
     print("  lanes.conf root:", conf_set("root", root, "the folder holding every clone"))
@@ -403,7 +477,10 @@ def cmd_project(argv):
         return 1
     folder = os.path.join(root, name)
     if is_clone(folder):
-        print(f"{name}: already cloned here, left alone")
+        ok, detail = finish_clone(folder, name, owner, public, f"{name}: start, with the lane folders")
+        print(f"{name}: {detail}")
+        if not ok:
+            return 1
     elif os.path.exists(folder):
         print(f"{name}: STOPPED, {folder} exists and is not a clone")
         return 1
@@ -427,7 +504,7 @@ def cmd_project(argv):
         ident = commit_identity(owner)
         steps = (("add", ["git", "add", "--", f"status/{name}.md"]),
                  ("commit", ["git", *ident, "commit", "-q", "-m", f"{name}: board page", "--", f"status/{name}.md"]),
-                 ("pull", ["git", "pull", "-q", "--rebase"]), ("push", ["git", "push", "-q"]))
+                 ("pull", ["git", "pull", "-q", "--rebase", "--autostash"]), ("push", ["git", "push", "-q"]))
         for label, args in steps:
             rc, _, err = run(args, cwd=board)
             if rc != 0:

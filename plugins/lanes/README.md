@@ -123,6 +123,9 @@ Built in chunks, each tested on a live estate before the next begins.
 /plugin install lanes@lanes-plugin
 ```
 
+Close Claude Code and open it again (a new plugin's commands appear only after a restart), then run
+`/lanes:setup`, or set it up by hand as below.
+
 Then tell it where your board is. The board is an ordinary **private** git repo with a `status/`
 folder holding one `<project>.md` per project — your working notes, in a shape the tools can read.
 

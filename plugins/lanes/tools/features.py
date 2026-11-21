@@ -287,6 +287,28 @@ for _name, _t in outside.TOOLS.items():
     FEATURES[outside.feature_name(_name)] = {"label": f"{_t['label']} (by {_t['maker']})", "set": "outside",
                                              "ask_on_update": True, "what": _t["what"], "link": outside.GH + _t["repo"]}
 ON_WORDS, OFF_WORDS = ("on", "yes", "true", "1"), ("off", "no", "false", "0")
+# Extras that setup used to offer a second time as their own one-time offer (offers.py): answering the extra counts as
+# that offer made, so it is never asked twice (Workshop PC 2026-11-21: the 22 own and outside tools, and the BeG0nE
+# recording, were asked in the extras and again in setup's later steps).
+OFFER_OF_SET = {"ours": "our-tools", "outside": "outside-tools"}
+OFFER_OF_FEATURE = {"begone_record": "begone-record", "begone_video_tidy": "video-tidy",
+                    "remote_control": "remote-control"}
+
+
+def note_offers(changed, value):
+    """Record, in offers.py's list, the offers these extras stand for, unless they were made already."""
+    import offers
+    from datetime import datetime
+    d = offers.load()
+    new = False
+    for n in changed:
+        o = OFFER_OF_FEATURE.get(n) or OFFER_OF_SET.get(FEATURES[n]["set"])
+        if o and o not in d:
+            d[o] = {"answer": f"answered with the extras ({n} {value})",
+                    "at": datetime.now().isoformat(timespec="seconds")}
+            new = True
+    if new:
+        offers.save(d)
 
 
 def pairs(name):
@@ -491,8 +513,10 @@ def main(argv):
                 print(f"{n:17} {'ON ' if r['on'] else 'off'}  {r['label']}  ({r['why']})  {r['link']}")
         return 0
     if cmd in ("on", "off") and len(a) > 1:
-        for n in names(a[1]):
+        changed = names(a[1])
+        for n in changed:
             set_conf(n, cmd, FEATURES[n]["label"])
+        note_offers(changed, cmd)
         print(f"{a[1]}: {cmd} (in {conf_file()})")
         return 0
     if cmd == "is-on" and len(a) > 1:

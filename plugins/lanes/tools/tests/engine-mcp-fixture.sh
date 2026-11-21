@@ -44,5 +44,14 @@ case "$out" in *"RE Engine MCP: installed"*"Not registered"*) check 0 0 "";; *) 
 [ -e "$P/plugins/uevr_mcp.dll" ] || [ -e "$P/dumper_mode" ]; check $? 1 "remove takes both out"
 "$PY" "$EM" game uevr "$T/bad;name.exe" >/dev/null; check $? 1 "an odd program name is refused"
 
+# "a newer one is out" only when it really is (Workshop PC 2026-11-21: v1.0.0 called newer than v1.0.0 + a commit)
+nv() { "$PY" -c "import importlib.util as u,sys; s=u.spec_from_file_location('em', sys.argv[1]); m=u.module_from_spec(s); s.loader.exec_module(m); print(m.is_newer(sys.argv[2], sys.argv[3]))" "$EM" "$1" "$2"; }
+check "$(nv v1.0.0 'v1.0.0 + 8cf1053 (breadcrumb throttle)')" False "the same release plus a commit is not older"
+check "$(nv v1.0.0 v1.0.0)" False "the same release is not newer"
+check "$(nv v1.1.0 'v1.0.0 + 8cf1053')" True "a later release is newer"
+check "$(nv v0.9.0 v1.0.0)" False "an older tag upstream is not newer"
+check "$(nv abc123def456 abc123def456)" False "the same commit is not newer"
+check "$(nv 0123456789ab abc123def456)" True "another commit is"
+
 echo "engine-mcp-fixture: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

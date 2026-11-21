@@ -32,11 +32,13 @@ their real name, login, e-mail, machine names and home-folder paths are never wr
 where they can choose a different name for sessions to use.
 
 Check what is set now: `python "${CLAUDE_PLUGIN_ROOT}/tools/display-name.py"`. If it already
-prints a name other than `User`, say so in one line and move on (do not ask again). Otherwise ask
-**one question** (AskUserQuestion), in plain words, for example: *"In notes and on GitHub, sessions
-will call you 'User'. Would you like them to use a name or handle of your choosing instead? It will
-appear wherever your work is described, including public READMEs."* Options: **"Keep 'User'"** and
-**"Choose a name"** (they type it through "Other").
+prints a name other than `User`, say so in one line and move on (do not ask again). Otherwise ask it **as plain
+text in the chat, not with AskUserQuestion** (0.120.2: a "Choose a name" button has no box to type in, so on the
+Workshop PC no name came back and the person typed it into the next question instead). For example: *"In notes and
+on GitHub, sessions will call you 'User'. Type the name or handle you would like instead, or 'User' to keep it. It
+will appear wherever your work is described, including public READMEs."* When §0.6 is to be asked too, ask both in
+the same message, numbered, so one reply answers both (*"1 your name ... 2 this PC's name, or 'PC2' if you don't
+mind"*).
 
 - Save a chosen name with `python "${CLAUDE_PLUGIN_ROOT}/tools/display-name.py" set "<name>"`. It
   refuses anything but letters, digits, spaces and `. _ -`; if refused, say why and ask again.
@@ -50,10 +52,9 @@ Claims and reminders say which PC wrote them, because two sessions on one PC sha
 They never use the computer's real name; they use a plain name for the PC.
 
 Check what is set now: `python "${CLAUDE_PLUGIN_ROOT}/tools/machine-name.py" suggest`. If
-`machine_name` is already in `lanes.conf`, say the name in one line and move on. Otherwise ask **one
-question** (AskUserQuestion), for example: *"What should this PC be called in your notes? If you
-don't mind, it will just be PC2."* Use the suggested name in the question. Options: **"Use <PCn>"**
-and **"Choose a name"** (they type it through "Other").
+`machine_name` is already in `lanes.conf`, say the name in one line and move on. Otherwise ask it **as plain text
+in the chat**, with §0.5 when that is asked too (same reason as there), for example: *"What should this PC be called
+in your notes? Type a name, or 'PC2' if you don't mind."* Use the suggested name in the question.
 
 - Save it with `python "${CLAUDE_PLUGIN_ROOT}/tools/machine-name.py" set "<name>"`, the suggested one
   too. It adds the name to the board's `machines.txt` so no other PC takes it. It refuses spaces, a
@@ -94,6 +95,12 @@ unanswered extras grouped in their **sets**, each extra OFF until answered here.
    already; if not, switch that set off without asking it.
 
 Then `features.py on <name>` for each ticked one and `features.py off <name>` for the rest, so none is pending again.
+Answering an extra also counts as the one-time offer it stands for (`features.py` records it: our own apps,
+other people's tools, the BeG0nE recording and its clean-up, Remote Control), so §0.12.6, §0.13, §0.13.5 and §0.13.6
+do not ask those again (0.120.2; the Workshop PC was asked the same 22 tools twice). **Get what was ticked there:**
+for each ticked `ours_<name>` run `python "${CLAUDE_PLUGIN_ROOT}/tools/ours.py" get <name>`, for each ticked
+`outside_<name>` run `python "${CLAUDE_PLUGIN_ROOT}/tools/outside.py" get <name>`, and show their lines (an
+installer may open: say to click through it).
 When `remote_control` was asked, run `python "${CLAUDE_PLUGIN_ROOT}/tools/remote-control.py" apply` and
 `offers.py made remote-control <yes|no>` (it is then not asked again in §0.12.6); if it was left unticked, say in one
 line that typing `/remote-control` (or `/rc`) in a session turns it on for that session.
@@ -115,7 +122,10 @@ the ideas repo and the rest, all private?"* Options: **"Yes"** and **"Not now"**
   `python "${CLAUDE_PLUGIN_ROOT}/tools/estate.py" check` shows is done. Ask for the folder (step 4), run
   `estate.py plan --root <folder>`, show it in plain words, and on a yes run `estate.py make --root <folder>`
   (with `--skip`/`--name` if they asked). Name each repo before it is made; all are private. A first project:
-  `estate.py project <name>`, private unless they say public (the guard asks again).
+  `estate.py project <name>`, private unless they say public (the guard asks again). A new account may make only so
+  many repos an hour: `make` and `project` then wait and try again by themselves for up to about an hour, so run
+  several of them in the background and say why in one line; a run GitHub still refused is finished by running the
+  same command again later (0.120.2).
 - **Not now:** say they can ask for it any time ("set up my GitHub the Lanes way").
 After a yes, 0.7 below is already done when `builds =` is set: skip it.
 
@@ -239,7 +249,11 @@ turns it on, or off, for that session. It starts with the next session. `docs/PR
 ## 0.13 BeG0nE: with automatic recordings (recommended), or on its own? (0.80.0, VR modders, offered once)
 
 Ask this **when the person sets up the BeG0nE tools** (the VR group's BeG0nE row, or `begone =` already in lanes.conf),
-and only if `python "${CLAUDE_PLUGIN_ROOT}/tools/offers.py" should begone-record` says `offer`. The maintainer
+and only if `python "${CLAUDE_PLUGIN_ROOT}/tools/offers.py" should begone-record` says `offer`. **Already answered
+in the extras (§0.6.2)?** Then skip the first question; if `features.py is-on begone_record` says on and
+`recordings =` is not in lanes.conf yet, still ask only where the recordings go (below). **Write the answer with
+`features.py on begone_record` or `off`, never by hand** (0.120.2: a hand-written `begone_record = yes` under the
+extras' `begone_record = on` left two lines). The maintainer
 (2026-10-19): *"the begone toolset can either be set up with the added recordings feature that is recommended or just
 on it's own"*. Say in plain words: BeG0nE logs every headset or pretend-headset session of a mod wired to it and
 files a short report; with recordings on, the game's own window (and the pretend headset's view) is filmed for the
@@ -247,16 +261,17 @@ whole session by itself, so every fault it finds can be looked at picture by pic
 recorded, never the screen, and the files stay on this PC. Ask **one question**: *"Set up BeG0nE with automatic
 recordings (recommended), or BeG0nE on its own?"* ("With recordings (Recommended)" / "BeG0nE on its own").
 
-- **On its own:** write `begone_record = no`. Done.
+- **On its own:** `features.py off begone_record`. Done.
 - **With recordings:** ask **where the recordings go** (one question, these options):
   1. *"A Lanes recordings folder in my Videos folder (Recommended)"*: create `%USERPROFILE%\Videos\Lanes recordings`
      and write `recordings = <that folder>`.
   2. *"My transfer folder"*: only when `transfer =` is set (section 0.9); recordings then go to its `Videos` folder,
      so write nothing for `recordings`.
   3. *"Another folder I choose"*: ask for it, create it if missing, write `recordings = <folder>`.
-  Then write `begone_record = yes`, and offer whatever of OBS (with the Source Record add-on and its WebSocket
+  Then `features.py on begone_record`, and offer whatever of OBS (with the Source Record add-on and its WebSocket
   server on), FFmpeg and Python's `obsws-python`, Pillow and numpy is missing.
-  **The clean-up goes with it (0.90.0, the two are one set in `features.py`):** ask once more, *"Take each video off
+  **The clean-up goes with it (0.90.0, the two are one set in `features.py`):** unless `offers.py should video-tidy`
+  says it was answered with the extras, ask once more, *"Take each video off
   the PC again once nothing needs it? The cut frames and the reports stay."* ("Yes, clean up (Recommended)" / "Keep
   every video"), then `features.py on begone_video_tidy` or `off` and `offers.py made video-tidy <answer>`.
   `docs/PROTOCOL.md` section 38.
@@ -265,7 +280,8 @@ Either way run `offers.py made begone-record <answer>`. What it does: `docs/PROT
 
 ## 0.13.5 Other people's tools (0.92.0, VR modders, offered once)
 
-Only if `python "${CLAUDE_PLUGIN_ROOT}/tools/offers.py" should outside-tools` says `offer`. Run
+Only if `python "${CLAUDE_PLUGIN_ROOT}/tools/offers.py" should outside-tools` says `offer` (it says no when the
+extras in §0.6.2 already asked them; then skip this without a word). Run
 `python "${CLAUDE_PLUGIN_ROOT}/tools/outside.py" list --json` and offer them with **one multi-select question**
 (AskUserQuestion, `multiSelect: true`, at most four options a question, so split into two or three questions),
 each option the tool's label, its description and its link (from the list). Say first, in one line, that each one
@@ -276,7 +292,8 @@ lines (an installer may open: say to click through it). Unticked: `features.py o
 
 ## 0.13.6 Our own apps and libraries (0.93.0, everyone, offered once)
 
-Only if `python "${CLAUDE_PLUGIN_ROOT}/tools/offers.py" should our-tools` says `offer`. Run
+Only if `python "${CLAUDE_PLUGIN_ROOT}/tools/offers.py" should our-tools` says `offer` (it says no when the extras
+in §0.6.2 already asked them; then skip this without a word). Run
 `python "${CLAUDE_PLUGIN_ROOT}/tools/ours.py" list --json` and offer them the same way as §0.13.5: tick boxes, at most
 four a question, each option the label, its description and its link. Say first, in one line, that these are the
 other things the Lanes maker built (from TefMeister's GitHub), that the apps install without administrator rights and

@@ -30,6 +30,12 @@ if a[:2] == ["api", "user"]:
 if a[:2] == ["repo", "view"]:
     sys.exit(0 if os.path.isdir(os.path.join(G, a[2].split("/")[1] + ".git")) else 1)
 if a[:2] == ["repo", "create"]:
+    lim = os.path.join(T, "limit")
+    if os.path.exists(lim) and int(open(lim).read().strip() or 0) > 0:
+        n = int(open(lim).read().strip())
+        open(lim, "w").write(str(n - 1))
+        sys.stderr.write("GraphQL: You have created too many repositories, too quickly. Please try again later. (createRepository)")
+        sys.exit(1)
     name, src = a[2], a[a.index("--source") + 1]
     bare = os.path.join(G, name + ".git")
     subprocess.run(["git", "init", "-q", "--bare", bare], check=True)
@@ -85,6 +91,34 @@ check "$(cat "$T/github/shown.visibility")" public "is public"
 echo "my own notes" > "$T/pc1/clones/board/status/my-game.md"
 "$PY" "$ES" project my-game >/dev/null; check $? 0 "an existing project is left alone"
 check "$(cat "$T/pc1/clones/board/status/my-game.md")" "my own notes" "its board page is not overwritten"
+
+# GitHub's "too many repositories, too quickly" (Workshop PC 2026-11-21): waited out by itself; a project it kept
+# refusing is made by the next run instead of being "left alone" for ever
+export LANES_ESTATE_WAITS="0,0"
+echo 2 > "$T/limit"
+out=$("$PY" "$ES" project waited 2>&1); check $? 0 "a project GitHub refused twice is made on the third try by itself"
+printf '%s' "$out" | grep -q "too many repos too quickly"; check $? 0 "and it says plainly why it waits"
+[ -d "$T/github/waited.git" ]; check $? 0 "the waited-for project is on GitHub"
+echo 99 > "$T/limit"
+out=$("$PY" "$ES" project refused 2>&1); check $? 1 "a project GitHub keeps refusing stops"
+printf '%s' "$out" | grep -q "run the same command again later"; check $? 0 "and says what to do next"
+[ -d "$T/github/refused.git" ]; check $? 1 "it is not on GitHub"
+[ -d "$T/pc1/clones/refused/.git" ]; check $? 0 "its local copy is kept"
+rm -f "$T/limit"
+out=$("$PY" "$ES" project refused 2>&1); check $? 0 "the next run makes the refused project"
+printf '%s' "$out" | grep -q "left alone"; check $? 1 "instead of leaving the copy alone"
+[ -d "$T/github/refused.git" ]; check $? 0 "it is on GitHub now"
+git --git-dir="$T/github/refused.git" log -1 --format=%s main 2>/dev/null | grep -q "lane folders"; check $? 0 "with its first commit"
+git --git-dir="$T/github/board.git" show main:status/refused.md 2>/dev/null | grep -q "^OPEN ("; check $? 0 "and its board page"
+[ -d "$T/pc1/clones-sr/refused/.git" ]; check $? 0 "and it reached the lane roots"
+printf '%s' "$out" | grep -q "but builds"; check $? 0 "the lane-root line says builds stays in one place"
+export LANES_CONFIG="$(W "$T/pc3.conf")"
+echo 99 > "$T/limit"
+"$PY" "$ES" make --root "$(W "$T/pc3/clones")" --skip ideas,staging,builds,logs --name board=board3 >/dev/null 2>&1; check $? 1 "a base repo GitHub refuses stops make"
+rm -f "$T/limit"
+"$PY" "$ES" make --root "$(W "$T/pc3/clones")" --skip ideas,staging,builds,logs --name board=board3 >/dev/null 2>&1; check $? 0 "the next make finishes it"
+[ -d "$T/github/board3.git" ]; check $? 0 "the refused base repo is on GitHub now"
+unset LANES_ESTATE_WAITS
 
 # PC two, same account: everything is cloned, nothing made
 export LANES_CONFIG="$(W "$T/pc2.conf")"

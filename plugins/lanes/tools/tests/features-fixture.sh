@@ -67,5 +67,21 @@ echo "{ not json" > "$T/settings.json"
 "$PY" "$RC" on >/dev/null; check $? 1 "a broken settings file is left alone"
 unset LANES_CLAUDE_SETTINGS
 
+# answering an extra counts as its own one-time offer made, so setup never asks it twice (Workshop PC 2026-11-21)
+export LANES_STATE_DIR="$T/twice" LANES_CONFIG="$T/twice.conf"
+mkdir -p "$T/twice"
+OF="$HERE/../offers.py"
+"$PY" "$OF" should our-tools >/dev/null; check $? 0 "before the extras, our own tools are still to offer"
+"$PY" "$FE" on ours_window_view >/dev/null
+"$PY" "$FE" off ours_cubekit >/dev/null
+"$PY" "$OF" should our-tools >/dev/null; check $? 3 "ticking our own tools in the extras counts as their offer made"
+"$PY" "$FE" off outside_xrfps >/dev/null
+"$PY" "$OF" should outside-tools >/dev/null; check $? 3 "and so does leaving an outside tool unticked"
+"$PY" "$FE" on begone_record >/dev/null
+"$PY" "$OF" should begone-record >/dev/null; check $? 3 "the BeG0nE recording answered in the extras is not asked again"
+"$PY" "$FE" on begone_record >/dev/null
+check "$(grep -c '^begone_record' "$T/twice.conf")" 1 "and lanes.conf holds it once"
+"$PY" "$OF" should superpowers >/dev/null; check $? 0 "an offer with no extra behind it is untouched"
+
 echo "features-fixture: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

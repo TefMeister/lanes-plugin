@@ -269,6 +269,9 @@ can simply ask Claude Code in your own words. Some examples:
 /plugin install lanes@lanes-plugin
 ```
 
+**Then close Claude Code and open it again.** A new plugin's commands only appear after a restart; typed
+straight after installing, `/lanes:setup` answers "Unknown skill".
+
 Then run `/lanes:setup`. It asks what to call you and this PC, then offers the optional tools:
 debuggers and decompilers, build tools, Blender and GIMP with their Claude links, VR helpers, and
 recording tools. Each one comes with what it is for and who made it (the full list, with links, is
@@ -311,7 +314,7 @@ any project. Expect changes: `/lanes:update` tells you what is new and never ins
 
 | Plugin | What it does | State |
 | --- | --- | --- |
-| [`lanes`](plugins/lanes/) | Flat-to-VR AI modding with Claude: skills, helper programs and checks, and several sessions at once without them treading on each other. | `0.120.1`, public, in daily use |
+| [`lanes`](plugins/lanes/) | Flat-to-VR AI modding with Claude: skills, helper programs and checks, and several sessions at once without them treading on each other. | `0.120.2`, public, in daily use |
 
 ## Modding games?
 

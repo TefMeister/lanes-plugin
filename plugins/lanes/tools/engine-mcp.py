@@ -147,6 +147,25 @@ def installed(kind):
     return os.path.isfile(os.path.join(d, RE_DLL if kind == "re" else UEVR_EXE))
 
 
+def version_key(v):
+    """'v1.0.0' -> (1, 0, 0); None when it is not a plain dotted number."""
+    m = re.match(r"^v?(\d+(?:\.\d+)*)$", v or "")
+    return tuple(int(x) for x in m.group(1).split(".")) if m else None
+
+
+def is_newer(latest, have):
+    """Is the upstream `latest` newer than the installed marker `have`? A marker can carry more than the tag, such as
+    'v1.0.0 + 8cf1053 (breadcrumb throttle)': the release v1.0.0 plus a later commit, which is not older than v1.0.0
+    (the Workshop PC's setup was told "a newer one is out: v1.0.0", 2026-11-21). The RE server's markers are commits."""
+    if not (latest and have):
+        return False
+    base = re.split(r"[\s+]", have.strip(), maxsplit=1)[0]
+    if base == latest or base.startswith(latest) or latest.startswith(base):
+        return False
+    a, b = version_key(latest), version_key(base)
+    return a > b if a is not None and b is not None else True
+
+
 # ---------------------------------------------------------------- status
 
 def status(as_json):
@@ -154,7 +173,7 @@ def status(as_json):
     for kind, s in SERVERS.items():
         have, latest = read_marker(kind), latest_of(kind)
         rows[kind] = {"title": s["title"], "installed": installed(kind), "version": have or None,
-                      "latest": latest or None, "newer": bool(latest and have and latest != have),
+                      "latest": latest or None, "newer": is_newer(latest, have),
                       "registered": registered(kind) is not None, "folder": app_dir(kind)}
     rows["re"]["dotnet10_sdk"] = OFFLINE or dotnet10()
     rows["games"] = load_games()
