@@ -993,7 +993,7 @@ def close_box(conf, session):
                     lines.append("| 🖥️ %s | ⚠️ %s |" % (pc["machine"], ends_missing(pc)))
                 if lanes_version.mismatch(pc["machine"], pc["lanes"]):
                     lines.append("| 🖥️ %s | ⚠️ %s |" % (pc["machine"], lanes_version.mismatch(pc["machine"], pc["lanes"])))
-        if not pcs:
+        if not pcs and (conf_values("pcs") or [""])[0] != "1":   # one PC: no other PC to wait for (0.121.2)
             lines.append("| 🖥️ Other PC | has not reported yet |")
         if not fetched:
             if FETCH_REASON == "damaged":

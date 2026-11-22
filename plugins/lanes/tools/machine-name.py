@@ -162,7 +162,9 @@ def retire(name):
         keep = [x for x in names if x.lower() != name.lower()]
         with open(os.path.join(b, REGISTRY), "w", encoding="utf-8", newline="\n") as f:
             f.write(REGISTRY_HEAD + "\n".join(keep) + ("\n" if keep else ""))
-    paths = [REGISTRY] + moved + [dest_rel]
+    # Only paths git knows: a board with no machines.txt (made before 0.120.0, or a one-PC board) made `git add`
+    # stop with "pathspec 'machines.txt' did not match any files" and nothing was committed (issue #13, 0.121.2).
+    paths = ([REGISTRY] if known else []) + moved + ([dest_rel] if moved else [])
     out = ["%s retired: %s" % (name, ", ".join(moved) if moved else "no files of its own were on the board")]
     owed = os.path.join(b, "owed", role) if role else ""
     if owed and os.path.isdir(owed):

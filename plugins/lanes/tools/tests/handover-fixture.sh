@@ -27,6 +27,9 @@ done
 [ -n "$PY" ] || { echo "handover-fixture: no working python found" >&2; exit 2; }
 
 T="$(mktemp -d)"
+# its own state folder: the real one holds the end helper's "running" mark of any window saving on this PC, which
+# made the previous-session checks fail while other windows were ending (0.121.2)
+export LANES_STATE_DIR="$T/state"
 trap 'rm -rf "$T"' EXIT
 # Python on Windows cannot open Git Bash's /tmp/... spelling; give it the native one for the conf files.
 TP="$(cygpath -m "$T" 2>/dev/null || echo "$T")"
@@ -78,6 +81,13 @@ assert_contains "| 🔒 Claim | /pd demo still held ⚠️ |" "$out" "a claim th
 assert_contains "| 🖥️ Other PC | has not reported yet |" "$out" "the other PC row says nothing was reported yet"
 [ "$rc" = "1" ] && ok "exit 1 when red" || fail "exit 1 when red (got $rc)"
 assert_not_contains "$TP" "$out" "no path in the box"
+
+echo "close on one PC (pcs = 1): no row waiting for another PC (0.121.2)"
+cp "$T/A/lanes.conf" "$T/A/lanes.conf.two"; printf 'pcs = 1
+' >> "$T/A/lanes.conf"
+out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" close --no-write --session=fixture-s1 2>&1)
+assert_not_contains "Other PC" "$out" "one PC: the box does not wait for another PC"
+mv "$T/A/lanes.conf.two" "$T/A/lanes.conf"
 
 echo "check: a dirty clone is red, a clean one is not named, the Inspector's notes do not count"
 out=$(LANES_CONFIG="$TP/A/lanes.conf" "$PY" "$TOOL" check 2>&1); rc=$?

@@ -30,8 +30,11 @@ def main():
     os.makedirs(game_dir)
     shelves = os.path.join(t, "shelves")
     conf = os.path.join(t, "lanes.conf")
+    # a name of its own per run: with a plain "game.exe", another window's test running at the same moment was
+    # picked up as this one's game (Build PC 2026-11-22, three runs found where two were started)
+    GAME_EXE = "game-%d.exe" % os.getpid()
     with open(conf, "w", encoding="utf-8") as f:
-        f.write(f"machine_name = TESTPC\ngame_dir.pretend-game-vr = {game_dir}\ngame_exe.pretend-game-vr = game.exe\n"
+        f.write(f"machine_name = TESTPC\ngame_dir.pretend-game-vr = {game_dir}\ngame_exe.pretend-game-vr = {GAME_EXE}\n"
                 f"collect_skip = skipped-game\ncollect_unknown = no\n")   # never a real game running beside the test
     os.environ["LANES_CONFIG"] = conf
     os.environ["LANES_GD_DIR"] = shelves
@@ -46,7 +49,7 @@ def main():
     C._nvsmi = None                      # no nvidia-smi calls: about a second each, which skews the timing below
 
     # the pretend game: a copy of python standing in the game folder, writing a log while it runs
-    exe = os.path.join(game_dir, "game.exe")
+    exe = os.path.join(game_dir, GAME_EXE)
     import shutil
     shutil.copy2(sys.executable, exe)
     for n in os.listdir(os.path.dirname(sys.executable)):        # python's dlls beside it, so the copy starts
@@ -73,7 +76,7 @@ def main():
         live = C.tick(time.time())
         check(any("pretend-game-vr" in x for x in live), f"collecting starts when the game runs: {live}")
         run = next(iter(C._runs.values()), None)
-        check(run is not None and run["exe"].lower() == "game.exe" and run["project"] == "pretend-game-vr",
+        check(run is not None and run["exe"].lower() == GAME_EXE and run["project"] == "pretend-game-vr",
               "the run names the program and the project")
         time.sleep(0.6)
         C.tick(time.time())

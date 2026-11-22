@@ -204,15 +204,20 @@ def push_new(folder, name, public):
     return True, "made on GitHub (" + ("PUBLIC" if public else "private") + ") and pushed"
 
 
-def finish_clone(folder, name, owner, public, message):
+def finish_clone(folder, name, owner, public, message, fill=None):
     """A clone found here already. Normal case: linked to GitHub, left alone. A copy an earlier run made but GitHub
-    refused (no origin; Workshop PC 2026-11-21): make the repo now. Returns (ok, detail)."""
+    refused (no origin; Workshop PC 2026-11-21): make the repo now. `fill(folder)` first adds what a new repo of this
+    kind would have and the copy lacks (a project's lane folders: a copy made by hand had only its README, 0.121.2).
+    Returns (ok, detail)."""
     if has_origin(folder):
         return True, "already cloned here, left alone"
     if on_github(owner, name):
         return False, (f"STOPPED: {owner}/{name} is on GitHub but this copy is not linked to it; nothing was changed. "
                        "Move the folder aside and run this again to clone it, or link it by hand.")
-    if run(["git", "rev-parse", "-q", "--verify", "HEAD"], cwd=folder)[0] != 0:
+    if fill:
+        fill(folder)
+    no_commit = run(["git", "rev-parse", "-q", "--verify", "HEAD"], cwd=folder)[0] != 0
+    if no_commit or run(["git", "status", "--porcelain"], cwd=folder)[1].strip():
         ident = commit_identity(owner)
         for args in (["git", "add", "-A"], ["git", *ident, "commit", "-q", "-m", message]):
             rc, _, err = run(args, cwd=folder)
@@ -223,6 +228,25 @@ def finish_clone(folder, name, owner, public, message):
 
 
 # ---------- what goes in each new repo ----------
+
+def fill_project(name):
+    """Write each of a project's starting files that is not there yet; never overwrites one."""
+    def fill(folder):
+        for rel, text in PROJECT_FILES.items():
+            path = os.path.join(folder, rel)
+            if not os.path.exists(path):
+                write(path, text.format(name=name))
+    return fill
+
+
+def board_projects(board):
+    """The projects on the board: one status/<name>.md page each (the board's own README and example left out)."""
+    folder = os.path.join(board or "", "status")
+    if not board or not os.path.isdir(folder):
+        return []
+    return sorted(f[:-3] for f in os.listdir(folder)
+                  if f.endswith(".md") and f.lower() not in ("readme.md", "example-project.md") and NAME_OK.match(f[:-3]))
+
 
 def write(path, text):
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -414,9 +438,54 @@ def cmd_check():
         state += "" if online is None else (", on GitHub" if online else ", not on GitHub")
         print(f"  {key:<8} {what}: {state}")
     if root:
+        board = conf_get("board")
+        names = board_projects(board) if board and is_clone(board) else []
+        absent = [n for n in names if not is_clone(os.path.join(root, n))]
+        if names:
+            print(f"projects on the board: {len(names)}, " + (
+                "all cloned here" if not absent else
+                f"NOT cloned here: {', '.join(absent)} (`estate.py make` clones the ones on GitHub)"))
         missing = [lr for lr in lane_roots(root) if not os.path.isdir(lr)]
-        print("lane roots:", "all there" if not missing else "missing " + ", ".join(missing))
+        repos = [n for n in os.listdir(root) if n != os.path.basename(conf_get("builds") or "builds")
+                 and is_clone(os.path.join(root, n))] if os.path.isdir(root) else []
+        short = [lr for lr in lane_roots(root) if os.path.isdir(lr)
+                 and any(not is_clone(os.path.join(lr, n)) for n in repos)]
+        print("lane roots:", ("missing " + ", ".join(missing)) if missing else
+              (("there, but without every repo: " + ", ".join(short) + " (tools/root-sync.sh --fix)") if short
+               else "all there"))
     return 0 if login else 1
+
+
+def clone_projects(root, owner, dry, board):
+    """Clone every project on the board that is on GitHub and not in the clone root yet. After a reinstall with a new
+    root only the base repos came back, so hand-overs refused every project and /gs saw 5 repos (issue #12, 0.121.2).
+    Returns True when a clone failed."""
+    names = board_projects(board) if board and is_clone(board) else []
+    if not names:
+        return False
+    done, here, away, failed = [], [], [], False
+    for name in names:
+        folder = os.path.join(root, name)
+        if is_clone(folder):
+            here.append(name)
+        elif os.path.exists(folder) and os.listdir(folder):
+            print(f"  {name}: STOPPED, that folder exists and is not a clone; move it aside and run this again")
+            failed = True
+        elif not on_github(owner, name):
+            away.append(name)
+        elif dry:
+            done.append(name)
+        else:
+            rc, _, err = gh("repo", "clone", f"{owner}/{name}", folder)
+            if rc == 0:
+                done.append(name)
+            else:
+                print(f"  {name}: clone failed: {err[:200]}")
+                failed = True
+    verb = "to clone from GitHub" if dry else "cloned from GitHub"
+    print(f"  projects on the board: {len(names)}; {verb}: {len(done)}" + (f" ({', '.join(done)})" if done else "")
+          + f"; already here: {len(here)}" + (f"; not on GitHub, left alone: {', '.join(away)}" if away else ""))
+    return failed
 
 
 def cmd_make(argv, dry):
@@ -462,6 +531,8 @@ def cmd_make(argv, dry):
         if ck and not dry and is_clone(folder):
             line += f"; lanes.conf {ck}: {conf_set(ck, folder, what)}"
         print(line)
+    board = os.path.join(root, names["board"]) if "board" in names else ""
+    failed |= clone_projects(root, owner, dry, board if is_clone(board) else conf_get("board"))
     if dry:
         print("  lane roots: " + ", ".join(lane_roots(root)) + " (made, and given a copy of every repo but builds, "
               "which stays in one place on purpose)")
@@ -487,7 +558,8 @@ def cmd_project(argv):
         return 1
     folder = os.path.join(root, name)
     if is_clone(folder):
-        ok, detail = finish_clone(folder, name, owner, public, f"{name}: start, with the lane folders")
+        ok, detail = finish_clone(folder, name, owner, public, f"{name}: start, with the lane folders",
+                                  fill=fill_project(name))
         print(f"{name}: {detail}")
         if not ok:
             return 1
@@ -500,8 +572,7 @@ def cmd_project(argv):
         if rc != 0:
             return 1
     else:
-        for rel, text in PROJECT_FILES.items():
-            write(os.path.join(folder, rel), text.format(name=name))
+        fill_project(name)(folder)
         ok, detail = first_push(folder, name, owner, public, f"{name}: start, with the lane folders")
         print(f"{name}: {detail}")
         if not ok:

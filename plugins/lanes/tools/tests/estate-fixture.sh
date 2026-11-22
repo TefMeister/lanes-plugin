@@ -120,6 +120,14 @@ rm -f "$T/limit"
 [ -d "$T/github/board3.git" ]; check $? 0 "the refused base repo is on GitHub now"
 unset LANES_ESTATE_WAITS
 
+# a local copy with only a README (made by hand, never on GitHub) gets the lane folders too (0.121.2)
+mkdir -p "$T/pc1/clones/handmade"; echo "# handmade" > "$T/pc1/clones/handmade/README.md"
+git -C "$T/pc1/clones/handmade" init -q -b main && git -C "$T/pc1/clones/handmade" add -A   && git -C "$T/pc1/clones/handmade" -c user.name=t -c user.email=t@t commit -qm first
+export LANES_CONFIG="$(W "$T/pc1.conf")"
+"$PY" "$ES" project handmade >/dev/null 2>&1; check $? 0 "a hand-made local copy is finished"
+git --git-dir="$T/github/handmade.git" show main:dev-archive/README.md >/dev/null 2>&1; check $? 0 "and gets the lane folders on GitHub"
+check "$(cat "$T/pc1/clones/handmade/README.md")" "# handmade" "its own README is not overwritten"
+
 # PC two, same account: everything is cloned, nothing made
 export LANES_CONFIG="$(W "$T/pc2.conf")"
 echo "board = /somewhere/else" > "$T/pc2.conf"
@@ -129,6 +137,18 @@ check "$(tail -n +"$((before+1))" "$T/calls" | grep -c 'repo create')" 0 "the se
 [ -d "$T/pc2/clones/board/status" ]; check $? 0 "it clones the board"
 printf '%s' "$out" | grep -q "NOT changed"; check $? 0 "it says when lanes.conf already points elsewhere"
 check "$(grep '^board' "$T/pc2.conf")" "board = /somewhere/else" "and leaves that setting alone"
+# the board's projects come too, not only the base repos (issue #12, 0.121.2)
+for r in my-game refused handmade; do
+  [ -d "$T/pc2/clones/$r/.git" ]; check $? 0 "the second PC clones the board's project $r"
+  [ -d "$T/pc2/clones-pd/$r/.git" ]; check $? 0 "and copies $r into the lane roots"
+done
+printf '%s' "$out" | grep -q "projects on the board: "; check $? 0 "make says how many projects the board has"
+echo "board = $(W "$T/pc2/clones/board")" > "$T/pc2.conf"; echo "root = $(W "$T/pc2/clones")" >> "$T/pc2.conf"
+rm -rf "$T/pc2/clones/refused" "$T/pc2/clones-gr/my-game"
+out=$("$PY" "$ES" check 2>&1)
+printf '%s' "$out" | grep -q "NOT cloned here: refused"; check $? 0 "check names a project missing from the clone root"
+printf '%s' "$out" | grep -q "without every repo: .*clones-gr"; check $? 0 "and a lane root missing a repo is not called all there"
+echo "board = /somewhere/else" > "$T/pc2.conf"
 mkdir -p "$T/pc2/clones/other"; echo x > "$T/pc2/clones/other/file"
 "$PY" "$ES" make --root "$(W "$T/pc2/clones")" --name staging=other >/dev/null; check $? 1 "a folder that is not a clone stops it"
 check "$(cat "$T/pc2/clones/other/file")" x "and is not touched"

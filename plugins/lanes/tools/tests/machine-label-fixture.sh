@@ -116,5 +116,15 @@ git -C "$T/pc-b" pull -q --rebase 2>/dev/null
 out=$(LANES_CONFIG="$T/a.conf" "$PY" "$TOOLS/machine-name.py" retire Nobody 2>&1); rc=$?
 [ $rc -ne 0 ] && ok "a name not on the board is refused" || fail "retired a stranger: $out"
 
+echo "retiring on a board with no machines.txt (issue #13, 0.121.2)"
+git -C "$T/pc-a" pull -q --rebase 2>/dev/null
+git -C "$T/pc-a" rm -q machines.txt && git -C "$T/pc-a" commit -qm "a board from before machines.txt"
+printf 'machine = Oldname
+role = DEV
+' > "$T/pc-a/handover/Oldname.txt"
+git -C "$T/pc-a" add -A && git -C "$T/pc-a" commit -qm "an old name's file" && git -C "$T/pc-a" push -q 2>/dev/null
+out=$(LANES_CONFIG="$T/a.conf" "$PY" "$TOOLS/machine-name.py" retire Oldname 2>&1); rc=$?
+[ $rc -eq 0 ] && echo "$out" | grep -q "committed" && ! echo "$out" | grep -q "could not commit"   && [ -z "$(git -C "$T/pc-a" status --porcelain)" ] && ok "retires and commits with no machines.txt on the board"   || fail "no machines.txt: rc=$rc $out / $(git -C "$T/pc-a" status --porcelain)"
+
 echo
 [ "$FAILED" = 0 ] && echo "machine-label-fixture: $N checks, 0 failed" || { echo "machine-label-fixture: FAILED"; exit 1; }
