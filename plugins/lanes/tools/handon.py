@@ -308,12 +308,50 @@ def first_allowed(text):
         and os.path.isfile(m.group(2)) and os.path.basename(m.group(2))[:-3] == m.group(1)
 
 
+# 0.123.0 (2026-11-23, Tefa: "we have to make this automatic", then "yes"): a window started by a hand-on could not edit the game
+# it was handed, because the window that wrote the hand-on still held it in the project guard, and only Tefa typing "take over
+# <project>" freed it. `start` notes which session handed the job on; when the new window starts on it, every game that session
+# held on this PC is handed to the new one.
+HOLD_DIR = os.path.join(STATE_DIR, "projects-held")
+LAST_HANDED = []                      # the games the last mark_started handed over (the hook says so)
+
+
+def from_file(hid):
+    return os.path.join(HANDON_DIR, hid + ".from.json")
+
+
+def pass_holds(hid, session):
+    """the project guard's holds of the session that wrote hand-on <hid> go to <session>; returns the projects moved"""
+    old = load(from_file(hid), {}).get("session", "")
+    if not old or not session or old == session:
+        return []
+    moved = []
+    try:
+        names = sorted(os.listdir(HOLD_DIR))
+    except OSError:
+        return []
+    for n in names:
+        if not n.endswith(".json"):
+            continue
+        path = os.path.join(HOLD_DIR, n)
+        h = load(path, {})
+        if h.get("session") != old:
+            continue
+        now = time.time()
+        save(path, {"session": session, "since": now, "last": now, "since_iso": time.strftime("%Y-%m-%d %H:%M"),
+                    "handed_on_from": old})
+        moved.append(n[:-5])
+    return moved
+
+
 def mark_started(prompt, session):
-    """UserPromptSubmit (hooks/handon-started.py): the new session has its hand-on prompt"""
+    """UserPromptSubmit (hooks/handon-started.py): the new session has its hand-on prompt; it gets the old window's games"""
+    del LAST_HANDED[:]
     m = FIRST_RE.search(prompt or "")
     if not m or not inside_handon_dir(m.group(2)):
         return False
     save(os.path.join(HANDON_DIR, m.group(1) + ".started"), {"session": session, "at": time.strftime("%Y-%m-%d %H:%M:%S")})
+    LAST_HANDED.extend(pass_holds(m.group(1), session))
     return True
 
 
@@ -343,6 +381,8 @@ def start(path, name=""):
     import doorman
     hid = os.path.basename(path)[:-3]
     mark = os.path.join(HANDON_DIR, hid + ".started")
+    # 0.123.0: who hands the job on (Claude Code gives each session's tools its id), so its games go with the job
+    save(from_file(hid), {"session": os.environ.get("CLAUDE_CODE_SESSION_ID", ""), "at": time.strftime("%Y-%m-%d %H:%M:%S")})
     r = doorman.open_session(name or "Next " + hid.split("-", 2)[-1].replace("-", " "), first=first_message(path))
     if not r.get("ok"):
         print("hand-on: no new window: %s. This window stays open." % r.get("error", "it did not start"))

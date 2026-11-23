@@ -107,6 +107,22 @@ check("a file outside the folder is refused", handon.start(outside) == 2)
 check("the new window's first message leaves the started mark",
       handon.mark_started("x " + first, "new-session") and os.path.isfile(good[:-3] + ".started"))
 
+# 0.123.0: the old window's games go with the job (the project guard's holds)
+os.makedirs(handon.HOLD_DIR, exist_ok=True)
+for proj, who in (("visceral-re8-vr", "old-session"), ("hand-poser-vr", "old-session"), ("the-darkness-vr", "someone-else")):
+    with open(os.path.join(handon.HOLD_DIR, proj + ".json"), "w", encoding="utf-8") as f:
+        json.dump({"session": who, "since": time.time(), "last": time.time(), "since_iso": "x"}, f)
+hid = os.path.basename(good)[:-3]
+handon.save(handon.from_file(hid), {"session": "old-session"})
+handon.mark_started("x " + first, "new-session-2")
+held = {p[:-5]: handon.load(os.path.join(handon.HOLD_DIR, p), {}).get("session") for p in os.listdir(handon.HOLD_DIR)}
+check("the old window's games are handed to the new window", held["visceral-re8-vr"] == "new-session-2" and
+      held["hand-poser-vr"] == "new-session-2" and sorted(handon.LAST_HANDED) == ["hand-poser-vr", "visceral-re8-vr"])
+check("another window's game is not touched", held["the-darkness-vr"] == "someone-else")
+handon.mark_started("x " + first, "new-session-2")
+check("starting again hands nothing more", handon.LAST_HANDED == [])
+check("no 'from' note: nothing is handed", handon.pass_holds("20261116-000000-none", "x") == [])
+
 # the close checks
 calm = saved_turn(300000)
 check("saved, no game, no task, no question: safe to close", handon.close_reasons(calm) == [])
