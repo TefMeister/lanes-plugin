@@ -439,7 +439,7 @@ def close_if_safe(records, pid=None):
     if os.environ.get("HANDON_TEST_NO_CLOSE"):
         return "\U0001F6AA Hand-on: would close now (test)."
     subprocess.Popen([sys.executable, os.path.abspath(__file__), "_exit", str(pid)],
-                     creationflags=DETACHED_PROCESS | CREATE_NO_WINDOW if os.name == "nt" else 0, close_fds=True)
+                     creationflags=CREATE_NO_WINDOW if os.name == "nt" else 0, close_fds=True)
     return "\U0001F6AA Hand-on: '%s' has the next job; this window is saved and closes now." % new_name
 
 

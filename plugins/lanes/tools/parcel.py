@@ -116,7 +116,8 @@ def root():
 
 def git(args, repo):
     p = subprocess.run(["git", "-C", repo] + args, capture_output=True, text=True, encoding="utf-8",
-                       errors="replace", timeout=GIT_TIMEOUT_S)
+                       errors="replace", timeout=GIT_TIMEOUT_S,
+                       creationflags=CREATE_NO_WINDOW if os.name == "nt" else 0)
     return p.returncode == 0, (p.stdout + p.stderr).strip()
 
 
@@ -196,7 +197,7 @@ def send_one(repo_name, f, quiet_when_nothing=False, note=""):
     if this_pc():
         label["direct"] = True
         write_json(os.path.join(f["outbox"], pid + ".json"), label)
-        flags = (CREATE_NO_WINDOW | DETACHED_PROCESS) if os.name == "nt" else 0
+        flags = CREATE_NO_WINDOW if os.name == "nt" else 0  # 2026-11-24: NO_WINDOW alone (with DETACHED, git and every other console child opened its own black window: Tefa saw them in the headset)
         subprocess.Popen([sys.executable, os.path.abspath(__file__), "_push", pid], creationflags=flags,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL)
         print("parcel: %s handed over, %s step(s); uploading in the background%s" % (repo_name, count, extra))
@@ -254,7 +255,7 @@ def send_new(repo_name, repo, branch, remote, f, note):
     if this_pc():
         label["direct"] = True
         write_json(os.path.join(f["outbox"], pid + ".json"), label)
-        flags = (CREATE_NO_WINDOW | DETACHED_PROCESS) if os.name == "nt" else 0
+        flags = CREATE_NO_WINDOW if os.name == "nt" else 0  # 2026-11-24: NO_WINDOW alone (with DETACHED, git and every other console child opened its own black window: Tefa saw them in the headset)
         subprocess.Popen([sys.executable, os.path.abspath(__file__), "_push", pid], creationflags=flags,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL)
         print("parcel: %s (new on GitHub) handed over, %s step(s); uploading in the background%s" % (repo_name, count, extra))

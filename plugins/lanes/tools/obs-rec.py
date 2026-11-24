@@ -480,7 +480,7 @@ def start_sim_watch(exe):
     pyw = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
     py = pyw if os.path.isfile(pyw) else sys.executable
     subprocess.Popen([py, os.path.abspath(__file__), "simwatch", exe], close_fds=True,
-                     creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP)
+                     creationflags=NO_WINDOW | CREATE_NEW_PROCESS_GROUP)
 
 def cmd_simwatch(exe):
     deadline = time.time() + SIM_WAIT_S
@@ -510,7 +510,7 @@ def start_guard():
     pyw = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
     py = pyw if os.path.isfile(pyw) else sys.executable
     subprocess.Popen([py, os.path.abspath(__file__), "guard"], close_fds=True,
-                     creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP)
+                     creationflags=NO_WINDOW | CREATE_NEW_PROCESS_GROUP)
 
 def crash_boxes():
     """titles of OBS's crash boxes open on the screen right now"""

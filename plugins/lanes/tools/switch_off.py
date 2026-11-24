@@ -65,7 +65,7 @@ SHOWN = 6                       # lines of a save check shown per reason
 SMALL_TIMEOUT_S = 30            # a quick command (a game list, `shutdown /a`)
 MIN_S = 60                      # seconds in a minute
 HOUR_S = 3600                   # seconds in an hour
-DETACHED = 0x00000008 | 0x00000200 | 0x08000000   # DETACHED_PROCESS | NEW_PROCESS_GROUP | NO_WINDOW
+DETACHED = 0x00000200 | 0x08000000   # NEW_PROCESS_GROUP | NO_WINDOW (2026-11-24: DETACHED_PROCESS dropped: with it every console child opened a window)
 
 
 def log(line):

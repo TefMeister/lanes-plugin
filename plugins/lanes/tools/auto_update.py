@@ -209,7 +209,7 @@ def cmd_start(wait=False, skill=False):
             if wait:
                 cmd_run(own_lock=skill)
             else:
-                flags = (CREATE_NO_WINDOW | DETACHED_PROCESS) if os.name == "nt" else 0
+                flags = CREATE_NO_WINDOW if os.name == "nt" else 0  # 2026-11-24: NO_WINDOW alone (with DETACHED, git and every other console child opened its own black window: Tefa saw them in the headset)
                 subprocess.Popen([sys.executable, os.path.abspath(__file__), "run"], creationflags=flags,
                                  stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                  close_fds=True)
