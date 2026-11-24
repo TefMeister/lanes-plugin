@@ -76,6 +76,10 @@ ROUND_TEXT = "/lanes:keeper"             # the only other text ever typed: the K
 TYPED = {"exit": EXIT_TEXT, "round": ROUND_TEXT}
 WAKE_QUEUE_EVERY_S = 300.0              # how often the board is looked at for a queued job
 WAKE_AGAIN_S = 3600.0                   # a round asked for and still not done is asked for again after this
+# 0.124.0 (2026-11-24: one hand-over of two projects opened two Keeper windows in the same second): one wake at a time,
+# and a window asked for a round a moment ago is not asked again while it is still starting (its round lists everything)
+WAKE_LOCK_S = 120.0                     # a wake lock older than this was left by a wake that died: taken over
+ASK_SETTLE_S = 120.0                    # a round asked for this recently is not typed in again
 OPEN_WAIT_S = 30.0                      # how long a new session may take to appear
 RECEIVE_WAIT_S = 900.0                  # a big parcel's upload may take this long
 CLOSE_WAIT_S = 60.0                     # how long /exit (with its end steps) may take
@@ -493,11 +497,50 @@ def should_ask(count, asked, now):
     return count > asked.get("count", 0) or now - asked.get("at", 0) > WAKE_AGAIN_S
 
 
+def wake_lock_path():
+    return os.path.join(STATE_DIR, "keeper-wake.lock")
+
+
+def take_wake_lock():
+    """True when this process may wake the Keeper now (no other wake is running). 0.124.0: each project's background
+    upload wakes the Keeper when it ends; two ending in the same second each opened a window."""
+    path = wake_lock_path()
+    os.makedirs(STATE_DIR, exist_ok=True)
+    try:
+        if time.time() - os.path.getmtime(path) > WAKE_LOCK_S:
+            os.remove(path)
+    except OSError:
+        pass
+    try:
+        fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except OSError:
+        return False
+    os.write(fd, str(os.getpid()).encode())
+    os.close(fd)
+    return True
+
+
+def drop_wake_lock():
+    try:
+        os.remove(wake_lock_path())
+    except OSError:
+        pass
+
+
 def wake_keeper(pull=False):
     """when a round is wanted: type the round into the window the doorman opened, or open one that starts with it.
-    A window opened by hand is never typed into: a person may be typing there."""
+    A window opened by hand is never typed into: a person may be typing there. One wake at a time (0.124.0)."""
     if not wake_on():
         return {"ok": True, "asked": False, "why": "off"}
+    if not take_wake_lock():
+        return {"ok": True, "asked": False, "why": "another wake is running"}
+    try:
+        return wake_locked(pull)
+    finally:
+        drop_wake_lock()
+
+
+def wake_locked(pull):
     try:                                                           # the full scan goes first (0.110.0): no round beside it
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         import scan_priority
@@ -514,6 +557,10 @@ def wake_keeper(pull=False):
     if not should_ask(count, st.get("round_asked"), time.time()):
         return {"ok": True, "asked": False, "count": count}
     mine = [s for s in list_sessions() if s["by_doorman"]]
+    asked = st.get("round_asked") or {}
+    if mine and asked and time.time() - asked.get("at", 0) < ASK_SETTLE_S:
+        # 0.124.0: the window was asked a moment ago and may still be starting; its round lists what came since
+        return {"ok": True, "asked": False, "count": count, "why": "a round was asked for a moment ago"}
     if mine:
         p = subprocess.run([sys.executable, os.path.abspath(__file__), "_type", str(mine[0]["pid"]), "round"],
                            capture_output=True, text=True, creationflags=CREATE_NO_WINDOW)

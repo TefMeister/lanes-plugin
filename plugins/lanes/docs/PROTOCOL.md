@@ -1882,6 +1882,11 @@ modding and another ones are being opened and closed when needed"*. Optional: `k
 - **One PC.** `parcel.py send` starts the push in the background from the working copy and writes the same receipt.
   `keeper.py ask "<job>"` queues a job and opens ONE Keeper session on the same PC (`doorman.py open --local`);
   `keeper.py close` closes it politely when it is done. Nothing listens on a network.
+  **0.124.0:** a Keeper window Lanes opened closes ITSELF when its reply ends and its round is marked done (or another
+  window has the round): the Stop hook (`hooks/session-hand.py` -> `keeper.autoclose`) types its exit a few seconds
+  later. It stays open while its own round lock is held or its reply ends with a question; a window a person opened is
+  never closed; `keeper_autoclose = off` keeps them. One wake at a time (`keeper-wake.lock`), and a window asked for a
+  round within two minutes is not asked again: two uploads ending together opened two windows before.
 - **The Keeper's round** (`/lanes:keeper`, `keeper.py round`): jobs handed over, what was uploaded since the last
   round with each note, refused hand-overs, regular jobs due. The Keeper writes no code and launches nothing; it owns
   the front-page row, the index and the activity log while the extra is on (one writer per file).

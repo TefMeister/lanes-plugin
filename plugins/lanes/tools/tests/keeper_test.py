@@ -348,6 +348,11 @@ check(not r.get("asked") and len(opened) == 1, "the same waiting work does not o
 sessions[:] = [{"pid": 5, "by_doorman": False, "name": ""}, {"pid": 77, "by_doorman": True, "name": "Keeper link"}]
 waiting[0] = 3
 r = D.wake_keeper()
+check(not r.get("asked") and not typed, "0.124.0: a window asked a moment ago is not asked again while it starts")
+st = D.read_state()
+st["round_asked"]["at"] = time.time() - D.ASK_SETTLE_S - 1
+D.write_state(st)
+r = D.wake_keeper()
 check(r.get("asked") and typed == [["_type", "77", "round"]] and len(opened) == 1,
       "a link window is open: the round is typed into it, never into the window opened by hand")
 waiting[0] = 0
@@ -364,6 +369,50 @@ r = D.wake_keeper()
 check(r.get("asked") and names == [("Keeper", "/lanes:keeper")],
       "one PC: news opens a window named Keeper that starts with the round, never the window opened by hand")
 D.conf = lambda: dict(KEEPER_CONF)
+
+# ----- 0.124.0: one wake at a time (two uploads ending in the same second opened two Keeper windows) -----
+opened[:] = []
+D.open_session = lambda name="", first="": (opened.append(first), {"ok": True, "pid": 99})[1]
+sessions[:] = []
+D.write_state({})
+waiting[0] = 4
+check(D.take_wake_lock(), "the first wake takes the lock")
+r = D.wake_keeper()
+check(not r.get("asked") and not opened and r.get("why") == "another wake is running",
+      "a second wake while the first runs opens nothing")
+D.drop_wake_lock()
+r = D.wake_keeper()
+check(r.get("asked") and opened == ["/lanes:keeper"] and not os.path.exists(D.wake_lock_path()),
+      "the lock gone, the wake opens one window and lets the lock go")
+with open(D.wake_lock_path(), "w") as f:
+    f.write("1")
+old = time.time() - D.WAKE_LOCK_S - 5
+os.utime(D.wake_lock_path(), (old, old))
+check(D.take_wake_lock(), "a lock left by a wake that died is taken over")
+D.drop_wake_lock()
+
+# ----- 0.124.0: a Keeper window Lanes opened closes itself when its round is done -----
+import keeper as K  # noqa: E402
+os.environ["KEEPER_TEST_NO_CLOSE"] = "1"
+K.conf = lambda: {"keeper": "on", "keeper_mode": "this_pc"}
+D.write_state({"opened": {"77": {"name": "Keeper", "at": "x"}, "55": {"name": "Next job", "at": "x"}}})
+if os.path.exists(K.ROUND_LOCK):
+    os.remove(K.ROUND_LOCK)
+check("would close now" in K.autoclose("s1", "Round done: two uploads on GitHub.", pid=77),
+      "its round marked done: the Keeper window closes")
+check(K.autoclose("s1", "done", pid=5) == "", "a window a person opened is never closed")
+check(K.autoclose("s1", "done", pid=55) == "", "a window Lanes opened for another job is not the Keeper's to close")
+with open(K.ROUND_LOCK, "w", encoding="utf-8") as f:
+    json.dump({"session": "s1", "since": "19:32", "at": time.time()}, f)
+check("not marked done" in K.autoclose("s1", "half way", pid=77), "its own round not marked done: it stays open")
+check("would close now" in K.autoclose("s2", "ANOTHER KEEPER ROUND IS RUNNING; stopping.", pid=77),
+      "another window has the round (this one only said so): it closes")
+os.remove(K.ROUND_LOCK)
+check("question" in K.autoclose("s1", "Publish the front page now?", pid=77), "a reply that ends with a question keeps it open")
+K.conf = lambda: {"keeper": "on", "keeper_mode": "this_pc", "keeper_autoclose": "off"}
+check(K.autoclose("s1", "done", pid=77) == "", "keeper_autoclose = off: it stays open")
+K.conf = lambda: {"keeper": "on", "keeper_mode": "other_pc", "keeper_role": "keeper"}
+check(K.autoclose("s1", "done", pid=77) == "", "two PCs: the Keeper window is the link and stays open")
 
 print()
 print("keeper_test.py: %s" % ("all passed" if not fails else "%d FAILED" % fails))

@@ -20,6 +20,8 @@ THE SESSION THAT BUILDS (the developer side)
                                       put a job in the Keeper's queue and make sure a Keeper session is open; prints
                                       the session's name so this session can message it
     python keeper.py close            this_pc only: politely close the Keeper sessions this tool opened (they are idle)
+                                      (0.124.0: a Keeper window closes by itself when its round is done, through the
+                                      Stop hook; `keeper_autoclose = off` keeps it open)
     python keeper.py due              the regular jobs that are due (exit 1 when any is)
 
 THE KEEPER (a session on the Keeper PC, or the Keeper session on this PC): /lanes:keeper runs these
@@ -486,6 +488,48 @@ def cmd_close():
     if not mine:
         print("keeper: no Keeper session is open")
     return worst
+
+
+# 0.124.0, asked for by the person 2026-11-24 (two Keeper windows left open after one hand-over): "with these, once they
+# are done, i need you to close them too automatically". On one PC a Keeper window that Lanes opened closes by itself when
+# its reply ends and its round is done, or when another window has the round (it only said so and stopped). It stays open
+# while its own round is not marked done, or when its reply ends with a question. A window a person opened is never
+# closed. The Stop hook asks (hooks/session-hand.py); `keeper_autoclose = off` keeps the windows open.
+def round_lock_holder():
+    """the session id holding a fresh round lock, or '' (whoever it is)"""
+    try:
+        with open(ROUND_LOCK, encoding="utf-8") as f:
+            d = json.load(f)
+    except (OSError, ValueError):
+        return ""
+    if time.time() - float(d.get("at", 0)) >= ROUND_LOCK_MIN * MIN_S:
+        return ""
+    return d.get("session") or ""
+
+
+def autoclose(session_id, last_text, pid=None):
+    """Stop hook: the line to show ('' = nothing to say); starts the close when it is safe"""
+    if mode().split("#")[0].strip() != "this_pc":
+        return ""
+    if conf().get("keeper_autoclose", "on").split("#")[0].strip().lower() in ("off", "no", "0", "false"):
+        return ""
+    opened = D.read_state().get("opened", {})
+    if not any((v.get("name") or "").startswith(LOCAL_SESSION_NAME) for v in opened.values()):
+        return ""                                                  # no Keeper window was opened by Lanes: nothing to do
+    import handon
+    pid = pid or handon.own_session_pid()
+    mine = opened.get(str(pid)) if pid else None
+    if not mine or not (mine.get("name") or "").startswith(LOCAL_SESSION_NAME):
+        return ""                                                  # not a Keeper window Lanes opened
+    if session_id and round_lock_holder() == session_id:
+        return "🔒 Keeper: this window stays open: its round is not marked done yet."
+    if handon.ends_with_question(last_text or ""):
+        return "🔒 Keeper: this window stays open: its reply ends with a question for you."
+    if os.environ.get("KEEPER_TEST_NO_CLOSE"):
+        return "🔒 Keeper: would close now (test)."
+    subprocess.Popen([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "handon.py"), "_exit",
+                      str(pid)], creationflags=D.CREATE_NO_WINDOW if os.name == "nt" else 0, close_fds=True)
+    return "🔒 Keeper: the round is done; this window closes by itself."
 
 
 def main(argv):

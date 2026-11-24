@@ -48,8 +48,8 @@ example to change the plugin itself: that session shows a short plan and waits f
 "<short name>"` opens a window of its own there (never use a window a person opened); message it the job by that name,
 and close it with `doorman.py close <pid>` once it reports done. Never while that PC's game or headset test runs.
 
-**One PC:** when the round is done and nothing waits, say so and stop; the session that builds closes this window
-(`keeper.py close`). **Two PCs:** stay open and idle; this window is the link.
+**One PC:** when the round is done and nothing waits, say so and stop, with no question at the end: this window then
+closes by itself (0.124.0, the Stop hook; `keeper_autoclose = off` keeps it open). **Two PCs:** stay open and idle; this window is the link.
 
 **The Keeper's own commits** (front page, index, activity log) are pushed by the Keeper itself, staged by exact path.
 The session that builds never edits those files while the Keeper extra is on: one writer per file.
