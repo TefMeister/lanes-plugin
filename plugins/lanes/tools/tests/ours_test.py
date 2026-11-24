@@ -44,6 +44,9 @@ def main():
         os.environ["LANES_OURS_FAKE"] = fake
         import ours
         import features
+        # 2026-11-24: the test installs into a pretend folder, so the real Window View being open (Tefa in the headset)
+        # must not stop it; the release's smoke test failed on exactly that
+        ours.app_running = lambda exe: False
 
         release("v1.2", "0" * 64)
         try:
