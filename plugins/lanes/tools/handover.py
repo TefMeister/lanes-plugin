@@ -83,6 +83,7 @@ ROOT_SUFFIXES = ("-pd", "-gr", "-sr", "-gs", "-gu", "-gd")
 IGNORED_PATH_PARTS = ("inspector/", "__pycache__/")  # kept on one PC on purpose
 IGNORED_SUFFIXES = (".pyc",)
 HEARTBEAT_DIR = "handover"
+SEEN_SUFFIX = ".seen.txt"           # 0.124.1: handover/<machine>.seen.txt, written by whatever last heard from that PC
 STARTED_KEY = "_started"           # the snapshot's note of when the session began (0.99.2)
 SNAPSHOT_DIR = "lanes-sessions"                     # beside lanes.conf: where each session's HEADs are kept
 LIVE_RE = re.compile(r"^[^:]+:status/([^:]+)\.md:LIVE:\s+(/\w+)\s+\S+\s+\S+\s+(\S+)")
@@ -769,7 +770,8 @@ def others(board, me, fetched=None):
         fetched, _ = fetch_board(board)
     ref = board_ref(board)
     ok, listing = git(["ls-tree", "--name-only", ref, HEARTBEAT_DIR + "/"], board)
-    names = [l for l in listing.splitlines() if l.endswith(".txt")] if ok else []
+    names = [l for l in listing.splitlines() if l.endswith(".txt") and not l.endswith(SEEN_SUFFIX)] if ok else []
+    seen_names = set(l for l in listing.splitlines() if l.endswith(SEEN_SUFFIX)) if ok else set()
     out = []
     for path in names:
         machine = os.path.basename(path)[:-4]
@@ -791,9 +793,24 @@ def others(board, me, fetched=None):
             first = datetime.fromisoformat(every.splitlines()[-1].strip()) if ok2 and every.strip() else None
         except ValueError:
             last_end = first = None
+        lanes = hb.get("lanes", "")
+        # 0.124.1 (2026-11-24, the maintainer: "incorrect, the workshop pc is updated, please find a way to ask it directly
+        # what wersion it is on"): a PC that runs robot jobs (the Workshop) updates Lanes without a person ever starting a
+        # session there, so its own report kept an old version for days. Whatever hears from it (the job collector) writes
+        # handover/<machine>.seen.txt (seen = time, lanes = version, by = what said so); the newer of the two wins
+        seen_path = HEARTBEAT_DIR + "/" + machine + SEEN_SUFFIX
+        if seen_path in seen_names:
+            ok3, stext = git(["show", ref + ":" + seen_path], board)
+            sv = parse_heartbeat(stext) if ok3 else {}
+            try:
+                seen_when = datetime.strptime(sv.get("seen", ""), TIME_FMT)
+            except ValueError:
+                seen_when = None
+            if seen_when is not None and sv.get("lanes") and seen_when > when:
+                lanes = sv["lanes"]
         out.append({"machine": machine, "who": "%s (%s)" % (machine, role) if role else machine,
                     "when": when, "state": hb.get("state", "unknown"), "event": hb.get("event", ""),
-                    "last_end": last_end, "first": first, "lanes": hb.get("lanes", "")})
+                    "last_end": last_end, "first": first, "lanes": lanes})
     return fetched, out
 
 

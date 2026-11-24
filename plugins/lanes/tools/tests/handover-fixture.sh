@@ -235,7 +235,22 @@ assert_contains "PCV runs Lanes 0.0.1, this PC runs $MINE: PCV is behind, update
 pcv ""
 out=$(LANES_CONFIG="$TP/B/lanes.conf" "$PY" "$TOOL" start --session=fixture-v3 2>&1)
 assert_contains "PCV runs a Lanes older than 0.100.0" "$out" "a report with no version is named as an older Lanes"
-( cd "$T/seed-board" && q git rm -q handover/PCV.txt && q git commit -q -m "drop the pretend PC" && q git push -q )
+pcv "lanes = 0.0.1
+"
+( cd "$T/seed-board" && q git pull -q --rebase   && printf 'seen = %s
+lanes = %s
+by = a robot job
+' "$(date -d '+1 minute' '+%Y-%m-%d %H:%M %z')" "$MINE" > handover/PCV.seen.txt   && q git add handover && q git commit -q -m "PCV seen" && q git push -q )
+out=$(LANES_CONFIG="$TP/B/lanes.conf" "$PY" "$TOOL" start --session=fixture-v4 2>&1)
+assert_not_contains "PCV runs Lanes" "$out" "a newer 'seen' note (a robot job's report) wins over the PC's own old report (0.124.1)"
+assert_not_contains "PCV.seen" "$out" "the seen note is never taken for a PC of its own"
+( cd "$T/seed-board" && q git pull -q --rebase   && printf 'seen = %s
+lanes = 0.0.2
+by = a robot job
+' "2020-01-01 00:00 +0000" > handover/PCV.seen.txt   && q git add handover && q git commit -q -m "PCV seen, old" && q git push -q )
+out=$(LANES_CONFIG="$TP/B/lanes.conf" "$PY" "$TOOL" start --session=fixture-v5 2>&1)
+assert_contains "PCV runs Lanes 0.0.1" "$out" "an OLDER seen note does not override the PC's own report"
+( cd "$T/seed-board" && q git pull -q --rebase && q git rm -q handover/PCV.txt handover/PCV.seen.txt && q git commit -q -m "drop the pretend PC" && q git push -q )
 
 echo "start: says when this PC's previous session stopped without its end report (0.94.2)"
 touch -d "2 hours ago" "$T/A/lanes-sessions/"handover-*.json
