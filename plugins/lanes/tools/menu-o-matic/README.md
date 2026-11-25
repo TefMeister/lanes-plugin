@@ -221,6 +221,25 @@ the game stopped responding, and **1** for anything else (see "When things go wr
 - A checkpoint matches only when the patch is close on average **and** no single spot differs a lot, so one changed
   digit ("Col 2" against "Col 3") is enough to tell two screens apart.
 
+## Behind your windows: Backstage (2026-11-25)
+
+With the extra `backstage` on, a route's launch starts Backstage's watcher (`tools/backstage/backstage.py`, PROTOCOL
+section 51): the game's windows go behind yours from the first moment (or off the screen with `backstage_place =
+off_screen` in lanes.conf) and your typing stays in your own window.
+The route's `"exe"` is watched, plus a launch step's `"also_watch": ["ModOrganizer.exe"]` for launchers. Then:
+
+- **Pictures** come from the game's own window (PrintWindow), wherever it is.
+- **`{"pad": "a"}`** presses the kept pretend Xbox pad; `{"pad": "stick 0 1 2"}` holds the left stick forward 2 s
+  (`rstick`, `lt`, `rt` too). A route with pad steps gets the pad plugged in before the game starts and unplugged when
+  a `close` step has closed the game.
+- **Keys**: with `"key_input": "post"` they go to the game window as messages, no focus at all. Real keys still work:
+  the window gets the focus for each press and your window gets it back after; said once.
+- **Mouse steps** bring the window to the top (and back on the screen, off_screen) for that step only; said once.
+- A game that cannot run off the screen: `"backstage": false` in its route starts it the old way.
+
+Games tried on 2026-11-25 (flat): RE2, RE3, RE4 and Village run and take the pad off the screen; The Darkness needs
+the pad kept for the whole run; Fallout New Vegas (TTW) needs `bAlwaysActive=1`. Each game's `KNOWN.md` has its lines.
+
 ## Which inputs a route can hold
 
 Each step saves exactly the input that was used, so every menu gets its own button:

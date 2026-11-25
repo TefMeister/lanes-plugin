@@ -1976,3 +1976,38 @@ setup"*. One PC is the recommended setup (`docs/ONE-PC.md`); two PCs (`docs/TWO-
   games files to `<board>/retired/<name>-<date>/` (kept), drops it from `machines.txt`, counts its waiting reminders,
   and commits and pushes those paths only. It refuses this PC's own name. The other PCs' lines about it stop.
 - **The check:** `docs/ONE-PC-TEST.md` (O1 to O10).
+
+## 51. Backstage: games run off the screen (0.125.0, 2026-11-25)
+
+Tefa, 2026-11-25: *"you really need to learn how to work on the background so i can use the pc at the same time"*, and
+*"the games also have to start at the background already and not take over the screen, even for launch"*. Plan:
+claude-memory `plans/2026-11-25-backstage-games-off-screen-plan.md` (Tefa's yes the same day).
+
+- **What the test day showed** (flat, the Build PC; each game's control profile `KNOWN.md` has its lines): RE2, RE3, RE4
+  and Village keep running, take a pretend Xbox pad and give their pictures while off the screen and not in front;
+  none of them pauses (the old "pauses when not in front" was our real-key presses). The Darkness the same up to its
+  opening car ride, with the pad kept plugged in. Fallout New Vegas (TTW) needs `bAlwaysActive=1` to keep drawing.
+  Steam starts and some games take the keyboard focus even off the screen.
+- **The watcher** (`tools/backstage/backstage.py watch`, a ride-along: Backstage-o-matiC). Windows tells it the moment a
+  window is shown or moved. **Where the game goes** (Tefa, 2026-11-25: *"behind as default, off screen as option"*):
+  `backstage_place = behind` (the default) puts a window of the game's programs under your windows at once, on the
+  monitor, so a glance at it is possible; `backstage_place = off_screen` parks it past the left edge of all screens.
+  Never minimized (a minimized game stops drawing). Whenever one of them takes the keyboard focus it is handed back to
+  the window you were using (and, behind, put under it again). A half-second check catches what an event missed. It ends when the game's programs have
+  closed. **The flash log** (`<state>/backstage/flash-*.jsonl`, `backstage.py report`): every window moved and how
+  long it was on the screen, every focus grab and whether it was given back.
+- **The input order, every tool**: the pretend pad first (`backstage.py pad`: plugged in before the game starts and kept
+  for the whole run, since some games pause or complain when it disappears), then keys sent to the game's window as
+  messages (`backstage.py key`; REFramework's Insert takes them), the real keyboard and mouse last.
+- **Pictures** come from the game's own window (`backstage.py shot`, PrintWindow), wherever it is and whatever covers it.
+- **Menu-o-matiC with Backstage on**: a launch step starts the watcher (for the route's `exe` and any `"also_watch"`
+  programs, such as Mod Organizer) before the game; a route with `"pad"` steps gets the kept pad first; `capture` asks
+  the window for its picture without bringing it forward; keys in `"key_input": "post"` routes go without the focus.
+  A route that needs the real keyboard still works: the window is given the focus for the press (it stays off the
+  screen or behind), which is said once per run; a mouse step brings the window to the top (and back on the screen in
+  off_screen) for that step only. A game that cannot run off the screen says so with `"backstage": false` in its
+  route, and is started the old way.
+- **Not yet:** VR and the OpenXR Simulator (whether the headset side needs the window in front); Move-o-matiC's
+  mouse turns; the flash test over many games (Tefa, 2026-11-25: "run a good bunch of games and keep an eye what does
+  what"), to be run when no other session needs a game.
+- On or off: the extra `backstage` (set "Everyday helpers", asked once).

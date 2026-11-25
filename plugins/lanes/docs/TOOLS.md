@@ -63,7 +63,7 @@ Rules for every entry:
 | Tool | What it is for | Official link | Claude installs it | How to check |
 | --- | --- | --- | --- | --- |
 | **ViGEmBus** (virtual gamepad driver), by [Benjamin Höglinger-Stelzer (nefarius)](https://github.com/nefarius/ViGEmBus) | Makes Windows believe an Xbox controller is plugged in, so a session can press pad buttons in games that ignore the keyboard | https://github.com/nefarius/ViGEmBus/releases (archived by its author in 2023, still works) | `winget install --id ViGEm.ViGEmBus -e`. **Needs admin (a driver)** | Windows service `ViGEmBus` is running |
-| **vgamepad** (Python), by [Yann Bouteiller](https://github.com/yannbouteiller/vgamepad) | The Python side of ViGEmBus: what Menu-o-matiC and Move-o-matiC press the pretend pad with | https://pypi.org/project/vgamepad/ | `python -m pip install vgamepad` | `python -c "import vgamepad"` |
+| **vgamepad** (Python), by [Yann Bouteiller](https://github.com/yannbouteiller/vgamepad) | The Python side of ViGEmBus: the pretend pad Backstage keeps plugged in, and Menu-o-matiC's `pad` steps | https://pypi.org/project/vgamepad/ | `python -m pip install vgamepad` | `python -c "import vgamepad"` |
 
 ## 5. 3D, images and assets
 
@@ -212,6 +212,7 @@ is used by the commands. Full rules: `docs/PROTOCOL.md`.
 | `/lanes:gu` | The weekly tool check: brings our own tools up to date on every PC, lists new releases of outside tools, feeds lessons into the tools, and freshens repo descriptions and front pages |
 | `/lanes:ideas` | Files the ideas you jotted into your ideas repo (from the phone, from GitHub) word for word onto each project's page, so the project's next session shows them to you as a numbered list |
 | `/lanes:menu` | **Menu-o-matiC and Move-o-matiC**: gets an app from its launch to where the work happens, and back out, by replaying a recorded route of key presses with checks along the way; Move-o-matiC records and replays walking and driving the same way. A replay costs almost nothing; Claude only looks when a check fails |
+| `tools/backstage/backstage.py` | **Backstage-o-matiC**: games run off the screen while you use the PC. A watcher puts the game's windows behind yours the moment they appear (or past the edge of your screens with `backstage_place = off_screen`) and hands your typing back to your own window; the game gets a pretend Xbox pad instead of your keyboard and mouse, and its pictures come from its own window. A flash log says what still showed, and for how long (`backstage.py report`). Extra `backstage`; PROTOCOL section 51 |
 | `/lanes:bench` | **VR Bench**: the pretend headset plus pretend hands play a VR game, and a learning hour finds out how its head, hands and buttons behave with nobody wearing anything |
 | `/lanes:setup` | This walk-through: your name for notes, this PC's name, and every optional tool above |
 | `/lanes:update` | Checks for a newer Lanes, says in plain words what it adds, and updates it on your yes; also checks Hand Freeze, the simulator, VR Bench, our other apps and the other makers' tools for newer versions |

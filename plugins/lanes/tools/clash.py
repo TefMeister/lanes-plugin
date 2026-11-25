@@ -161,6 +161,8 @@ ROWS = {
     "hook:update-nudge": READ_ONLY, "hook:shortcut-offer": READ_ONLY, "hook:version-line": READ_ONLY,
     "hook:name-rule": RULE, "hook:repo-rule": RULE, "hook:talk-rule": RULE, "hook:straight-talk": RULE,
     "hook:tools-rule": RULE, "hook:privacy-rule": RULE,
+    "tool:backstage": free("moves only the windows of the game it was started for and hands the focus back; the game itself is held by the live claim and the 'live' job of whatever started it"),
+    "feature:backstage": free("switches Backstage on or off; the watcher holds nothing"),
     "hook:taskbar-flash": free("only blinks this window's taskbar button"),
     "hook:run-hook.cmd": PLUMBING, "hook:py-hook": PLUMBING, "hook:emit_context.py": LIBRARY,
     "hook:hooks.json": PLUMBING,
@@ -272,7 +274,7 @@ ROWS = {
     "feature:taskbar_flash": free("only blinks this window's taskbar button"),
 }
 # A folder of the plugin's tools that counts as one tool (its files work together).
-TOOL_FOLDERS = ("menu-o-matic", "vrbench", "proxy-gen")
+TOOL_FOLDERS = ("menu-o-matic", "vrbench", "proxy-gen", "backstage")
 
 
 def row_of(item):

@@ -10,6 +10,11 @@ Runs a route's steps in order:
     {"turn": [dx, dy]}                     move the mouse by dx, dy (turn the camera)        (Move-o-matiC)
     {"play": [[dt, key, 1|0], ...]}        replay what a person played, with its exact timing (setup mode)
     {"wait": "<checkpoint>"}               wait until a small patch of the window looks like the saved one
+    {"pad": "a"} / {"pad": "stick 0 1 2"}  the kept pretend Xbox pad (Backstage, PROTOCOL 51): a button, a stick held
+                                           X Y for SECONDS, "rstick", "lt", "rt"
+With the extra `backstage` on (and no "backstage": false in the route) the launch starts the watcher that keeps the
+game's windows off the screen (the route's "exe", plus a launch step's "also_watch": ["ModOrganizer.exe"]), and a
+route with pad steps gets the pad plugged in before the game starts.
 While waiting it checks that the game is still open and answering, so a crash or a hang is told apart from a
 slow screen. Output: one JSON line per event.
 """
@@ -27,6 +32,7 @@ POLL_S = 0.5                 # how often a wait re-checks its checkpoint
 DEFAULT_WAIT_TIMEOUT_S = 90  # loading screens can be long
 WINDOW_TIMEOUT_S = 240       # after a launch step
 LAUNCH_SETTLE_S = 2.0        # after the window appears, before the first key
+PAD_SETTLE_S = 0.25          # after a pad command's own time: the keeper reads its file every 0.05 s
 GAME_GONE_WAIT_S = 60        # a launch waits this long for the last copy of the route's "exe" to close (2026-11-10)
 HUNG_GIVE_UP_S = 60          # 'Not Responding' this long in a row = give up (games do hang briefly while loading)
 FROZEN_S = 30                # a timeout with the picture unchanged this long is reported as "frozen"
@@ -131,7 +137,7 @@ def unexpected(route, index, step, img, lost_dir, readings):
     sys.exit(EXIT_LOST)
 
 
-INPUTS = ("key", "click", "wheel", "hold", "turn", "play")
+INPUTS = ("key", "click", "wheel", "hold", "turn", "play", "pad")
 
 
 def run_route(route, start, timeout, lost_dir, check_mode="auto"):
@@ -139,6 +145,11 @@ def run_route(route, start, timeout, lost_dir, check_mode="auto"):
     import mom_expect as E
     W.KEY_MODE = route.get("key_input", "sendinput")     # how this game takes keys (mom_window.KEY_MODE)
     W.EXE = route.get("exe") or W.EXE                    # the game's program, if the route names it
+    # (a stand-in window module in the tests has no Backstage: then it is simply off)
+    W.BACKSTAGE = bool(getattr(W, "_bs", None)) and route.get("backstage", True) is not False and W._bs().is_on()
+    uses_pad = any("pad" in st for st in route["steps"])
+    if W.BACKSTAGE:
+        say(event="backstage", note="the game runs off the screen (extra `backstage`); flash log: backstage.py report")
     E.validate(route, route.get("route", "route"))
     # the picture checks before key presses (mom_expect): only routes that have any, and only on the runs they are due
     expecting = any(E.tests_of(s) for s in route["steps"])
@@ -162,6 +173,17 @@ def run_route(route, start, timeout, lost_dir, check_mode="auto"):
                 if pids:
                     gone(i, f"{W.EXE} is still running (process {', '.join(map(str, pids))}) with no window after "
                             f"{GAME_GONE_WAIT_S} s: close it first; a second copy was not started")
+            if uses_pad:                                  # before the game: some games look for pads only at start
+                W._bs().pad_start()
+                time.sleep(W._bs().PAD_PLUG_S)
+            if W.BACKSTAGE:
+                names = [n for n in [W.EXE] + list(step.get("also_watch", [])) if n]
+                if names:
+                    _p, flash_log = W._bs().start_watch(names)
+                    time.sleep(0.5)                       # its hooks are up before the game's first window
+                    say(event="watching", programs=names, flash_log=flash_log)
+                else:
+                    say(event="backstage", note="the route names no \"exe\": nothing to keep off the screen")
             os.startfile(step["launch"]) if hasattr(os, "startfile") else subprocess.Popen([step["launch"]])
             # "wait_for": a window that appears BEFORE the game's own (a launcher dialog); the game window is
             # then looked up again at the next step
@@ -186,6 +208,15 @@ def run_route(route, start, timeout, lost_dir, check_mode="auto"):
             while time.time() < end and target and W.is_open(target):
                 time.sleep(0.5)
             say(event="closed", step=i, still_open=bool(target and W.is_open(target)))
+            if uses_pad and not (target and W.is_open(target)):
+                W._bs().pad_send(["quit"])               # the game is gone: the pad comes out
+            continue
+        if "pad" in step:
+            words = str(step["pad"]).split()
+            W._bs().pad_send(words)
+            hold_s = float(words[3]) if words[0] in ("stick", "rstick") and len(words) > 3 else W._bs().TAP_S
+            time.sleep(hold_s + PAD_SETTLE_S)
+            say(event="pad", step=i, sent=step["pad"])
             continue
         if "button" in step:                           # a launcher dialog's button, pressed with BM_CLICK
             end = time.time() + (step.get("timeout") or WINDOW_TIMEOUT_S)

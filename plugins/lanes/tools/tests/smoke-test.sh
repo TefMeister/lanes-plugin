@@ -1140,6 +1140,16 @@ else
   fail "collector_test.py failed"
 fi
 
+echo "backstage.py - a game window goes behind yours from the moment it appears, your click brings it up, the kept pad, the flash log (0.125.0)"
+if out=$("$PY" "$HERE/backstage_test.py" 2>&1); then
+  ok "$(printf '%s
+' "$out" | tail -n 1)"
+else
+  printf '%s
+' "$out" | grep FAIL
+  fail "backstage_test.py failed"
+fi
+
 echo "rider.py - the BeG0nE rider lives through a held file, a broken filer and a failed pass; game=? is never a folder"
 if out=$("$PY" "$HERE/rider_test.py" 2>&1); then
   ok "$(printf '%s\n' "$out" | tail -n 1)"

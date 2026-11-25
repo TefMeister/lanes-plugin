@@ -11,6 +11,68 @@ import time
 
 u, g = ctypes.windll.user32, ctypes.windll.gdi32
 
+# Backstage (extra `backstage`, PROTOCOL 51, 2026-11-25): the game runs behind your windows (or off the screen). Set by the route runner when
+# the extra is on and the route does not say "backstage": false. Pictures then come from the window itself, keys in
+# "post" routes go without the focus, and a step that needs the real keyboard or mouse says so once per run.
+BACKSTAGE = False
+_said = set()
+_owner = None
+
+
+def _bs():
+    import os
+    import sys
+    p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backstage")
+    if p not in sys.path:
+        sys.path.insert(0, p)
+    import backstage
+    return backstage
+
+
+def _say_once(key, note):
+    if key not in _said:
+        _said.add(key)
+        import json
+        print(json.dumps({"event": "backstage", "note": note}), flush=True)
+
+
+def _ready(hwnd, mouse=False):
+    """Make hwnd ready for one input step. Off: the old way (bring it to the front). Backstage: posted keys need
+    nothing; real keys give the off-screen window the focus for the press; the mouse needs the window on the screen,
+    so it is brought back for that step only (the watcher is told to leave it) and parked again by _done()."""
+    global _target, _owner
+    if not BACKSTAGE:
+        return focus(hwnd)
+    fg = u.GetForegroundWindow()
+    if fg and fg != hwnd:
+        _owner = fg                           # the window you are using: it gets the focus back after the step
+    if not mouse and KEY_MODE == "post":
+        _target = hwnd
+        return True
+    B = _bs()
+    B.hold(B.pid_of_window(hwnd), True)      # the watcher leaves the window and its focus alone for this step
+    if mouse:
+        _say_once("mouse", "this route uses the mouse: the game window comes to the top for each mouse step")
+        if B.place() == B.OFF_SCREEN:
+            B.bring_back(hwnd)
+    else:
+        _say_once("keys", "this route presses real keys: the game window gets the focus for each press (it stays "
+                          "behind your windows); \"key_input\": \"post\" in the route avoids that when the game takes it")
+    return focus(hwnd)
+
+
+def _done(hwnd, mouse=False):
+    """after an input step in Backstage: the focus back to your window, the window off the screen again"""
+    if not BACKSTAGE or (not mouse and KEY_MODE == "post"):
+        return
+    B = _bs()
+    if mouse and B.place() == B.OFF_SCREEN:
+        B.move_away(hwnd)
+    else:
+        B.push_behind(hwnd)
+    B.hold(B.pid_of_window(hwnd), False)
+    B.give_front(_owner) if _owner else None   # your window gets the focus back straight away
+
 
 def make_dpi_aware():
     """0.119.0: the tools see real screen pixels at any display scaling. Unaware, Windows hands a 200 %-scaled program a
@@ -273,6 +335,11 @@ def capture(hwnd):
     BitBlt reads the SCREEN, so a covered window would give a picture of whatever covers it. The window is
     brought to the front first, and NotInFront is raised if that fails, rather than returning a wrong picture."""
     from PIL import Image
+    if BACKSTAGE:
+        own = _bs().shot(hwnd)
+        if own is not None:
+            return own
+        _say_once("shot", "the game window gave no picture of its own: it is brought to the front for this one")
     if not focus(hwnd):
         raise NotInFront("the window is not in front; a capture would show another window")
     width, height = client_size(hwnd)
@@ -417,9 +484,9 @@ def is_hung(hwnd):
     return bool(u.IsHungAppWindow(hwnd))
 
 
-def click(hwnd, fx, fy, hold_s=KEY_HOLD_S):
+def _click_now(hwnd, fx, fy, hold_s=KEY_HOLD_S):
     """Left-click at a point given as fractions of the window's client area. Only when the window is in front."""
-    if not focus(hwnd):
+    if not _ready(hwnd, mouse=True):
         raise NotInFront("the window is not in front; no click was sent")
     width, height = client_size(hwnd)
     pt = w.POINT(int(fx * width), int(fy * height))
@@ -432,11 +499,11 @@ def click(hwnd, fx, fy, hold_s=KEY_HOLD_S):
         time.sleep(hold_s)
 
 
-def wheel(hwnd, clicks, fx=0.5, fy=0.5):
+def _wheel_now(hwnd, clicks, fx=0.5, fy=0.5):
     """Turn the mouse wheel `clicks` notches (positive = up, negative = down) with the cursor over a point given as
     fractions of the window's client area. Added 2026-11-04 for REFramework's overlay, whose long list scrolls only by
     wheel (the Village route to "Reset scripts" was wheel 10 down, click, 10 down, 6 up, click). Only when in front."""
-    if not focus(hwnd):
+    if not _ready(hwnd, mouse=True):
         raise NotInFront("the window is not in front; the wheel was not turned")
     width, height = client_size(hwnd)
     pt = w.POINT(int(fx * width), int(fy * height))
@@ -450,11 +517,11 @@ def wheel(hwnd, clicks, fx=0.5, fy=0.5):
         time.sleep(0.03)
 
 
-def hold(names, seconds, hwnd):
+def _hold_now(names, seconds, hwnd):
     """Hold several keys down together for `seconds` (walk forward, drive and steer), then let go of all of
     them. Keys are released even if something goes wrong, so a key is never left stuck down."""
     codes = [KEYS[n.lower()] for n in names]
-    if not focus(hwnd):
+    if not _ready(hwnd, mouse=False):
         raise NotInFront("the window is not in front; no key was held")
     try:
         for scan, extended in codes:
@@ -466,10 +533,10 @@ def hold(names, seconds, hwnd):
             _send(scan, extended, True)
 
 
-def turn(hwnd, dx, dy):
+def _turn_now(hwnd, dx, dy):
     """Move the mouse by (dx, dy) counts, spread over small steps so the game sees a smooth turn rather than
     one jump. How far a count turns the camera depends on the game and its sensitivity setting."""
-    if not focus(hwnd):
+    if not _ready(hwnd, mouse=True):
         raise NotInFront("the window is not in front; the mouse was not moved")
     steps = max(1, int(max(abs(dx), abs(dy)) / TURN_STEP_COUNTS))
     done_x = done_y = 0
@@ -544,13 +611,49 @@ class NotInFront(RuntimeError):
     """The target window could not be brought to the front, so no key was sent."""
 
 
-def tap(name, hwnd, hold_s=KEY_HOLD_S):
+def _tap_now(name, hwnd, hold_s=KEY_HOLD_S):
     """Press and release one named key in window `hwnd`. Never sends a key unless `hwnd` is in front.
 
     Raises KeyError for an unknown name, NotInFront if the window cannot be brought to the front."""
     scan, extended = KEYS[name.lower()]
-    if not focus(hwnd):
+    if not _ready(hwnd, mouse=False):
         raise NotInFront("the window is not in front; no key was sent")
     _send(scan, extended, False)
     time.sleep(hold_s)
     _send(scan, extended, True)
+
+
+def click(hwnd, fx, fy, hold_s=KEY_HOLD_S):
+    """click, Backstage-aware (see _ready / _done)"""
+    try:
+        return _click_now(hwnd, fx, fy, hold_s)
+    finally:
+        _done(hwnd, mouse=True)
+
+def wheel(hwnd, clicks, fx=0.5, fy=0.5):
+    """wheel, Backstage-aware (see _ready / _done)"""
+    try:
+        return _wheel_now(hwnd, clicks, fx, fy)
+    finally:
+        _done(hwnd, mouse=True)
+
+def hold(names, seconds, hwnd):
+    """hold, Backstage-aware (see _ready / _done)"""
+    try:
+        return _hold_now(names, seconds, hwnd)
+    finally:
+        _done(hwnd, mouse=False)
+
+def turn(hwnd, dx, dy):
+    """turn, Backstage-aware (see _ready / _done)"""
+    try:
+        return _turn_now(hwnd, dx, dy)
+    finally:
+        _done(hwnd, mouse=True)
+
+def tap(name, hwnd, hold_s=KEY_HOLD_S):
+    """tap, Backstage-aware (see _ready / _done)"""
+    try:
+        return _tap_now(name, hwnd, hold_s)
+    finally:
+        _done(hwnd, mouse=False)

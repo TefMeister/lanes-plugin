@@ -199,6 +199,14 @@ FEATURES = {
                "one_pc": "the windows that build never upload: they save their work and hand it over, and it is "
                          "uploaded in the background, with your GitHub pages kept up to date",
                "link": GH + "docs/ONE-PC.md"},
+    # 2026-11-25 (Tefa: "you really need to learn how to work on the background so i can use the pc at the same time"):
+    "backstage": {"label": "Games run behind your windows", "set": "everyday", "ask_on_update": True,
+                  "what": "when Claude starts or drives a game, its window is kept behind yours (or off the "
+                          "screen, if you prefer: backstage_place = off_screen) and your typing stays in your own "
+                          "window, so you can use the PC at the same time; Claude presses a "
+                          "pretend game pad instead of your keyboard and mouse, and a short log says if a window "
+                          "still showed for a moment",
+                  "link": PROTO_LINK + "51-backstage-games-run-off-the-screen-01250-2026-11-25"},
     "shutdown_guard": {"label": "Switch off only when everything is saved", "set": "everyday",
                        "what": "when you ask Claude to switch the PC off after its work, it waits until no game runs, "
                                "no other window is busy and everything is on GitHub, then switches off by itself; it "
@@ -488,6 +496,8 @@ def lint():
     for key, s in SETS.items():
         problems += [f"set '{key}': its words use \"{w}\", which a newcomer cannot know"
                      for w in JARGON if w in s["title"] + " " + s["note"]]
+    # 2026-11-25: these link checks sat inside the loop over the SETS, so only the last extra's link was ever checked
+    for n, f in FEATURES.items():
         link = str(f.get("link", ""))
         if not link.startswith("https://"):
             problems.append(f"{n}: the link is not a web address")
