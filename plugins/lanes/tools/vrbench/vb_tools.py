@@ -19,6 +19,8 @@ import vb_layer
 import vb_profile
 import vb_settings as S
 import vb_sim
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOOLS = os.path.dirname(HERE)
@@ -49,7 +51,7 @@ class Tools:
     # ---- pre-flight ----
     def sim_installed(self):
         try:
-            r = subprocess.run([sys.executable, OPENXR_SIM, "status", "--json"], capture_output=True, text=True,
+            r = hidden.run([sys.executable, OPENXR_SIM, "status", "--json"], capture_output=True, text=True,
                                timeout=MOM_TIMEOUT_S, env=dict(os.environ, LANES_OPENXRSIM_OFFLINE="1"))
             return bool(json.loads(r.stdout).get("installed"))
         except Exception:
@@ -61,7 +63,7 @@ class Tools:
     def known(self):
         if not S.conf_get("routes"):
             raise OSError("no `routes =` folder in lanes.conf")
-        r = subprocess.run([sys.executable, MOM, "known", self.routes_dir], capture_output=True, text=True)
+        r = hidden.run([sys.executable, MOM, "known", self.routes_dir], capture_output=True, text=True)
         if r.returncode:
             raise OSError((r.stderr or r.stdout).strip()[:200])
         path = os.path.join(self.routes_dir, "KNOWN.md")
@@ -69,17 +71,17 @@ class Tools:
             return f.read()
 
     def known_add(self, section, text):
-        subprocess.run([sys.executable, MOM, "known", self.routes_dir, "--add", section, text], capture_output=True)
+        hidden.run([sys.executable, MOM, "known", self.routes_dir, "--add", section, text], capture_output=True)
 
     def claim(self, take):
         """take or release VR Bench's own claim; inside a live /lm session on this PC that already holds the game, the
         run works under that claim and touches nothing (2026-10-17: taking a second claim failed, and was not needed)"""
         if take:
-            held = subprocess.run(["bash", CLAIM, "check", self.project], capture_output=True, text=True).stdout
+            held = hidden.run(["bash", CLAIM, "check", self.project], capture_output=True, text=True).stdout
             self._under_lm = "FRESH" in held and "/lm" in held and socket.gethostname().lower() in held.lower()
         if getattr(self, "_under_lm", False):
             return
-        r = subprocess.run(["bash", CLAIM, "take" if take else "release", LANE, self.project],
+        r = hidden.run(["bash", CLAIM, "take" if take else "release", LANE, self.project],
                            capture_output=True, text=True)
         if take and r.returncode:
             import vb_learn
@@ -117,7 +119,7 @@ class Tools:
         return None
 
     def mom(self, args, script=MOM):
-        r = subprocess.run([sys.executable, script, *args], capture_output=True, text=True, timeout=MOM_TIMEOUT_S)
+        r = hidden.run([sys.executable, script, *args], capture_output=True, text=True, timeout=MOM_TIMEOUT_S)
         events = []
         for line in r.stdout.splitlines():
             try:

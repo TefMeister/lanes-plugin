@@ -30,6 +30,8 @@ import json
 import os
 import subprocess
 import sys
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -41,7 +43,7 @@ SIM_STATUS_TIMEOUT_S = 60   # the simulator status check reads GitHub; a slow ne
 
 def _simulator():
     try:
-        r = subprocess.run([sys.executable, OPENXR_SIM, "status", "--json"], capture_output=True, text=True, timeout=SIM_STATUS_TIMEOUT_S)
+        r = hidden.run([sys.executable, OPENXR_SIM, "status", "--json"], capture_output=True, text=True, timeout=SIM_STATUS_TIMEOUT_S)
         return json.loads(r.stdout)
     except Exception as e:
         return {"installed": False, "error": str(e)}

@@ -35,6 +35,8 @@ import subprocess
 import sys
 import time
 from datetime import date
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PLUGIN = os.path.dirname(HERE)
@@ -111,7 +113,7 @@ def same_path(a, b):
 
 def run(args, cwd=None, timeout=GIT_TIMEOUT_S):
     try:
-        p = subprocess.run(args, cwd=cwd, capture_output=True, text=True, timeout=timeout)
+        p = hidden.run(args, cwd=cwd, capture_output=True, text=True, timeout=timeout)
         return p.returncode, (p.stdout or "").strip(), (p.stderr or "").strip()
     except (OSError, subprocess.TimeoutExpired) as e:
         return 127, "", str(e)

@@ -98,6 +98,7 @@ R.clear_crash_marks = lambda: None
 R.connect = lambda: "client"
 R.time = SimpleNamespace(sleep=lambda s: None, time=time.time, strftime=time.strftime, localtime=time.localtime)
 R.subprocess = SimpleNamespace(run=lambda a, **k: ran.append(a), Popen=lambda a, **k: popened.append(a))
+R.hidden = R.subprocess                    # 0.125.1: obs-rec starts programs through hidden.py
 st = {}
 cl = R.ensure_obs(st)
 check(any("taskkill" in a[0] for a in ran), "an OBS showing \"OBS has crashed!\" is closed before the start goes on")

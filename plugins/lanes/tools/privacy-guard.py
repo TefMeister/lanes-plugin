@@ -57,6 +57,11 @@ import re
 import subprocess
 import sys
 import zlib
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+try:
+    import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
+except ImportError:    # a hooks-folder copy without hidden.py beside it (git gives hooks a console)
+    hidden = subprocess
 
 HOME =os.path.expanduser("~")
 STATE = os.environ.get("LANES_STATE_DIR") or os.path.join(HOME, ".claude", "lanes")
@@ -91,7 +96,7 @@ def conf_value(key):
 
 
 def git(*args, cwd=None):
-    r = subprocess.run(["git"] + list(args), capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=cwd)
+    r = hidden.run(["git"] + list(args), capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=cwd)
     return r.stdout if r.returncode == 0 else ""
 
 
@@ -99,7 +104,7 @@ def git_lines(*args, cwd=None):
     """(0.107.1) A git command's output one line at a time, never the whole of it in memory. A push of a large repo's
     whole history (a history clean-up, a first push) made `git log -p` print more text than Python could hold: the
     guard crashed with MemoryError and the push was refused for no reason a person could act on."""
-    with subprocess.Popen(["git"] + list(args), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, cwd=cwd) as proc:
+    with hidden.Popen(["git"] + list(args), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, cwd=cwd) as proc:
         for raw in proc.stdout:
             yield raw.decode("utf-8", "replace").rstrip("\r\n")
 
@@ -192,7 +197,7 @@ def visibility(cwd=None):
     if not m:
         return "private" if not url else "unknown"   # no remote at all: nothing is published from here
     try:
-        r = subprocess.run(["gh", "repo", "view", m.group(1), "--json", "visibility", "-q", ".visibility"],
+        r = hidden.run(["gh", "repo", "view", m.group(1), "--json", "visibility", "-q", ".visibility"],
                            capture_output=True, text=True, timeout=20)
         v = r.stdout.strip().lower()
     except Exception:
@@ -229,7 +234,7 @@ JPEG_APP_FIRST, JPEG_APP_LAST = 0xE0, 0xEF   # APP0..APP15: EXIF, XMP and the li
 
 
 def blob_bytes(*args):
-    r = subprocess.run(["git"] + list(args), capture_output=True)
+    r = hidden.run(["git"] + list(args), capture_output=True)
     return r.stdout if r.returncode == 0 else b""
 
 
@@ -458,7 +463,7 @@ def cmd_push(remote_url):
         if len(parts) != 4 or parts[1] == ZERO:
             continue
         local, remote = parts[1], parts[3]
-        known = remote != ZERO and subprocess.run(["git", "cat-file", "-e", remote + "^{commit}"],
+        known = remote != ZERO and hidden.run(["git", "cat-file", "-e", remote + "^{commit}"],
                                                   capture_output=True).returncode == 0
         rng = ["%s..%s" % (remote, local)] if known else [local, "--not", "--remotes"]
         log = git("log", "--format=%H%x00%ae%x00%ce%x00%B%x1e", *rng)
@@ -770,6 +775,12 @@ def cmd_install():
     if os.path.abspath(here) != os.path.abspath(__file__):
         with open(__file__, encoding="utf-8") as src, open(here, "w", encoding="utf-8", newline="\n") as dst:
             dst.write(src.read())
+        # 0.125.1: and the program starter it uses, so the copy never starts a program with a window
+        mine = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hidden.py")
+        if os.path.isfile(mine):
+            with open(mine, encoding="utf-8") as src, open(os.path.join(HOOKDIR, "hidden.py"), "w",
+                                                           encoding="utf-8", newline="\n") as dst:
+                dst.write(src.read())
     tool = here.replace("\\", "/")
     for n in HOOK_NAMES:
         p = os.path.join(HOOKDIR, n)
@@ -781,7 +792,7 @@ def cmd_install():
     if cur and os.path.normcase(os.path.abspath(os.path.expanduser(cur))) != os.path.normcase(os.path.abspath(HOOKDIR)):
         with open(os.path.join(HOOKDIR, ".previous"), "w", encoding="utf-8", newline="\n") as f:
             f.write(cur.replace("\\", "/"))
-    subprocess.run(["git", "config", "--global", "core.hooksPath", mine])
+    hidden.run(["git", "config", "--global", "core.hooksPath", mine])
     print("privacy guard installed: every commit on this PC is checked.%s"
           % (" (It hands over to the hooks that were set before: %s)" % cur if cur and cur != mine else ""))
     return 0
@@ -794,9 +805,9 @@ def cmd_uninstall():
     except OSError:
         pass
     if prev:
-        subprocess.run(["git", "config", "--global", "core.hooksPath", prev])
+        hidden.run(["git", "config", "--global", "core.hooksPath", prev])
     else:
-        subprocess.run(["git", "config", "--global", "--unset", "core.hooksPath"])
+        hidden.run(["git", "config", "--global", "--unset", "core.hooksPath"])
     print("privacy guard removed; machine-wide hooks are %s again" % (prev or "unset"))
     return 0
 

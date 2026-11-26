@@ -49,6 +49,8 @@ Needs: OBS 28+ with its WebSocket server on (Tools -> WebSocket Server Settings;
 config file, never copied anywhere), and `pip install obsws-python`.
 """
 import ctypes, ctypes.wintypes as W, json, os, subprocess, sys, time
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 OBS_EXE = r"C:\Program Files\obs-studio\bin\64bit\obs64.exe"
 CRASH_TITLE = "OBS Studio Crash Detected"   # the window OBS shows instead of starting, after an unclean close
@@ -211,7 +213,7 @@ def video_differs(cur):
 
 
 def obs_running():
-    out = subprocess.run(["tasklist", "/fi", "imagename eq obs64.exe", "/nh"], capture_output=True, creationflags=NO_WINDOW, text=True).stdout
+    out = hidden.run(["tasklist", "/fi", "imagename eq obs64.exe", "/nh"], capture_output=True, creationflags=NO_WINDOW, text=True).stdout
     return "obs64.exe" in out.lower()
 
 def connect():
@@ -231,7 +233,7 @@ def connect():
 def obs_stuck():
     """OBS 31+ asks "OBS Studio Crash Detected" (normal or safe mode?) after an unclean close, and
     --disable-shutdown-check does not stop it; until someone answers, its WebSocket never comes up (2026-10-17)."""
-    out = subprocess.run(["tasklist", "/v", "/fi", "imagename eq obs64.exe", "/fo", "csv", "/nh"],
+    out = hidden.run(["tasklist", "/v", "/fi", "imagename eq obs64.exe", "/fo", "csv", "/nh"],
                          capture_output=True, creationflags=NO_WINDOW, text=True).stdout
     return CRASH_TITLE.lower() in out.lower()
 
@@ -251,11 +253,11 @@ def ensure_obs(state):
     # only waiting on the crash question, or crashed with its box up (0.113.2: "OBS has crashed!" after the 13:00 crash on
     # 2026-11-12 sat there an hour, and every start in between found an OBS that could not answer): start it again
     if obs_running() and (obs_stuck() or crash_boxes()):
-        subprocess.run(["taskkill", "/f", "/im", "obs64.exe"], capture_output=True, creationflags=NO_WINDOW)
+        hidden.run(["taskkill", "/f", "/im", "obs64.exe"], capture_output=True, creationflags=NO_WINDOW)
         time.sleep(2)
     if not obs_running():
         clear_crash_marks()
-        subprocess.Popen([OBS_EXE, "--minimize-to-tray", "--disable-shutdown-check", "--disable-updater"],
+        hidden.Popen([OBS_EXE, "--minimize-to-tray", "--disable-shutdown-check", "--disable-updater"],
                          cwd=os.path.dirname(OBS_EXE))
         state["we_started_obs"] = True
         time.sleep(3)
@@ -477,12 +479,10 @@ def start_recording(cl):
 # pick up a window added mid-recording is not known). The first game file (launch to session start) is kept. The
 # watcher ends when the recording stops or after SIM_WAIT_S.
 def start_sim_watch(exe):
-    pyw = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
-    py = pyw if os.path.isfile(pyw) else sys.executable
-    subprocess.Popen([py, os.path.abspath(__file__), "simwatch", exe], close_fds=True,
-                     creationflags=NO_WINDOW | CREATE_NEW_PROCESS_GROUP)
+    hidden.background([os.path.abspath(__file__), "simwatch", exe])   # 0.125.1: a hidden console
 
 def cmd_simwatch(exe):
+    hidden.ensure_console()             # 0.125.1
     deadline = time.time() + SIM_WAIT_S
     while time.time() < deadline:
         rec = load_state().get("recording")
@@ -507,10 +507,7 @@ def cmd_simwatch(exe):
 # guard writes the break into BREAKS_LOG (the jitter reports quote it), closes the crash boxes, and starts a fresh
 # recording if the game is still open (that start leaves its own guard). It ends with the recording.
 def start_guard():
-    pyw = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
-    py = pyw if os.path.isfile(pyw) else sys.executable
-    subprocess.Popen([py, os.path.abspath(__file__), "guard"], close_fds=True,
-                     creationflags=NO_WINDOW | CREATE_NEW_PROCESS_GROUP)
+    hidden.background([os.path.abspath(__file__), "guard"])          # 0.125.1: a hidden console
 
 def crash_boxes():
     """titles of OBS's crash boxes open on the screen right now"""
@@ -551,6 +548,7 @@ def guard_check(misses):
         return ("OBS stopped answering" if misses >= GUARD_MISSES else None), misses
 
 def cmd_guard():
+    hidden.ensure_console()             # 0.125.1
     rec = load_state().get("recording")
     if not rec: return
     mine, misses = rec.get("start_ms"), 0
@@ -562,12 +560,12 @@ def cmd_guard():
         why, misses = guard_check(misses)
         if not why: continue
         if crash_boxes() or not obs_running() or why == "OBS stopped answering":
-            subprocess.run(["taskkill", "/f", "/im", "obs64.exe"], capture_output=True, creationflags=NO_WINDOW)   # clears the boxes too
+            hidden.run(["taskkill", "/f", "/im", "obs64.exe"], capture_output=True, creationflags=NO_WINDOW)   # clears the boxes too
             time.sleep(2)
         game_open = window_spec(rec.get("exe", ""), must=False) is not None
         if game_open:
             state = load_state(); state.pop("recording", None); save_state(state)
-            r = subprocess.run([sys.executable, os.path.abspath(__file__), "start", rec["exe"], rec["label"],
+            r = hidden.run([sys.executable, os.path.abspath(__file__), "start", rec["exe"], rec["label"],
                                 "--game", rec.get("project", "")], capture_output=True, text=True, timeout=GUARD_RESTART_S)
             log_break(rec, why, r.returncode == 0)
         else:
@@ -662,12 +660,12 @@ def cmd_done():
         if state.get("prev_profile"): cl.set_current_profile(state["prev_profile"])
         time.sleep(1)
         if state.get("we_started_obs"):
-            subprocess.run(["taskkill", "/im", "obs64.exe"], capture_output=True, creationflags=NO_WINDOW)
+            hidden.run(["taskkill", "/im", "obs64.exe"], capture_output=True, creationflags=NO_WINDOW)
             for _ in range(CLOSE_CHECKS):   # started minimised to the tray, OBS can ignore a polite close
                 time.sleep(CLOSE_CHECK_GAP_S)
                 if not obs_running(): break
             else:
-                subprocess.run(["taskkill", "/f", "/im", "obs64.exe"], capture_output=True, creationflags=NO_WINDOW)
+                hidden.run(["taskkill", "/f", "/im", "obs64.exe"], capture_output=True, creationflags=NO_WINDOW)
     print("OBS back to", state.get("prev_profile", "its own profile"))
     try: os.remove(STATE)
     except OSError: pass

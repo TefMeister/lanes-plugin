@@ -17,6 +17,9 @@ import subprocess
 import time
 
 import vb_settings as S
+import sys
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 # full: NVIDIA GeForce 2000-series and newer, AMD Radeon RX 6000/7000/9000, Intel Arc; a GTX 1660 (the dev PC) and
 # older stay light. Matched by model number, so a card name never has to be spelled out here.
@@ -45,7 +48,7 @@ class Probes:
 
     def gpus(self):
         try:
-            r = subprocess.run(["powershell", "-NoProfile", "-Command",
+            r = hidden.run(["powershell", "-NoProfile", "-Command",
                                 "(Get-CimInstance Win32_VideoController).Name"],
                                capture_output=True, text=True, timeout=PROBE_TIMEOUT_S)
             return [line.strip() for line in r.stdout.splitlines() if line.strip()]

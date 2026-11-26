@@ -42,6 +42,8 @@ import sys
 import tempfile
 import urllib.request
 import zipfile
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HOME = os.path.expanduser("~")
 LOCALAPPDATA = os.environ.get("LOCALAPPDATA", os.path.join(HOME, "AppData", "Local"))
@@ -78,7 +80,7 @@ def app_dir(kind):
 
 def run(cmd, cwd=None, timeout=NET_TIMEOUT_S):
     try:
-        p = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout)
+        p = hidden.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout)
         return p.returncode, (p.stdout or "") + (p.stderr or "")
     except (OSError, subprocess.TimeoutExpired) as e:
         return 1, str(e)

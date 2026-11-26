@@ -42,6 +42,8 @@ import re
 import subprocess
 import sys
 import time
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -89,7 +91,7 @@ def feature_on(name):
 
 def run(cmd, timeout=CHECK_TIMEOUT_S):
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout,
+        r = hidden.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout,
                            shell=isinstance(cmd, str))
         return r.returncode, (r.stdout + r.stderr).strip()
     except (subprocess.TimeoutExpired, OSError) as e:
@@ -300,7 +302,7 @@ def cmd_now(a):
         return watch(rid)
     args = [sys.executable, os.path.abspath(__file__), "_watch", rid]
     kw = {"creationflags": DETACHED} if os.name == "nt" else {"start_new_session": True}
-    subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    hidden.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                      close_fds=True, **kw)
     print("SWITCH-OFF: waiting (up to %d min, until %s) for:" % (minutes, time.strftime(
         "%H:%M", time.localtime(time.time() + minutes * MIN_S))))

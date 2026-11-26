@@ -2011,3 +2011,22 @@ claude-memory `plans/2026-11-25-backstage-games-off-screen-plan.md` (Tefa's yes 
   mouse turns; the flash test over many games (Tefa, 2026-11-25: "run a good bunch of games and keep an eye what does
   what"), to be run when no other session needs a game.
 - On or off: the extra `backstage` (set "Everyday helpers", asked once).
+
+## 52. No black windows: one way to start a program (0.125.1, 2026-11-26)
+
+Tefa (2026-11-26): *"plenty of black boxes popping up again every now and then and these cannot be in the Lanes public
+builds"*. A program with no console of its own (pythonw, anything started DETACHED, a Startup .cmd's child) that starts
+a console program (git, gh, ffmpeg, powershell, python.exe ...) makes Windows open a visible window for it. It came
+back four times because each tool started programs its own way and each fix patched one call.
+- **Every program start goes through `tools/hidden.py`:** `hidden.run / Popen / call / check_call / check_output`,
+  the same arguments as subprocess. With no console, the child gets a hidden one; with a console (a Claude window),
+  nothing changes. DETACHED_PROCESS is swapped for a hidden console.
+- **A background tool** is started with `hidden.background([script, args])` (python.exe under a hidden console that
+  everything below it shares, never pythonw), and calls `hidden.ensure_console()` first thing, so an old start hands
+  itself over. **Startup entries** are shortcuts made by `hidden.startup_shortcut`, never .cmd files.
+- **A window that should show** (a Claude window, a game, OBS) is marked `# window-ok: <why>` on its line.
+- **The release refuses** a program start outside hidden.py (`tools/window-scan.py`, release.sh step 6) and runs
+  `tools/tests/no_window_live.py`, which watches the desktop while a window-less program starts console programs.
+- **To catch a box on a PC:** `pythonw tools/boxwatch.py <log.jsonl>`, a hidden watcher that logs every console window
+  shown, with the program that started it and its parents (how the 2026-11-26 boxes were caught).
+- On or off: nothing (it is how Lanes starts programs).

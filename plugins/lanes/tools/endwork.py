@@ -27,6 +27,8 @@ import subprocess
 import sys
 import time
 from datetime import datetime
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -69,7 +71,7 @@ def start_detached(args, script=None):
         kw["creationflags"] = DETACHED | NEW_GROUP | NO_WINDOW
     else:
         kw["start_new_session"] = True
-    subprocess.Popen([sys.executable, os.path.abspath(script or __file__)] + list(args), **kw)
+    hidden.Popen([sys.executable, os.path.abspath(script or __file__)] + list(args), **kw)
 
 
 def hide_child_windows():
@@ -166,7 +168,7 @@ def feature_on(name):
 
 def step(label, args):
     try:
-        r = subprocess.run([sys.executable] + args, capture_output=True, text=True, timeout=STEP_TIMEOUT_S,
+        r = hidden.run([sys.executable] + args, capture_output=True, text=True, timeout=STEP_TIMEOUT_S,
                            encoding="utf-8", errors="replace")
         tail = " | ".join(l.strip() for l in (r.stdout or "").splitlines()[-2:] if l.strip())
         log("%s: exit %d%s" % (label, r.returncode, (" - " + tail[:300]) if tail else ""))

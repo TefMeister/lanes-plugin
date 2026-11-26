@@ -32,6 +32,8 @@ import os
 import subprocess
 import sys
 import time
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HOME = os.path.expanduser("~")
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -90,7 +92,7 @@ def gather():
         return None
     flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
     try:
-        r = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", GATHER],
+        r = hidden.run(["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", GATHER],
                            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=GATHER_TIMEOUT_S,
                            creationflags=flags)
     except (OSError, subprocess.TimeoutExpired):

@@ -55,6 +55,8 @@ import shutil
 import subprocess
 import sys
 import time
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HOME = os.path.expanduser("~")
 STATE_DIR = os.environ.get("LANES_STATE_DIR") or os.path.join(HOME, ".claude", "lanes")
@@ -139,7 +141,7 @@ def pc_name():
     if v:
         return re.sub(r"[^A-Za-z0-9._-]", "", v)[:24] or "PC"
     try:
-        out = subprocess.run([sys.executable, os.path.join(HERE, "machine-name.py"), "suggest"], capture_output=True,
+        out = hidden.run([sys.executable, os.path.join(HERE, "machine-name.py"), "suggest"], capture_output=True,
                              text=True, timeout=20).stdout.strip()
         return re.sub(r"[^A-Za-z0-9._-]", "", out)[:24] or "PC"
     except Exception:

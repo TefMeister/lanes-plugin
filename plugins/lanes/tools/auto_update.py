@@ -31,6 +31,8 @@ import os
 import subprocess
 import sys
 import time
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -83,7 +85,7 @@ def check(force=False):
         return _read(fake)
     args = [sys.executable, os.path.join(HERE, "update-check.py"), "--json"] + (["--force"] if force else [])
     try:
-        r = subprocess.run(args, capture_output=True, text=True, encoding="utf-8", errors="replace",
+        r = hidden.run(args, capture_output=True, text=True, encoding="utf-8", errors="replace",
                            timeout=CHECK_TIMEOUT_S)
         return json.loads(r.stdout) if r.stdout.strip() else {}
     except (OSError, ValueError, subprocess.TimeoutExpired):
@@ -210,7 +212,7 @@ def cmd_start(wait=False, skill=False):
                 cmd_run(own_lock=skill)
             else:
                 flags = CREATE_NO_WINDOW if os.name == "nt" else 0  # 2026-11-24: NO_WINDOW alone (with DETACHED, git and every other console child opened its own black window: Tefa saw them in the headset)
-                subprocess.Popen([sys.executable, os.path.abspath(__file__), "run"], creationflags=flags,
+                hidden.Popen([sys.executable, os.path.abspath(__file__), "run"], creationflags=flags,
                                  stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                  close_fds=True)
             lines.append("LANES IS UPDATING ITSELF (auto_update, no question asked: Tefa's wish of 2026-11-15) from %s "
@@ -242,7 +244,7 @@ def cmd_run(own_lock=False):
         error = ""
         for cmd in info.get("update_commands", []):
             try:
-                r = subprocess.run(cmd, shell=True, capture_output=True, text=True, encoding="utf-8",
+                r = hidden.run(cmd, shell=True, capture_output=True, text=True, encoding="utf-8",
                                    errors="replace", timeout=COMMAND_TIMEOUT_S)
                 out = (r.stdout + r.stderr).strip()
                 log("%s -> %d %s" % (cmd, r.returncode, out[-300:].replace("\n", " / ")))

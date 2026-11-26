@@ -56,6 +56,8 @@ import time
 import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HOME = os.path.expanduser("~")
 CONF = os.environ.get("LANES_CONFIG") or os.path.join(HOME, ".claude", "lanes.conf")
@@ -261,7 +263,7 @@ def read_shortcut(path):
     ps = ("$s=(New-Object -ComObject WScript.Shell).CreateShortcut($env:DOORMAN_LNK);"
           "@{target=$s.TargetPath;args=$s.Arguments;dir=$s.WorkingDirectory}|ConvertTo-Json -Compress")
     env = dict(os.environ, DOORMAN_LNK=path)
-    out = subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, text=True, env=env,
+    out = hidden.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, text=True, env=env,
                          creationflags=CREATE_NO_WINDOW).stdout.strip()
     return json.loads(out) if out else {}
 
@@ -311,10 +313,10 @@ def open_session(name="", first=""):
         cmd = '"%s" %s claude%s --remote-control "%s"' % (target, head, tail, name)
         if first:
             cmd += ' "%s"' % first
-        subprocess.Popen(cmd, cwd=sc.get("dir") or None, creationflags=DETACHED_PROCESS)
+        hidden.Popen(cmd, cwd=sc.get("dir") or None, creationflags=DETACHED_PROCESS)
         named = True
     else:
-        os.startfile(lnk)                                 # an icon of another shape: start it exactly as it is
+        os.startfile(lnk)                                 # an icon of another shape: start it exactly as it is  # window-ok: a Claude window icon, meant to be seen
     deadline = time.time() + OPEN_WAIT_S
     while time.time() < deadline:
         new = sorted(set(session_pids()) - before)
@@ -381,7 +383,7 @@ def type_into(pid, text, enter=True):
 def close_session(pid):
     if pid == os.getpid() or pid not in session_pids():
         return {"ok": False, "error": "process %d is not an open Claude session on this PC" % pid}
-    p = subprocess.run([sys.executable, os.path.abspath(__file__), "_type", str(pid)], capture_output=True, text=True,
+    p = hidden.run([sys.executable, os.path.abspath(__file__), "_type", str(pid)], capture_output=True, text=True,
                        creationflags=CREATE_NO_WINDOW)
     problem = (p.stdout + p.stderr).strip()
     if p.returncode != 0:
@@ -428,7 +430,7 @@ def receive_parcels():
         return {"ok": False, "error": "parcel.py is not beside the doorman"}
     with PARCEL_LOCK:
         py = os.path.join(os.path.dirname(sys.executable), "python.exe")
-        p = subprocess.run([py if os.path.isfile(py) else sys.executable, tool, "receive"], capture_output=True,
+        p = hidden.run([py if os.path.isfile(py) else sys.executable, tool, "receive"], capture_output=True,
                            text=True, encoding="utf-8", errors="replace", timeout=RECEIVE_WAIT_S,
                            creationflags=CREATE_NO_WINDOW)
     lines = [l for l in (p.stdout + p.stderr).splitlines() if l.strip()]
@@ -482,7 +484,7 @@ def round_wanted(pull=False):
     if not os.path.isfile(tool):
         return 0
     py = os.path.join(os.path.dirname(sys.executable), "python.exe")
-    p = subprocess.run([py if os.path.isfile(py) else sys.executable, tool, "wanted"] + (["--pull"] if pull else []),
+    p = hidden.run([py if os.path.isfile(py) else sys.executable, tool, "wanted"] + (["--pull"] if pull else []),
                        capture_output=True, text=True, timeout=RECEIVE_WAIT_S, creationflags=CREATE_NO_WINDOW)
     first = (p.stdout or "").split()
     return int(first[0]) if first and first[0].isdigit() else 0
@@ -562,7 +564,7 @@ def wake_locked(pull):
         # 0.124.0: the window was asked a moment ago and may still be starting; its round lists what came since
         return {"ok": True, "asked": False, "count": count, "why": "a round was asked for a moment ago"}
     if mine:
-        p = subprocess.run([sys.executable, os.path.abspath(__file__), "_type", str(mine[0]["pid"]), "round"],
+        p = hidden.run([sys.executable, os.path.abspath(__file__), "_type", str(mine[0]["pid"]), "round"],
                            capture_output=True, text=True, creationflags=CREATE_NO_WINDOW)
         ok, how = p.returncode == 0, "typed the round into pid %d" % mine[0]["pid"]
         if not ok:
@@ -654,6 +656,7 @@ class Door(BaseHTTPRequestHandler):
 
 
 def serve():
+    hidden.ensure_console()             # 0.125.1: an old Startup shortcut (pythonw) hands over to a hidden console
     addr = own_private_address()
     if not addr:
         print("doorman: this PC has no private-link address (100.x); set doorman_bind in lanes.conf")
@@ -685,16 +688,13 @@ def pythonw():
 
 def install():
     lnk, me = startup_lnk(), os.path.abspath(__file__)
-    ps = ("$s=(New-Object -ComObject WScript.Shell).CreateShortcut($env:DOORMAN_LNK);$s.TargetPath=$env:DOORMAN_PY;"
-          "$s.Arguments='\"'+$env:DOORMAN_ME+'\" serve';$s.WindowStyle=7;$s.Description='Lanes doorman';$s.Save()")
-    env = dict(os.environ, DOORMAN_LNK=lnk, DOORMAN_PY=pythonw(), DOORMAN_ME=me)
-    subprocess.run(["powershell", "-NoProfile", "-Command", ps], env=env, creationflags=CREATE_NO_WINDOW)
-    if not os.path.isfile(lnk):
+    # 0.125.1: the shortcut runs hidden.py launch, which starts the doorman under a hidden console
+    if not hidden.startup_shortcut(lnk, me, ["serve"], "Lanes doorman"):
         print("doorman: could not make the Startup shortcut")
         return 1
-    subprocess.Popen([pythonw(), me, "serve"], creationflags=DETACHED_PROCESS)
+    hidden.background([me, "serve"])
     print("doorman: starts at every logon from now on, and is started now.")
-    have = subprocess.run(["netsh", "advfirewall", "firewall", "show", "rule", "name=" + FIREWALL_RULE],
+    have = hidden.run(["netsh", "advfirewall", "firewall", "show", "rule", "name=" + FIREWALL_RULE],
                           capture_output=True, creationflags=CREATE_NO_WINDOW).returncode == 0
     if have:
         print("The firewall rule is in already; nothing else to do.")
@@ -713,7 +713,7 @@ def uninstall():
     # only python programs are looked at, so the search never matches (and stops) the program doing the searching
     ps = ("Get-CimInstance Win32_Process | Where-Object { $_.Name -like 'python*' -and "
           "$_.CommandLine -like '*doorman.py*serve*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }")
-    subprocess.run(["powershell", "-NoProfile", "-Command", ps], creationflags=CREATE_NO_WINDOW)
+    hidden.run(["powershell", "-NoProfile", "-Command", ps], creationflags=CREATE_NO_WINDOW)
     print("doorman: Startup shortcut removed and the doorman stopped. The firewall rule stays until removed by hand.")
     return 0
 

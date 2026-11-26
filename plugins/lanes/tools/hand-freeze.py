@@ -30,6 +30,8 @@ import sys
 import tempfile
 import urllib.request
 import zipfile
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 REPO = "TefMeister/hand-freeze-vr"
 API_LATEST = f"https://api.github.com/repos/{REPO}/releases/latest"
@@ -64,7 +66,7 @@ def latest_release():
 
 def app_running():
     try:
-        out = subprocess.run(["tasklist", "/FI", f"IMAGENAME eq {EXE}"], capture_output=True, text=True,
+        out = hidden.run(["tasklist", "/FI", f"IMAGENAME eq {EXE}"], capture_output=True, text=True,
                              timeout=NET_TIMEOUT_S).stdout
         return EXE.lower() in out.lower()
     except (OSError, subprocess.TimeoutExpired):
@@ -142,7 +144,7 @@ def install():
             with open(os.path.join(folder, f), "rb") as i, open(os.path.join(INSTALL_DIR, f), "wb") as o:
                 o.write(i.read())
     else:
-        r = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", scripts[0],
+        r = hidden.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", scripts[0],
                             "-From", folder], capture_output=True, text=True)
         if r.returncode != 0 or not os.path.isfile(os.path.join(INSTALL_DIR, EXE)):
             print("The installer did not finish:\n" + (r.stderr or r.stdout).strip())
@@ -152,7 +154,7 @@ def install():
     print(f"Hand Freeze {tag} installed: its icon is on the Desktop. Switch it ON before starting a game.")
     # tell the other PCs (0.65.0): a note on the board, saved with it at the session's end
     if not os.environ.get("LANES_HANDFREEZE_RELEASE") or os.environ.get("LANES_BOARD"):
-        subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "installed.py"),
+        hidden.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "installed.py"),
                         "record", "Hand Freeze", tag])
     return 0
 

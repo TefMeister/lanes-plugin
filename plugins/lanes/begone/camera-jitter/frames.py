@@ -27,6 +27,8 @@ import os
 import shutil
 import subprocess
 import sys
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../tools"))
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
@@ -152,7 +154,7 @@ def cut(video, side, wall_ms, a, b, out, full=False):
         os.remove(old)
     left_eye = f"crop='if(gt(iw/ih,{SBS_ASPECT}),iw/2,iw)':ih:0:0"
     scale = [] if full else ["-vf", f"{left_eye},scale={FRAME_WIDTH}:-2"]
-    r = subprocess.run([exe, "-v", "error", "-ss", f"{t0:.3f}", "-i", video, "-t", f"{dur:.3f}", *scale,
+    r = hidden.run([exe, "-v", "error", "-ss", f"{t0:.3f}", "-i", video, "-t", f"{dur:.3f}", *scale,
                         "-q:v", str(JPEG_Q), os.path.join(out, "f_%03d.jpg")], capture_output=True, text=True,
                        timeout=FFMPEG_TIMEOUT_S)
     frames = sorted(glob.glob(os.path.join(out, "f_*.jpg")))
@@ -161,7 +163,7 @@ def cut(video, side, wall_ms, a, b, out, full=False):
     first = round(PAD_S * fps) if t0 > 0 else 0              # the sheet starts where the stretch does
     on_sheet = min(SHEET_MAX, max(1, len(frames) - first))
     rows = -(-on_sheet // SHEET_COLS)
-    subprocess.run([exe, "-v", "error", "-y", "-ss", f"{t0 + first / fps:.3f}", "-i", video, "-vf",
+    hidden.run([exe, "-v", "error", "-y", "-ss", f"{t0 + first / fps:.3f}", "-i", video, "-vf",
                     f"{left_eye},scale={SHEET_TILE_W}:-2,tile={SHEET_COLS}x{rows}", "-frames:v", "1", "-q:v",
                     str(JPEG_Q), os.path.join(out, "sheet.jpg")], capture_output=True, timeout=FFMPEG_TIMEOUT_S)
     moved = motion(frames)

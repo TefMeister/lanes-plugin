@@ -29,6 +29,8 @@ import subprocess
 import sys
 import urllib.request
 import zipfile
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 NET_TIMEOUT_S = 120
@@ -179,7 +181,7 @@ def checked_download(name, rel, pattern):
 
 
 def run(cmd, cwd=None):
-    r = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=RUN_TIMEOUT_S)
+    r = hidden.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=RUN_TIMEOUT_S)
     if r.returncode != 0:
         raise RuntimeError(((r.stderr or r.stdout).strip().splitlines() or ["failed"])[-1][:200])
     return r.stdout
@@ -191,11 +193,11 @@ def needs(t):
     for n in t.get("needs", []):
         if n.startswith("winget:"):
             wid = n[len("winget:"):]
-            listed = subprocess.run(["winget", "list", "--id", wid, "-e"], capture_output=True, text=True)
+            listed = hidden.run(["winget", "list", "--id", wid, "-e"], capture_output=True, text=True)
             if wid.lower() not in (listed.stdout or "").lower():
                 quiet = os.path.join(os.path.dirname(os.path.abspath(__file__)), "quiet_install.py")
                 if os.name == "nt" and os.path.isfile(quiet):       # 0.110.0: no Yes click when its task is set up,
-                    subprocess.run([sys.executable, quiet, "run", "winget:" + wid])   # and never a wait for ever
+                    hidden.run([sys.executable, quiet, "run", "winget:" + wid])   # and never a wait for ever
                 else:
                     run(["winget", "install", "--id", wid, "-e", "--accept-package-agreements",
                          "--accept-source-agreements", "--silent"])
@@ -228,7 +230,7 @@ def get(name):
             raise RuntimeError("could not read its newest release from GitHub")
         f = checked_download(name, rel, t["asset"])
         if kind == "setup":
-            subprocess.Popen([f])          # the maker's installer: it shows its own steps (and may ask for admin)
+            hidden.Popen([f])          # the maker's installer: it shows its own steps (and may ask for admin)
             notes.append("its installer is open: click through it")
         else:
             out = os.path.join(root(), name, rel["tag_name"])
@@ -247,7 +249,7 @@ def get(name):
             if t.get("pins"):                  # held-back libraries: installed after the tool so they win
                 run([py, "-m", "pip", "install", "-q"] + t["pins"])
             exe =os.path.join(os.path.dirname(py), t["exe"] + (".exe" if os.name == "nt" else ""))
-            listed = subprocess.run(["claude", "mcp", "list"], capture_output=True, text=True, timeout=RUN_TIMEOUT_S)
+            listed = hidden.run(["claude", "mcp", "list"], capture_output=True, text=True, timeout=RUN_TIMEOUT_S)
             if f"{t['mcp']}:" not in (listed.stdout or ""):
                 run(["claude", "mcp", "add", "--scope", "user", t["mcp"], "--", exe])
                 notes.append(f"connector '{t['mcp']}' added: it works after Claude Code restarts")

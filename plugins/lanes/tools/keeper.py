@@ -51,6 +51,8 @@ import subprocess
 import sys
 import time
 from datetime import date, datetime
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -109,7 +111,7 @@ def home():
 
 
 def git(args):
-    return subprocess.run(["git", "-C", board()] + args, capture_output=True, text=True, encoding="utf-8",
+    return hidden.run(["git", "-C", board()] + args, capture_output=True, text=True, encoding="utf-8",
                           errors="replace", timeout=GIT_TIMEOUT_S)
 
 
@@ -527,7 +529,7 @@ def autoclose(session_id, last_text, pid=None):
         return "🔒 Keeper: this window stays open: its reply ends with a question for you."
     if os.environ.get("KEEPER_TEST_NO_CLOSE"):
         return "🔒 Keeper: would close now (test)."
-    subprocess.Popen([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "handon.py"), "_exit",
+    hidden.Popen([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "handon.py"), "_exit",
                       str(pid)], creationflags=D.CREATE_NO_WINDOW if os.name == "nt" else 0, close_fds=True)
     return "🔒 Keeper: the round is done; this window closes by itself."
 

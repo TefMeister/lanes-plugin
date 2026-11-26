@@ -21,6 +21,9 @@ import os
 import re
 import subprocess
 import time
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 FOLDER = "inspector"
 EXAMPLES_SHOWN = 3
@@ -245,7 +248,7 @@ def copy_label(repo, own):
 
 def _git_out(repo, *args):
     try:
-        r = subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True, encoding="utf-8", errors="replace")
+        r = hidden.run(["git", "-C", repo, *args], capture_output=True, text=True, encoding="utf-8", errors="replace")
     except OSError:
         return ""
     return r.stdout if r.returncode == 0 else ""

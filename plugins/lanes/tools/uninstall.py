@@ -36,6 +36,8 @@ import os
 import shutil
 import subprocess
 import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 HOME = os.path.expanduser("~")
@@ -95,7 +97,7 @@ def run_tool(args):
     if DRY_TOOLS:
         return True, "(test: not run) " + " ".join(os.path.basename(a) for a in args)
     try:
-        r = subprocess.run([sys.executable] + args, capture_output=True, text=True, timeout=TOOL_TIMEOUT_S)
+        r = hidden.run([sys.executable] + args, capture_output=True, text=True, timeout=TOOL_TIMEOUT_S)
         out = (r.stdout + r.stderr).strip().splitlines()
         return r.returncode == 0, out[-1] if out else ""
     except (OSError, subprocess.SubprocessError) as e:
@@ -110,7 +112,7 @@ def run_claude(args):
     if not exe:
         return False, "Claude Code's command line was not found; type /plugin uninstall %s instead" % PLUGIN_ID
     try:
-        r = subprocess.run([exe] + args, capture_output=True, text=True, timeout=TOOL_TIMEOUT_S)
+        r = hidden.run([exe] + args, capture_output=True, text=True, timeout=TOOL_TIMEOUT_S)
         out = (r.stdout + r.stderr).strip().splitlines()
         return r.returncode == 0, out[-1] if out else ""
     except (OSError, subprocess.SubprocessError) as e:
@@ -123,7 +125,7 @@ KEEP_IN_STATE = ("never-publish.txt", "private-words.txt")   # the person's own 
 def hooks_path_is_ours():
     """True when git's machine-wide hook setting points into Lanes' state folder (privacy-guard.py install)."""
     try:
-        r = subprocess.run(["git", "config", "--global", "core.hooksPath"], capture_output=True, text=True, timeout=10)
+        r = hidden.run(["git", "config", "--global", "core.hooksPath"], capture_output=True, text=True, timeout=10)
     except (OSError, subprocess.SubprocessError):
         return False
     hp = r.stdout.strip().replace("\\", "/").lower()
@@ -135,7 +137,7 @@ def doorman_rule():
     if DRY_TOOLS:
         return os.environ.get("LANES_UNINSTALL_FAKE_RULE") == "1"
     try:
-        r = subprocess.run(["netsh", "advfirewall", "firewall", "show", "rule", "name=" + DOORMAN_RULE],
+        r = hidden.run(["netsh", "advfirewall", "firewall", "show", "rule", "name=" + DOORMAN_RULE],
                            capture_output=True, text=True, timeout=20)
         return r.returncode == 0 and DOORMAN_RULE in r.stdout
     except (OSError, subprocess.SubprocessError):

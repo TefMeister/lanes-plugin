@@ -29,6 +29,8 @@ import json
 import os
 import subprocess
 import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 BEGONE = os.path.join(os.path.dirname(HERE), "begone")
@@ -111,7 +113,7 @@ def new_line(t, r):
 
 def rider(cmd):
     try:
-        r = subprocess.run([sys.executable, RIDER, cmd], capture_output=True, text=True, timeout=START_TIMEOUT_S,
+        r = hidden.run([sys.executable, RIDER, cmd], capture_output=True, text=True, timeout=START_TIMEOUT_S,
                            env=dict(os.environ, LANES_BEGONE=bc.home()))
         return r.returncode, r.stdout
     except (OSError, subprocess.SubprocessError):
@@ -238,7 +240,7 @@ def main(a):
             rest = [x for x in a[3:] if x != "--game" and x != game] or ["where"]
             if rest[0].replace(".", "", 1).isdigit():   # "<from s> <to s>" is frames.py's cut
                 rest = ["cut"] + rest
-            r = subprocess.run([sys.executable, fr, rest[0], run] + rest[1:], capture_output=True, text=True,
+            r = hidden.run([sys.executable, fr, rest[0], run] + rest[1:], capture_output=True, text=True,
                                timeout=FRAMES_TIMEOUT_S)
             return cap((r.stdout or r.stderr).strip())
         if cmd == "report":
@@ -248,7 +250,7 @@ def main(a):
             except OSError:
                 return "that run has no report.md"
             return "\n".join(lines[:REPORT_MAX_LINES])
-        r = subprocess.run([sys.executable, os.path.join(t["dir"], t["filer"]), "ask", run] + a[3:],
+        r = hidden.run([sys.executable, os.path.join(t["dir"], t["filer"]), "ask", run] + a[3:],
                            capture_output=True, text=True, timeout=ASK_TIMEOUT_S)
         return cap((r.stdout or r.stderr).strip())
     return __doc__

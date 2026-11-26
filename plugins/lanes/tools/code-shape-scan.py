@@ -34,6 +34,8 @@ import os
 import re
 import subprocess
 import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 SOFT_LINES = 800      # past this, split before the next feature goes in
 HARD_LINES = 1500     # past this, splitting is the job
@@ -79,7 +81,7 @@ def conf_get(key):
 
 def origin_url(repo):
     try:
-        out = subprocess.run(["git", "-C", repo, "remote", "get-url", "origin"], capture_output=True, text=True,
+        out = hidden.run(["git", "-C", repo, "remote", "get-url", "origin"], capture_output=True, text=True,
                              encoding="utf-8", errors="replace").stdout.strip()
     except OSError:
         return ""
@@ -105,7 +107,7 @@ def git_repos(root):
 
 def tracked_files(repo):
     try:
-        out = subprocess.run(["git", "-C", repo, "ls-files"], capture_output=True, text=True,
+        out = hidden.run(["git", "-C", repo, "ls-files"], capture_output=True, text=True,
                              check=True, encoding="utf-8", errors="replace").stdout
     except (OSError, subprocess.CalledProcessError):
         return []

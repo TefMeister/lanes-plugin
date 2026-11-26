@@ -16,6 +16,8 @@ import json
 import os
 import subprocess
 import sys
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../tools"))
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 LANE_SKILLS = ("pd", "lm", "ms", "bench", "menu")   # bench + menu: refused on a PC with runs_games = no (0.103.0)
@@ -24,7 +26,7 @@ GUARD_TIMEOUT_S = 15
 
 def ask(guard, payload):
     """(exit code, stderr text) from one prompt guard run on a made-up UserPromptSubmit."""
-    r = subprocess.run([sys.executable, os.path.join(HERE, guard)], input=json.dumps(payload), capture_output=True,
+    r = hidden.run([sys.executable, os.path.join(HERE, guard)], input=json.dumps(payload), capture_output=True,
                        text=True, encoding="utf-8", errors="replace", timeout=GUARD_TIMEOUT_S)
     return r.returncode, (r.stderr or "").strip()
 

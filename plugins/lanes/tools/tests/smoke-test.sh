@@ -1159,6 +1159,17 @@ else
 fi
 
 echo
+echo "hidden.py + window-scan.py - every program Lanes starts opens no black window (0.125.1)"
+if out=$("$PY" "$HERE/hidden_test.py" 2>&1); then
+  ok "$(printf '%s
+' "$out" | tail -n 1)"
+else
+  printf '%s
+' "$out" | grep FAIL
+  fail "hidden_test.py failed"
+fi
+
+echo
 echo "autosave.py - the rider saves its own reports and nothing else; busy git or a dirty clone is left alone"
 if out=$("$PY" "$HERE/autosave_test.py" 2>&1); then
   ok "$(printf '%s\n' "$out" | tail -n 1)"

@@ -31,6 +31,8 @@ import os
 import re
 import subprocess
 import sys
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../tools"))
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 CONF_KEY = "board"
 
@@ -66,7 +68,7 @@ def find_board():
 
 
 def git(repo, *args):
-    r = subprocess.run(["git", "-C", repo] + list(args),
+    r = hidden.run(["git", "-C", repo] + list(args),
                        capture_output=True, text=True, timeout=15)
     return r.returncode, r.stdout
 
@@ -146,7 +148,7 @@ def main():
             tool = os.path.join(board, "tools", "lane-claim.sh")
         if not os.path.isfile(tool):
             return 0
-        r = subprocess.run(["bash", tool, "check", "--no-fetch", "--repo", board] + jobs,
+        r = hidden.run(["bash", tool, "check", "--no-fetch", "--repo", board] + jobs,
                            capture_output=True, text=True, timeout=15)
     except Exception:
         return 0

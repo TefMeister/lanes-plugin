@@ -52,6 +52,8 @@ import shutil
 import subprocess
 import sys
 from datetime import datetime
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import handover  # noqa: E402  (shares the lanes.conf reader, the repo scan and the claim reader)
@@ -315,7 +317,7 @@ def save_checkpoint(project, body):
     """Into the session logs through session-log.py, so it is committed and pushed. Returns its name or ''."""
     tool = os.path.join(os.path.dirname(os.path.abspath(__file__)), "session-log.py")
     try:
-        r = subprocess.run([sys.executable, tool, "write", project or "general", SLUG], input=body,
+        r = hidden.run([sys.executable, tool, "write", project or "general", SLUG], input=body,
                            capture_output=True, text=True, encoding="utf-8", timeout=90)
     except (OSError, subprocess.SubprocessError):
         return ""

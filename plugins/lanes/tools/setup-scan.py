@@ -23,6 +23,8 @@ import shutil
 import socket
 import subprocess
 import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HOME = os.path.expanduser("~")
 LOCALAPPDATA = os.environ.get("LOCALAPPDATA", os.path.join(HOME, "AppData", "Local"))
@@ -40,7 +42,7 @@ BLENDER_PROBE_TIMEOUT_S = 2  # short: a scan must never hang on a closed Blender
 def run_ok(cmd):
     """True when the command starts and exits 0. Store-stub Pythons fail this, which is the point."""
     try:
-        return subprocess.run(cmd, capture_output=True, timeout=CHECK_TIMEOUT_S).returncode == 0
+        return hidden.run(cmd, capture_output=True, timeout=CHECK_TIMEOUT_S).returncode == 0
     except (OSError, subprocess.TimeoutExpired):
         return False
 
@@ -103,7 +105,7 @@ def vs_cpp_tools():
     if not os.path.isfile(vswhere):
         return False
     try:
-        out = subprocess.run([vswhere, "-products", "*", "-requires", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+        out = hidden.run([vswhere, "-products", "*", "-requires", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
                               "-property", "installationPath"], capture_output=True, text=True, timeout=CHECK_TIMEOUT_S)
         return bool(out.stdout.strip())
     except (OSError, subprocess.TimeoutExpired):
@@ -150,13 +152,13 @@ def blender_link_live():
 
 
 def service_running(name):
-    return run_ok(["sc", "query", name]) and "RUNNING" in subprocess.run(
+    return run_ok(["sc", "query", name]) and "RUNNING" in hidden.run(
         ["sc", "query", name], capture_output=True, text=True).stdout
 
 
 def process_running(image):
     try:
-        out = subprocess.run(["tasklist", "/FI", f"IMAGENAME eq {image}"], capture_output=True, text=True,
+        out = hidden.run(["tasklist", "/FI", f"IMAGENAME eq {image}"], capture_output=True, text=True,
                              timeout=CHECK_TIMEOUT_S).stdout
         return image.lower() in out.lower()
     except (OSError, subprocess.TimeoutExpired):
@@ -253,7 +255,7 @@ def steam_app_installed(appid):
 def openxr_sim():
     """the OpenXR Simulator on this PC, as tools/openxr-sim.py finds it (0.73.0)"""
     try:
-        r = subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "openxr-sim.py"),
+        r = hidden.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "openxr-sim.py"),
                             "status", "--json"], capture_output=True, text=True, timeout=90,
                            env=dict(os.environ, LANES_OPENXRSIM_OFFLINE="1"))
         return json.loads(r.stdout).get("installed") is True

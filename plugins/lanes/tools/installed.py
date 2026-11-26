@@ -26,6 +26,8 @@ import json
 import os
 import subprocess
 import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 LOCALAPPDATA = os.environ.get("LOCALAPPDATA", os.path.join(os.path.expanduser("~"), "AppData", "Local"))
@@ -101,7 +103,7 @@ def board():
 
 def pc_name():
     try:
-        r = subprocess.run([sys.executable, os.path.join(HERE, "machine-name.py")], capture_output=True, text=True,
+        r = hidden.run([sys.executable, os.path.join(HERE, "machine-name.py")], capture_output=True, text=True,
                            timeout=FETCH_TIMEOUT_S)
         name = "".join(ch for ch in r.stdout.strip() if ch.isalnum() or ch in "._-")
         return name or None
@@ -111,7 +113,7 @@ def pc_name():
 
 def git(b, *args, timeout=FETCH_TIMEOUT_S):
     try:
-        return subprocess.run(["git", "-C", b, *args], capture_output=True, text=True, timeout=timeout)
+        return hidden.run(["git", "-C", b, *args], capture_output=True, text=True, timeout=timeout)
     except (OSError, subprocess.TimeoutExpired):
         return None
 

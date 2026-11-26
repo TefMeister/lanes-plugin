@@ -14,6 +14,9 @@ import subprocess
 import time
 
 import vb_settings as S
+import sys
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 REG_KEY = r"Software\Khronos\OpenXR\1\ApiLayers\Implicit"
 PE_OFFSET_AT = 0x3c
@@ -163,7 +166,7 @@ class StillRunning(ValueError):
 def running(exe):
     """process ids of every running program with this exe's file name (tasklist; no extra packages)"""
     name = os.path.basename(exe)
-    r = subprocess.run(["tasklist", "/fi", f"IMAGENAME eq {name}", "/fo", "csv", "/nh"], capture_output=True, text=True)
+    r = hidden.run(["tasklist", "/fi", f"IMAGENAME eq {name}", "/fo", "csv", "/nh"], capture_output=True, text=True)
     pids = []
     for line in r.stdout.splitlines():
         cells = [c.strip('"') for c in line.split('","')]

@@ -8,6 +8,9 @@ still ran 0.95.0 while the dev PC ran 0.99.1, and nothing said so. Each PC's han
 """
 import json
 import os
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 PLUGIN_JSON = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".claude-plugin", "plugin.json")
 
@@ -51,7 +54,7 @@ def branch():
     import subprocess
     root = os.path.dirname(os.path.dirname(PLUGIN_JSON))
     try:
-        r = subprocess.run(["git", "-C", root, "rev-parse", "--abbrev-ref", "HEAD"],
+        r = hidden.run(["git", "-C", root, "rev-parse", "--abbrev-ref", "HEAD"],
                            capture_output=True, text=True, timeout=5)
     except (OSError, subprocess.SubprocessError):
         return ""

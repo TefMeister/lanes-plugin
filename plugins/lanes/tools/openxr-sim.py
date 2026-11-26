@@ -50,6 +50,8 @@ import sys
 import tempfile
 import urllib.request
 import zipfile
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 SOURCES = {"original": "elliotttate/OpenXR-Simulator", "fork": "webhead2oo9/OpenXR-Simulator"}
 NET_TIMEOUT_S = 60
@@ -225,7 +227,7 @@ VRBENCH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vrbench", "v
 def bench_status():
     """VR Bench's own status (0.74.0): the layer that plays a VR game for you through this simulator"""
     try:
-        r = subprocess.run([sys.executable, VRBENCH, "status", "--json"], capture_output=True, text=True,
+        r = hidden.run([sys.executable, VRBENCH, "status", "--json"], capture_output=True, text=True,
                            timeout=NET_TIMEOUT_S)
         return json.loads(r.stdout)
     except Exception as e:
@@ -235,7 +237,7 @@ def bench_status():
 def bench_install():
     print("Now VR Bench, which plays a VR game for you through the simulator:")
     sys.stdout.flush()
-    return subprocess.run([sys.executable, VRBENCH, "install"]).returncode
+    return hidden.run([sys.executable, VRBENCH, "install"]).returncode
 
 
 def dll_in_use(folder):

@@ -75,6 +75,8 @@ import sys
 import time
 
 import builds_vanilla as vanilla
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 # ---- settings (named numbers, one place) --------------------------------------------------------
 BIG_FILE_MB = 95                       # above this a file goes up as a release asset, not into git
@@ -150,7 +152,7 @@ def read_project(root, project):
 
 # ---- git ----------------------------------------------------------------------------------------
 def git(root, *args, check=True):
-    r = subprocess.run(["git", "-C", root, *args], capture_output=True, text=True)
+    r = hidden.run(["git", "-C", root, *args], capture_output=True, text=True)
     if check and r.returncode:
         sys.exit(f"builds.py: git {' '.join(args)} failed:\n{r.stderr.strip()}")
     return r
@@ -416,9 +418,9 @@ def write_ignore_and_stubs(root, project, build_dir, conf, tag_hint):
         tag = f"{project}-{digest[:12]}"
         where = "(no GitHub remote - kept on this PC only)"
         if slug:
-            exists = subprocess.run(["gh", "release", "view", tag, "--repo", slug], capture_output=True).returncode == 0
+            exists = hidden.run(["gh", "release", "view", tag, "--repo", slug], capture_output=True).returncode == 0
             if not exists:
-                r = subprocess.run(["gh", "release", "create", tag, os.path.join(build_dir, rel), "--repo", slug,
+                r = hidden.run(["gh", "release", "create", tag, os.path.join(build_dir, rel), "--repo", slug,
                                     "--title", f"{project} {os.path.basename(rel)} {digest[:12]}",
                                     "--notes", f"Large file of {tag_hint}; see its folder in the builds repo."],
                                    capture_output=True, text=True)
@@ -739,7 +741,7 @@ def cmd_check(_a):
         return
     if has_upstream(root):
         try:   # a slow or absent network must never hold up or break a session start
-            subprocess.run(["git", "-C", root, "pull", "--rebase", "--quiet"], capture_output=True,
+            hidden.run(["git", "-C", root, "pull", "--rebase", "--quiet"], capture_output=True,
                            timeout=CHECK_PULL_SECONDS)
         except (subprocess.TimeoutExpired, OSError):
             pass
@@ -814,7 +816,7 @@ def cmd_restore(a):
         stub = full + RELEASE_STUB
         if os.path.isfile(stub) and slug and a.yes:
             tag = f"{a.project}-{digest[:12]}"
-            subprocess.run(["gh", "release", "download", tag, "--repo", slug, "--dir", os.path.dirname(full),
+            hidden.run(["gh", "release", "download", tag, "--repo", slug, "--dir", os.path.dirname(full),
                             "--pattern", os.path.basename(rel)], capture_output=True)
             if os.path.isfile(full):
                 continue

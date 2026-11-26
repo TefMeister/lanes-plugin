@@ -45,6 +45,8 @@ import os
 import re
 import subprocess
 import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from lanes_common import utf8_console  # noqa: E402
@@ -505,7 +507,7 @@ def cmd_record(push):
 def push_files(folder, paths, message):
     """Commit only these files in the repo that holds them, pull --rebase, push."""
     def g(*a):
-        return subprocess.run(["git", "-C", folder] + list(a), capture_output=True, text=True)
+        return hidden.run(["git", "-C", folder] + list(a), capture_output=True, text=True)
     g("add", "--", *paths)
     if not g("diff", "--cached", "--quiet", "--", *paths).returncode:
         print("nothing changed, nothing to push")

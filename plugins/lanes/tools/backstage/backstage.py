@@ -45,6 +45,8 @@ import os
 import subprocess
 import sys
 import time
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 STATE_DIR = os.environ.get("LANES_STATE_DIR") or os.path.join(os.path.expanduser("~"), ".claude", "lanes")
@@ -424,7 +426,7 @@ class Watcher:
     def alive(self):
         if self.pid:
             return bool(exe_of_pid(self.pid)) or bool(windows_of(self.pid))
-        out = subprocess.run(["tasklist", "/FO", "CSV", "/NH"], capture_output=True, text=True,
+        out = hidden.run(["tasklist", "/FO", "CSV", "/NH"], capture_output=True, text=True,
                              creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).stdout.lower()
         return any('"%s"' % n in out for n in self.names)
 
@@ -487,7 +489,7 @@ def start_watch(names, log_path=None, max_s=DEFAULT_MAX_S, pid=None):
     log_path = log_path or new_log_path(names)
     cmd = [sys.executable, os.path.abspath(__file__), "watch", "--log", log_path, "--max-s", str(max_s)]
     cmd += ["--pid", str(pid)] if pid else ["--watch", ",".join(names)]
-    p = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    p = hidden.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                          creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     return p, log_path
 
@@ -561,7 +563,7 @@ def pad_start():
     """Start a pad keeper as its own hidden program (no-op when one runs). For other tools."""
     if pad_running():
         return None
-    return subprocess.Popen([sys.executable, os.path.abspath(__file__), "pad", "serve"],
+    return hidden.Popen([sys.executable, os.path.abspath(__file__), "pad", "serve"],
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
 
@@ -673,7 +675,7 @@ def newest_log():
 # ---------------------------------------------------------------------------------------------------------------------
 
 def find_pid(name):
-    out = subprocess.run(["tasklist", "/FI", "IMAGENAME eq " + name, "/FO", "CSV", "/NH"], capture_output=True,
+    out = hidden.run(["tasklist", "/FI", "IMAGENAME eq " + name, "/FO", "CSV", "/NH"], capture_output=True,
                          text=True, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).stdout
     for line in out.splitlines():
         parts = [p.strip('"') for p in line.split('","')]
@@ -722,9 +724,9 @@ def main(argv=None):
         time.sleep(0.5)                                   # the watcher's hooks are up before the game's first window
         target = what[0]
         if "://" in target or not os.path.isfile(target):
-            os.startfile(target)                          # a steam:// link or a shortcut
+            os.startfile(target)                          # a steam:// link or a shortcut  # window-ok: starts the game itself
         else:
-            subprocess.Popen(what, cwd=os.path.dirname(os.path.abspath(target)))
+            hidden.Popen(what, cwd=os.path.dirname(os.path.abspath(target)))
         print("started; watching %s; flash log: %s" % (", ".join(names), log))
     elif a.cmd in ("away", "back"):
         pid = target_pid(a.target)

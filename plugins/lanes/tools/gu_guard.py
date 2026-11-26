@@ -40,6 +40,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -135,11 +137,11 @@ def current_version(item):
     if fake is not None:
         return fake.get(f"{kind}:{name}")
     if kind == "pip":
-        r = subprocess.run([sys.executable, "-c", f"import importlib.metadata as m; print(m.version({name!r}))"],
+        r = hidden.run([sys.executable, "-c", f"import importlib.metadata as m; print(m.version({name!r}))"],
                            capture_output=True, text=True, timeout=VERSION_TIMEOUT_S)
         return (r.stdout.strip() or None) if r.returncode == 0 else None
     if kind == "winget":
-        r = subprocess.run(["winget", "list", "--id", name, "--exact", "--disable-interactivity",
+        r = hidden.run(["winget", "list", "--id", name, "--exact", "--disable-interactivity",
                             "--accept-source-agreements"], capture_output=True, text=True, timeout=VERSION_TIMEOUT_S,
                            encoding="utf-8", errors="replace")
         for line in r.stdout.splitlines():
@@ -187,7 +189,7 @@ def probe_msvc(tmp):
                            "Microsoft Visual Studio", "Installer", "vswhere.exe")
     if not os.path.isfile(vswhere):
         return 1, "vswhere.exe not found: Visual Studio's build tools are not installed"
-    r = subprocess.run([vswhere, "-latest", "-products", "*", "-property", "installationPath"],
+    r = hidden.run([vswhere, "-latest", "-products", "*", "-property", "installationPath"],
                        capture_output=True, text=True, timeout=VERSION_TIMEOUT_S)
     root = r.stdout.strip().splitlines()[0] if r.stdout.strip() else ""
     src = os.path.join(tmp, "hello.c")
@@ -199,7 +201,7 @@ def probe_msvc(tmp):
         if not os.path.isfile(vc):
             return 1, f"{bat} not found under {root or 'no Visual Studio'}"
         exe = os.path.join(tmp, bat.replace(".bat", ".exe"))
-        r = subprocess.run(f'call "{vc}" >nul && cl /nologo "{src}" /Fe"{exe}" /Fo"{tmp}\\\\" && "{exe}"',
+        r = hidden.run(f'call "{vc}" >nul && cl /nologo "{src}" /Fe"{exe}" /Fo"{tmp}\\\\" && "{exe}"',
                            shell=True, capture_output=True, text=True, timeout=CHECK_TIMEOUT_S, cwd=tmp)
         lines.append(f"{bat}: exit {r.returncode}")
         if r.returncode != 0 or "ok" not in r.stdout:
@@ -212,7 +214,7 @@ def probe_blender(tmp):
                                           "Blender Foundation", "Blender *", "blender.exe")))
     if not found:
         return 1, "no Blender found"
-    r = subprocess.run([found[-1], "-b", "--python-exit-code", "1", "--python-expr",
+    r = hidden.run([found[-1], "-b", "--python-exit-code", "1", "--python-expr",
                         "import bpy, addon_utils; print('BLENDER_OK', bpy.app.version_string)"],
                        capture_output=True, text=True, timeout=CHECK_TIMEOUT_S, cwd=tmp, encoding="utf-8",
                        errors="replace")
@@ -229,7 +231,7 @@ def run_check(c):
         elif cmd == "@blender":
             code, text = probe_blender(tmp)
         elif cmd == "@pip":
-            r = subprocess.run([sys.executable, "-m", "pip", "check"], capture_output=True, text=True,
+            r = hidden.run([sys.executable, "-m", "pip", "check"], capture_output=True, text=True,
                                timeout=CHECK_TIMEOUT_S)
             code, text = r.returncode, r.stdout + r.stderr
         else:
@@ -240,7 +242,7 @@ def run_check(c):
             first, _, args = cmd.partition(" ")
             if argv is None and os.path.isfile(os.path.join(folder, first)):     # cmd.exe did not find build.bat
                 cmd = f'"{os.path.join(folder, first)}" {args}'.strip()          # in its own folder (live, 2026-10-23)
-            r = subprocess.run(argv or cmd, shell=argv is None, capture_output=True, text=True, cwd=folder,
+            r = hidden.run(argv or cmd, shell=argv is None, capture_output=True, text=True, cwd=folder,
                                timeout=CHECK_TIMEOUT_S, encoding="utf-8", errors="replace")
             code, text = r.returncode, (r.stdout or "") + (r.stderr or "")
     except subprocess.TimeoutExpired:
@@ -340,7 +342,7 @@ def cmd_putback(item):
         except Exception:  # noqa: BLE001 - the ordinary way still works
             pass
     print(f"Putting {item} back to {version} ...")
-    r = subprocess.run(argv, capture_output=True, text=True, timeout=CHECK_TIMEOUT_S, encoding="utf-8",
+    r = hidden.run(argv, capture_output=True, text=True, timeout=CHECK_TIMEOUT_S, encoding="utf-8",
                        errors="replace")
     have = current_version(item)
     ok = have == version

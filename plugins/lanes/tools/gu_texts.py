@@ -29,6 +29,9 @@ import json
 import os
 import re
 import subprocess
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 GIT_TIMEOUT_S = 30
 GH_TIMEOUT_S = 60
@@ -66,7 +69,7 @@ def tag_version(tag):
 
 
 def git(repo, *args):
-    r = subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True, timeout=GIT_TIMEOUT_S,
+    r = hidden.run(["git", "-C", repo, *args], capture_output=True, text=True, timeout=GIT_TIMEOUT_S,
                        encoding="utf-8", errors="replace")
     return r.returncode, r.stdout.strip()
 
@@ -78,7 +81,7 @@ def repo_list(owner):
             return json.load(f)
     if os.environ.get("LANES_GU_NO_NET"):
         return []
-    r = subprocess.run(["gh", "repo", "list", owner, "-L", str(REPO_LIMIT), "--json",
+    r = hidden.run(["gh", "repo", "list", owner, "-L", str(REPO_LIMIT), "--json",
                         "name,description,visibility,isArchived,latestRelease"],
                        capture_output=True, text=True, timeout=GH_TIMEOUT_S, encoding="utf-8")
     if r.returncode != 0:
@@ -93,7 +96,7 @@ def newest_release(owner, repo):
         return repo["latestRelease"]
     if "releases" in repo or os.environ.get("LANES_GU_FAKE_REPOS") or os.environ.get("LANES_GU_NO_NET"):
         return (repo.get("releases") or [{}])[0]
-    r = subprocess.run(["gh", "release", "list", "-R", f"{owner}/{repo['name']}", "-L", "1", "--json", "tagName"],
+    r = hidden.run(["gh", "release", "list", "-R", f"{owner}/{repo['name']}", "-L", "1", "--json", "tagName"],
                        capture_output=True, text=True, timeout=GH_TIMEOUT_S, encoding="utf-8")
     try:
         return (json.loads(r.stdout) or [{}])[0] if r.returncode == 0 else {}
@@ -104,7 +107,7 @@ def newest_release(owner, repo):
 def gh_login():
     if os.environ.get("LANES_GU_NO_NET"):
         return ""
-    r = subprocess.run(["gh", "api", "user", "-q", ".login"], capture_output=True, text=True, timeout=GH_TIMEOUT_S)
+    r = hidden.run(["gh", "api", "user", "-q", ".login"], capture_output=True, text=True, timeout=GH_TIMEOUT_S)
     return r.stdout.strip() if r.returncode == 0 else ""
 
 

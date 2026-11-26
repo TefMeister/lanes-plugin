@@ -15,6 +15,8 @@ import os
 import re
 import subprocess
 import sys
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../tools"))
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 QUERY_TIMEOUT_S = 10
 
@@ -58,7 +60,7 @@ def processes_powershell():
     """{pid: (parent, name, command line, start)} of every program, from Windows"""
     ps = ("Get-CimInstance Win32_Process | ForEach-Object { '{0}`t{1}`t{2}`t{3}`t{4}' -f $_.ProcessId, "
           "$_.ParentProcessId, $_.Name, $_.CreationDate.ToString('yyyyMMddHHmmssfff'), ($_.CommandLine -replace '`t',' ') }")
-    out = subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, text=True,
+    out = hidden.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, text=True,
                          timeout=QUERY_TIMEOUT_S, encoding="utf-8", errors="replace").stdout
     found = {}
     for line in out.splitlines():

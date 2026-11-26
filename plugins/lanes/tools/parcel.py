@@ -55,6 +55,8 @@ import shutil
 import subprocess
 import sys
 import time
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HOME = os.path.expanduser("~")
 CONF = os.environ.get("LANES_CONFIG") or os.path.join(HOME, ".claude", "lanes.conf")
@@ -115,7 +117,7 @@ def root():
 
 
 def git(args, repo):
-    p = subprocess.run(["git", "-C", repo] + args, capture_output=True, text=True, encoding="utf-8",
+    p = hidden.run(["git", "-C", repo] + args, capture_output=True, text=True, encoding="utf-8",
                        errors="replace", timeout=GIT_TIMEOUT_S,
                        creationflags=CREATE_NO_WINDOW if os.name == "nt" else 0)
     return p.returncode == 0, (p.stdout + p.stderr).strip()
@@ -198,7 +200,7 @@ def send_one(repo_name, f, quiet_when_nothing=False, note=""):
         label["direct"] = True
         write_json(os.path.join(f["outbox"], pid + ".json"), label)
         flags = CREATE_NO_WINDOW if os.name == "nt" else 0  # 2026-11-24: NO_WINDOW alone (with DETACHED, git and every other console child opened its own black window: Tefa saw them in the headset)
-        subprocess.Popen([sys.executable, os.path.abspath(__file__), "_push", pid], creationflags=flags,
+        hidden.Popen([sys.executable, os.path.abspath(__file__), "_push", pid], creationflags=flags,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL)
         print("parcel: %s handed over, %s step(s); uploading in the background%s" % (repo_name, count, extra))
         return 0
@@ -256,7 +258,7 @@ def send_new(repo_name, repo, branch, remote, f, note):
         label["direct"] = True
         write_json(os.path.join(f["outbox"], pid + ".json"), label)
         flags = CREATE_NO_WINDOW if os.name == "nt" else 0  # 2026-11-24: NO_WINDOW alone (with DETACHED, git and every other console child opened its own black window: Tefa saw them in the headset)
-        subprocess.Popen([sys.executable, os.path.abspath(__file__), "_push", pid], creationflags=flags,
+        hidden.Popen([sys.executable, os.path.abspath(__file__), "_push", pid], creationflags=flags,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL)
         print("parcel: %s (new on GitHub) handed over, %s step(s); uploading in the background%s" % (repo_name, count, extra))
         return 0

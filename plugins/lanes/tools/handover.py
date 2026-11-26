@@ -67,6 +67,8 @@ import time
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from git_leftovers import leftovers  # noqa: E402
@@ -124,7 +126,7 @@ def read_conf():
 def git(args, cwd, timeout=GIT_TIMEOUT_S):
     """Run git; return (ok, stdout). Never raises."""
     try:
-        r = subprocess.run(["git"] + args, cwd=cwd, capture_output=True, text=True, timeout=timeout,
+        r = hidden.run(["git"] + args, cwd=cwd, capture_output=True, text=True, timeout=timeout,
                            encoding="utf-8", errors="replace")
         return r.returncode == 0, (r.stdout or "").strip()
     except (OSError, subprocess.SubprocessError):
@@ -439,7 +441,7 @@ def account_repos(owner):
         except ValueError:
             return None
     try:
-        r = subprocess.run(["gh", "repo", "list", owner, "--limit", "1000", "--json", "name,isFork,isArchived,url"],
+        r = hidden.run(["gh", "repo", "list", owner, "--limit", "1000", "--json", "name,isFork,isArchived,url"],
                            capture_output=True, text=True, timeout=FETCH_TIMEOUT_S, encoding="utf-8", errors="replace")
         return [(x["name"], x["url"]) for x in json.loads(r.stdout) if not x.get("isFork") and not x.get("isArchived")] \
             if r.returncode == 0 else None
@@ -462,7 +464,7 @@ def clone_missing(conf, roots):
     cloned = []
     for name, url in missing[:LEVEL_CLONES_MAX]:
         try:
-            r = subprocess.run(["git", "clone", "-q", url, os.path.join(live, name)], capture_output=True,
+            r = hidden.run(["git", "clone", "-q", url, os.path.join(live, name)], capture_output=True,
                                timeout=LEVEL_CLONE_TIMEOUT_S)
             if r.returncode == 0:
                 cloned.append(name)

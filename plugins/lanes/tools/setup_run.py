@@ -33,6 +33,8 @@ import sys
 import urllib.request
 import zipfile
 from datetime import datetime
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PLUGIN = os.path.dirname(HERE)
@@ -183,7 +185,7 @@ def sh(step_id, args, timeout=STEP_TIMEOUT_S, cwd=None):
         return True, "fake"
     log(f"[{step_id}] {shown}")
     try:
-        p = subprocess.run([str(a) for a in args], capture_output=True, text=True, timeout=timeout, cwd=cwd,
+        p = hidden.run([str(a) for a in args], capture_output=True, text=True, timeout=timeout, cwd=cwd,
                            encoding="utf-8", errors="replace", env=dict(os.environ, PYTHONIOENCODING="utf-8"))
         out = ((p.stdout or "") + (p.stderr or "")).strip()
         log(f"[{step_id}] exit {p.returncode}: {out[-600:]}")
@@ -200,7 +202,7 @@ def scan():
         if src:
             data = json.load(open(src, encoding="utf-8"))
         else:
-            out = subprocess.run([PY, tool("setup-scan.py"), "--json"], capture_output=True, text=True,
+            out = hidden.run([PY, tool("setup-scan.py"), "--json"], capture_output=True, text=True,
                                  timeout=600, encoding="utf-8", errors="replace").stdout
             data = json.loads(out)
         present = {r["id"]: bool(r["present"]) for r in data.get("tools", [])}
@@ -208,7 +210,7 @@ def scan():
         present = {}
     if "dotnet10" not in present:          # the RE Engine connector needs the .NET 10 SDK; the scan has no row for it
         try:
-            out = "" if src else subprocess.run(["dotnet", "--list-sdks"], capture_output=True, text=True,
+            out = "" if src else hidden.run(["dotnet", "--list-sdks"], capture_output=True, text=True,
                                                  timeout=60).stdout
             present["dotnet10"] = any(l.startswith("10.") for l in out.splitlines())
         except (OSError, subprocess.TimeoutExpired):
@@ -220,7 +222,7 @@ def gh_signed_in():
     if FAKE:
         return os.environ.get("LANES_SETUP_GH", "yes") == "yes"
     try:
-        return subprocess.run(["gh", "auth", "status"], capture_output=True, timeout=60).returncode == 0
+        return hidden.run(["gh", "auth", "status"], capture_output=True, timeout=60).returncode == 0
     except (OSError, subprocess.TimeoutExpired):
         return False
 
@@ -352,7 +354,7 @@ def github_step(_):
     addr = "<id>+<login>@users.noreply.github.com"
     if not FAKE:
         try:
-            p = subprocess.run(["gh", "api", "user", "--jq", '"\\(.id)+\\(.login)@users.noreply.github.com"'],
+            p = hidden.run(["gh", "api", "user", "--jq", '"\\(.id)+\\(.login)@users.noreply.github.com"'],
                                capture_output=True, text=True, timeout=60)
             addr = p.stdout.strip().strip('"')
         except (OSError, subprocess.TimeoutExpired):

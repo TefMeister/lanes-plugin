@@ -30,6 +30,8 @@ import re
 import subprocess
 import sys
 import time
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -222,7 +224,7 @@ def light_line():
     if os.environ.get("HANDON_TEST_LIGHT") is not None:
         return os.environ["HANDON_TEST_LIGHT"]
     try:
-        p = subprocess.run([sys.executable, os.path.join(HERE, "parcel.py"), "light"], capture_output=True,
+        p = hidden.run([sys.executable, os.path.join(HERE, "parcel.py"), "light"], capture_output=True,
                            text=True, encoding="utf-8", errors="replace", timeout=LIGHT_TIMEOUT_S)
         return (p.stdout or "").strip().splitlines()[-1] if (p.stdout or "").strip() else ""
     except Exception:  # noqa: BLE001
@@ -438,7 +440,7 @@ def close_if_safe(records, pid=None):
         return "\U0001F6AA Hand-on: '%s' is up; this window stays open because %s." % (new_name, "; ".join(why))
     if os.environ.get("HANDON_TEST_NO_CLOSE"):
         return "\U0001F6AA Hand-on: would close now (test)."
-    subprocess.Popen([sys.executable, os.path.abspath(__file__), "_exit", str(pid)],
+    hidden.Popen([sys.executable, os.path.abspath(__file__), "_exit", str(pid)],
                      creationflags=CREATE_NO_WINDOW if os.name == "nt" else 0, close_fds=True)
     return "\U0001F6AA Hand-on: '%s' has the next job; this window is saved and closes now." % new_name
 
@@ -489,7 +491,7 @@ def exit_later(pid):
     time.sleep(CLOSE_DELAY_S)
     import doorman
     if pid in doorman.session_pids():
-        subprocess.run([sys.executable, os.path.join(HERE, "doorman.py"), "_type", str(pid)],
+        hidden.run([sys.executable, os.path.join(HERE, "doorman.py"), "_type", str(pid)],
                        creationflags=CREATE_NO_WINDOW if os.name == "nt" else 0)
     return 0
 

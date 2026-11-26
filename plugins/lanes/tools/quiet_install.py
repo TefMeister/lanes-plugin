@@ -40,6 +40,8 @@ import subprocess
 import sys
 import time
 import uuid
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -109,7 +111,7 @@ def fake():
 def task_exists():
     if fake():
         return os.path.isfile(os.path.join(root(), "runner.ps1"))
-    p = subprocess.run([system_exe("schtasks.exe"), "/Query", "/TN", TASK], capture_output=True, text=True,
+    p = hidden.run([system_exe("schtasks.exe"), "/Query", "/TN", TASK], capture_output=True, text=True,
                        creationflags=NO_WINDOW)
     return p.returncode == 0
 
@@ -140,13 +142,13 @@ def elevated_setup(extra):
         pass
     args = ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", SETUP_PS1, "-Root", root(), "-Report", report] + extra
     if fake():                                    # tests: no rights are asked for; setup.ps1 itself refuses to go on
-        p = subprocess.run([POWERSHELL] + args, capture_output=True, text=True, creationflags=NO_WINDOW)
+        p = hidden.run([POWERSHELL] + args, capture_output=True, text=True, creationflags=NO_WINDOW)
         return read_json(report) or {"ok": False, "error": (p.stdout + p.stderr).strip()[:SAID_CHARS]}
     # Start-Process joins the list with spaces and quotes nothing: a path or name with a space is quoted here
     quoted = ", ".join("'%s'" % (('"%s"' % a) if " " in a else a).replace("'", "''") for a in args)
     cmd = "Start-Process -FilePath '%s' -ArgumentList %s -Verb RunAs -WindowStyle Hidden -Wait" % (POWERSHELL, quoted)
     try:
-        p = subprocess.run([POWERSHELL, "-NoProfile", "-Command", cmd], capture_output=True, text=True,
+        p = hidden.run([POWERSHELL, "-NoProfile", "-Command", cmd], capture_output=True, text=True,
                            timeout=SETUP_WAIT_S, creationflags=NO_WINDOW)
     except subprocess.TimeoutExpired:
         return {"ok": False, "error": "nobody clicked Yes within %d minutes" % (SETUP_WAIT_S // MIN_S)}
@@ -204,9 +206,9 @@ def start_task():
                 "-TestRoot", root()]
         if os.environ.get("LANES_QUIET_WINGET"):
             args += ["-TestWinget", os.environ["LANES_QUIET_WINGET"]]
-        subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=NO_WINDOW)
+        hidden.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=NO_WINDOW)
         return True, ""
-    p = subprocess.run([system_exe("schtasks.exe"), "/Run", "/TN", TASK], capture_output=True, text=True,
+    p = hidden.run([system_exe("schtasks.exe"), "/Run", "/TN", TASK], capture_output=True, text=True,
                        creationflags=NO_WINDOW)
     return p.returncode == 0, (p.stdout + p.stderr).strip()
 
@@ -268,7 +270,7 @@ def run_direct(items, limit_min=DIRECT_LIMIT_MIN):
         if it.get("force"):
             cmd.append("--force")
         try:
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+            p = hidden.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                                  text=True, encoding="utf-8", errors="replace", creationflags=NO_WINDOW,
                                  shell=winget.lower().endswith((".cmd", ".bat")))
         except OSError as e:
@@ -279,7 +281,7 @@ def run_direct(items, limit_min=DIRECT_LIMIT_MIN):
             lines = [l.strip() for l in (said or "").splitlines() if re.search(r"[A-Za-z0-9]{3}", l)]
             out.append(dict(it, status="ran", exit=p.returncode, tail=" | ".join(lines[-4:])))
         except subprocess.TimeoutExpired:
-            subprocess.run([system_exe("taskkill.exe"), "/T", "/F", "/PID", str(p.pid)], capture_output=True,
+            hidden.run([system_exe("taskkill.exe"), "/T", "/F", "/PID", str(p.pid)], capture_output=True,
                            creationflags=NO_WINDOW)
             out.append(dict(it, status="timeout", tail="still running after %g minutes, most likely waiting for a "
                                                        "Yes click nobody was there to give" % limit_min))

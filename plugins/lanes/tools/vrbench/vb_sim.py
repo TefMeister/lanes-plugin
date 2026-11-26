@@ -12,6 +12,9 @@ import time
 import uuid
 
 import vb_settings as S
+import sys
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 
 def _command(name, payload, data_dir):
@@ -97,6 +100,6 @@ def loaded_in(pid):
         pass
     except Exception:
         return False
-    r = subprocess.run(["tasklist", "/m", "/fi", f"PID eq {pid}", "/fo", "csv", "/nh"],
+    r = hidden.run(["tasklist", "/m", "/fi", f"PID eq {pid}", "/fo", "csv", "/nh"],
                        capture_output=True, text=True)
     return "openxr_simulator" in r.stdout.lower()

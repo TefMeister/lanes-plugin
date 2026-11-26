@@ -29,6 +29,8 @@ import re
 import socket
 import subprocess
 import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 KEY = "machine_name"
 PREFIX = "PC"
@@ -104,7 +106,7 @@ def next_free(taken):
 
 
 def git(b, *args):
-    return subprocess.run(["git", "-C", b] + list(args), capture_output=True, text=True, timeout=60).returncode == 0
+    return hidden.run(["git", "-C", b] + list(args), capture_output=True, text=True, timeout=60).returncode == 0
 
 
 def register(new, old=""):

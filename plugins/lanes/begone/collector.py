@@ -55,6 +55,8 @@ import shutil
 import subprocess
 import sys
 import time
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../tools"))
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -257,7 +259,7 @@ def gpu_sample():
     if not _nvsmi:
         return [""] * 5
     try:
-        r = subprocess.run([_nvsmi, "--query-gpu=utilization.gpu,memory.used,temperature.gpu,clocks.gr,power.draw",
+        r = hidden.run([_nvsmi, "--query-gpu=utilization.gpu,memory.used,temperature.gpu,clocks.gr,power.draw",
                             "--format=csv,noheader,nounits"], capture_output=True, text=True, timeout=5,
                            creationflags=DETACHED)
         parts = [p.strip() for p in r.stdout.strip().splitlines()[0].split(",")]

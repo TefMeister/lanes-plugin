@@ -24,6 +24,8 @@ import re
 import subprocess
 import sys
 from datetime import datetime
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HOME = os.path.expanduser("~")
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -78,7 +80,7 @@ def set_conf(value):
 
 def gh(*args):
     try:
-        r = subprocess.run([GH, *args], capture_output=True, text=True, timeout=GH_TIMEOUT_S)
+        r = hidden.run([GH, *args], capture_output=True, text=True, timeout=GH_TIMEOUT_S)
         return r.returncode, (r.stdout or "") + (r.stderr or "")
     except subprocess.TimeoutExpired:
         return 124, "gh did not answer in time"

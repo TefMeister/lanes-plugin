@@ -20,6 +20,8 @@ import zipfile
 
 import vb_layer
 import vb_settings as S
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 REPO = "TefMeister/vr-bench"
 API_LATEST = f"https://api.github.com/repos/{REPO}/releases/latest"
@@ -120,7 +122,7 @@ def install():
             for f in os.listdir(folder):
                 shutil.copyfile(os.path.join(folder, f), os.path.join(S.LAYER_DIR, f))
         else:
-            r = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", scripts[0],
+            r = hidden.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", scripts[0],
                                 "-From", folder], capture_output=True, text=True)
             if r.returncode != 0 or installed_tag() is None:
                 print("The installer did not finish:\n" + (r.stderr or r.stdout).strip())
@@ -131,7 +133,7 @@ def install():
         f.write(tag + "\n")
     print(f"VR Bench {tag} installed. Nothing is switched on: `vrbench.py start <game>` does that for one run.")
     if not testing or os.environ.get("LANES_BOARD"):   # tell the other PCs: a note on the board
-        subprocess.run([sys.executable, INSTALLED_PY, "record", "VR Bench", tag])
+        hidden.run([sys.executable, INSTALLED_PY, "record", "VR Bench", tag])
     return 0
 
 

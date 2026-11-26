@@ -29,6 +29,8 @@ import sys
 import gu
 import gu_texts
 import lanes_common
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 GIT_TIMEOUT_S = 60
 # what is not part of a download: a change here alone does not make the download out of date
@@ -40,7 +42,7 @@ ZIP_LINK = "archive/refs/heads/main.zip"
 
 
 def git(repo, *args):
-    r = subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True, timeout=GIT_TIMEOUT_S)
+    r = hidden.run(["git", "-C", repo, *args], capture_output=True, text=True, timeout=GIT_TIMEOUT_S)
     return r.returncode, r.stdout.strip()
 
 

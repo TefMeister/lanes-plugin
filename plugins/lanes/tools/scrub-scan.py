@@ -32,6 +32,8 @@ import re
 import socket
 import subprocess
 import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 # Placeholders that are meant to be there. A finding matching one of these is not a finding.
 SAFE_NAMES = {
@@ -67,7 +69,7 @@ LICENCE_FILES = ("OFL.txt",)
 def tracked_files(root):
     """Prefer git's own list: anything untracked is not going to be published."""
     try:
-        out = subprocess.run(["git", "-C", root, "ls-files"], capture_output=True, text=True,
+        out = hidden.run(["git", "-C", root, "ls-files"], capture_output=True, text=True,
                              timeout=30, encoding="utf-8", errors="replace")
         if out.returncode == 0 and out.stdout.strip():
             return [os.path.join(root, p) for p in out.stdout.splitlines() if p.strip()]

@@ -20,6 +20,8 @@ import os
 import re
 import subprocess
 import sys
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../tools"))
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOOLS = os.path.join(os.path.dirname(HERE), "tools")
@@ -120,7 +122,7 @@ def main():
     first_gh = cmd.find(sends[0]) if sends else -1
     pipe_in = cmd[:first_gh] if first_gh > 0 and "|" in cmd[:first_gh] else ""   # `cat file | gh ...` sends that file
     try:
-        r = subprocess.run([sys.executable, os.path.join(TOOLS, "features.py"), "is-on", "privacy_guard"],
+        r = hidden.run([sys.executable, os.path.join(TOOLS, "features.py"), "is-on", "privacy_guard"],
                            capture_output=True, timeout=15)
         if r.returncode != 0:
             return 0

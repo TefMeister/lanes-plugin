@@ -31,6 +31,8 @@ import subprocess
 import sys
 import tempfile
 import zipfile
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -156,7 +158,7 @@ def latest(repo):
 
 def app_running(exe):
     try:
-        out = subprocess.run(["tasklist", "/FI", f"IMAGENAME eq {exe}"], capture_output=True, text=True,
+        out = hidden.run(["tasklist", "/FI", f"IMAGENAME eq {exe}"], capture_output=True, text=True,
                              timeout=TASKLIST_TIMEOUT_S).stdout
         return exe.lower() in out.lower()
     except (OSError, subprocess.SubprocessError):
@@ -210,7 +212,7 @@ def get_app(name, t):
         shutil.rmtree(work, ignore_errors=True)
     mark(name, rel["tag_name"])
     if not os.environ.get("LANES_OURS_FAKE"):                   # tell the other PCs (installed.py, 0.65.0)
-        subprocess.run([sys.executable, os.path.join(HERE, "installed.py"), "record", t["label"].split(" (")[0],
+        hidden.run([sys.executable, os.path.join(HERE, "installed.py"), "record", t["label"].split(" (")[0],
                         rel["tag_name"]], capture_output=True)
     return [f"{t['label']} {rel['tag_name']}: installed, its icon is on the Desktop"]
 
@@ -311,7 +313,7 @@ def main(a):
         # (both PCs sat on v3.2 for a day after v4 came out while this said so, 2026-10-28)
         hf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hand-freeze.py")
         try:
-            s = json.loads(subprocess.run([sys.executable, hf, "status", "--json"], capture_output=True, text=True,
+            s = json.loads(hidden.run([sys.executable, hf, "status", "--json"], capture_output=True, text=True,
                                           timeout=HAND_FREEZE_TIMEOUT_S).stdout or "{}")
             if s.get("installed") and s.get("newer"):
                 n.append(f"Hand Freeze: {s.get('installed_release')} -> {s.get('latest_release')} "

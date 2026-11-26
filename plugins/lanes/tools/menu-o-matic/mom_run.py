@@ -26,6 +26,8 @@ import ctypes
 import time
 
 import mom_route as R
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 # ---- Settings ----------------------------------------------------------------
 POLL_S = 0.5                 # how often a wait re-checks its checkpoint
@@ -184,7 +186,7 @@ def run_route(route, start, timeout, lost_dir, check_mode="auto"):
                     say(event="watching", programs=names, flash_log=flash_log)
                 else:
                     say(event="backstage", note="the route names no \"exe\": nothing to keep off the screen")
-            os.startfile(step["launch"]) if hasattr(os, "startfile") else subprocess.Popen([step["launch"]])
+            os.startfile(step["launch"]) if hasattr(os, "startfile") else hidden.Popen([step["launch"]])  # window-ok: starts the game itself
             # "wait_for": a window that appears BEFORE the game's own (a launcher dialog); the game window is
             # then looked up again at the next step
             hwnd = W.wait_window(step.get("wait_for") or route["window"], step.get("timeout") or WINDOW_TIMEOUT_S,

@@ -31,6 +31,8 @@ import os
 import re
 import subprocess
 import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 PLUGIN_NAME = "lanes"
 CHECK_EVERY_H = 6          # fetch from GitHub at most this often
@@ -61,7 +63,7 @@ def vtuple(v):
 
 def git(repo, *args):
     try:
-        r = subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True,
+        r = hidden.run(["git", "-C", repo, *args], capture_output=True, text=True,
                            timeout=GIT_TIMEOUT_S, encoding="utf-8", errors="replace")
         return r.stdout if r.returncode == 0 else None
     except (OSError, subprocess.TimeoutExpired):

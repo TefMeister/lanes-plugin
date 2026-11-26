@@ -59,6 +59,8 @@ import re
 import subprocess
 import sys
 import time
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import inspector_checks as ic  # noqa: E402
@@ -156,7 +158,7 @@ def enabled():
 
 def git(repo, *args):
     try:
-        r = subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True,
+        r = hidden.run(["git", "-C", repo, *args], capture_output=True, text=True,
                            encoding="utf-8", errors="replace")
     except OSError:
         return None

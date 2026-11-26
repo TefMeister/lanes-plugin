@@ -33,6 +33,8 @@ import shutil
 import subprocess
 import sys
 from datetime import datetime
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HOME = os.path.expanduser("~")
 LOCALAPPDATA = os.environ.get("LOCALAPPDATA", os.path.join(HOME, "AppData", "Local"))
@@ -107,7 +109,7 @@ def desktop():
         return env
     # Ask Windows: a Desktop moved into OneDrive is not ~/Desktop
     try:
-        out = subprocess.run(["powershell", "-NoProfile", "-Command", "[Environment]::GetFolderPath('Desktop')"],
+        out = hidden.run(["powershell", "-NoProfile", "-Command", "[Environment]::GetFolderPath('Desktop')"],
                              capture_output=True, text=True, timeout=20).stdout.strip()
         if out:
             return out
@@ -124,7 +126,7 @@ def find_wt():
         if os.path.exists(c):
             return c
     try:
-        out = subprocess.run(["where", "wt.exe"], capture_output=True, text=True, timeout=10).stdout.strip().splitlines()
+        out = hidden.run(["where", "wt.exe"], capture_output=True, text=True, timeout=10).stdout.strip().splitlines()
         if out:
             return out[0]
     except (OSError, subprocess.SubprocessError):
@@ -179,7 +181,7 @@ def create(folder=None, dry_run=False):
         "$s.Save()"
     )
     try:
-        r = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+        r = hidden.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
                            capture_output=True, text=True, timeout=60)
     except (OSError, subprocess.SubprocessError) as e:
         say("could not run PowerShell to make the shortcut (%s)." % e)

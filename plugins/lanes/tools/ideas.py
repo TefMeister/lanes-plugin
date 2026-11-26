@@ -46,6 +46,8 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 # ---- settings (named numbers, one place) --------------------------------------------------------
 MARKER = "<!-- write below this line -->"   # DUMP.md: everything below this is waiting to be filed
@@ -130,7 +132,7 @@ def pages_dir(ideas):
 def web_url(ideas):
     """https URL of the ideas repo if it is on GitHub, else ''."""
     try:
-        url = subprocess.run(["git", "-C", str(ideas), "remote", "get-url", "origin"],
+        url = hidden.run(["git", "-C", str(ideas), "remote", "get-url", "origin"],
                              capture_output=True, text=True, timeout=10).stdout.strip()
     except (OSError, subprocess.SubprocessError):
         return ""
@@ -171,7 +173,7 @@ def open_issues(ideas):
     if not repo:
         return []
     try:
-        out = subprocess.run(["gh", "issue", "list", "--repo", repo, "--state", "open", "--limit",
+        out = hidden.run(["gh", "issue", "list", "--repo", repo, "--state", "open", "--limit",
                               str(MAX_ISSUES), "--json", "number,title"],
                              capture_output=True, text=True, timeout=20)
         return json.loads(out.stdout) if out.returncode == 0 and out.stdout.strip() else []
@@ -201,11 +203,11 @@ def cmd_check(a, ctx):
         except OSError:
             pass
     # an ideas repo kept on this PC only (no branch on GitHub to follow) has nothing to download: no warning
-    up = subprocess.run(["git", "-C", str(ideas), "rev-parse", "--abbrev-ref", "@{u}"], capture_output=True, text=True)
+    up = hidden.run(["git", "-C", str(ideas), "rev-parse", "--abbrev-ref", "@{u}"], capture_output=True, text=True)
     try:
         if up.returncode != 0:
             raise FileNotFoundError
-        r = subprocess.run(["git", "-C", str(ideas), "pull", "--ff-only", "--quiet"],
+        r = hidden.run(["git", "-C", str(ideas), "pull", "--ff-only", "--quiet"],
                            capture_output=True, text=True, timeout=PULL_TIMEOUT_S)
         failed = r.returncode != 0
         errs = (r.stderr or "").strip().splitlines()
@@ -362,21 +364,21 @@ def hands_over():
 
 def git_commit(repo_path, msg):
     g = ["git", "-C", str(repo_path)]
-    subprocess.run(g + ["add", "--", IDEAS_DIR], check=True)
-    if subprocess.run(g + ["diff", "--cached", "--quiet"]).returncode == 0:
+    hidden.run(g + ["add", "--", IDEAS_DIR], check=True)
+    if hidden.run(g + ["diff", "--cached", "--quiet"]).returncode == 0:
         return
-    subprocess.run(g + ["commit", "-q", "-m", f"{msg}\n\nLane: ideas"], check=True)
+    hidden.run(g + ["commit", "-q", "-m", f"{msg}\n\nLane: ideas"], check=True)
     if hands_over():
         parcel = os.path.join(os.path.dirname(os.path.abspath(__file__)), "parcel.py")
-        r = subprocess.run([sys.executable, parcel, "send", repo_path.name], capture_output=True, text=True,
+        r = hidden.run([sys.executable, parcel, "send", repo_path.name], capture_output=True, text=True,
                            encoding="utf-8", errors="replace",
                            env=dict(os.environ, PARCEL_ROOT=str(repo_path.parent)))
         said = (r.stdout + r.stderr).strip().splitlines()
         print(f"  {'handed over' if r.returncode == 0 else 'HAND-OVER FAILED'} {repo_path.name}"
               + (f" ({said[-1]})" if said and r.returncode else ""))
         return
-    ok = subprocess.run(g + ["pull", "-q", "--rebase"]).returncode == 0 and \
-        subprocess.run(g + ["push", "-q"]).returncode == 0
+    ok = hidden.run(g + ["pull", "-q", "--rebase"]).returncode == 0 and \
+        hidden.run(g + ["push", "-q"]).returncode == 0
     print(f"  {'pushed' if ok else 'PUSH FAILED'} {repo_path.name}")
 
 
@@ -388,10 +390,10 @@ def pull_ideas(ideas):
     if not ideas or not (ideas / ".git").exists() or os.environ.get("LANES_IDEAS_NO_PULL"):
         return
     try:
-        if subprocess.run(["git", "-C", str(ideas), "rev-parse", "--abbrev-ref", "@{u}"],
+        if hidden.run(["git", "-C", str(ideas), "rev-parse", "--abbrev-ref", "@{u}"],
                           capture_output=True, text=True).returncode != 0:
             return
-        r = subprocess.run(["git", "-C", str(ideas), "pull", "--ff-only", "--quiet"],
+        r = hidden.run(["git", "-C", str(ideas), "pull", "--ff-only", "--quiet"],
                            capture_output=True, text=True, timeout=PULL_TIMEOUT_S)
         ok = r.returncode == 0
     except (OSError, subprocess.TimeoutExpired):

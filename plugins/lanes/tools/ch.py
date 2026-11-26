@@ -41,6 +41,8 @@ import subprocess
 import sys
 
 import gu
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 STATE_DIR = os.environ.get("LANES_STATE_DIR") or os.path.join(os.path.expanduser("~"), ".claude", "lanes")
@@ -81,7 +83,7 @@ def backup_dir():
 
 def run(cmd, cwd=None, timeout=TOOL_TIMEOUT_S):
     try:
-        p = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace",
+        p = hidden.run(cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace",
                            timeout=timeout)
         return p.returncode, p.stdout + p.stderr
     except (OSError, subprocess.TimeoutExpired) as e:

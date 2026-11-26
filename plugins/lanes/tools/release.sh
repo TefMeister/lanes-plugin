@@ -16,6 +16,7 @@
 #   3. the tag vX.Y.Z does not exist yet, and (0.69.2) GitHub has nothing this copy lacks (another PC's release)
 #   4. the privacy scan finds nothing that identifies a person
 #   5. the smoke test and the hooks test pass
+#   6. no black windows: every process start goes through hidden.py (window-scan.py), and a live run shows none
 # Then it pushes, tags vX.Y.Z, pushes the tag, and creates the GitHub Release marked Latest.
 set -uo pipefail
 
@@ -98,6 +99,23 @@ if ! out=$(bash "$HERE/tests/hooks-test.sh" 2>&1); then
   stop "the hooks test failed"
 fi
 ok "hooks test passed"
+
+# 6. no black windows (0.125.1, 2026-11-26: they came back with new versions three times, each new tool repeating the
+# mistake). Every process start goes through tools/hidden.py, and a live run proves no console window shows.
+if ! out=$("$PY" "$REL/tools/window-scan.py" "$REL" 2>&1); then
+  printf '%s\n' "$out" | head -"$SHOW_LINES"
+  stop "a process start does not go through hidden.py, so it could open a black window on the desktop"
+fi
+ok "every process start goes through hidden.py"
+case "$(uname -s 2>/dev/null)" in
+  MINGW*|MSYS*|CYGWIN*|Windows_NT)
+    if ! out=$("$PY" "$REL/tools/tests/no_window_live.py" 2>&1); then
+      printf '%s\n' "$out" | head -"$SHOW_LINES"
+      stop "the live check saw a console window (or could not run): no version with a black window ships"
+    fi
+    ok "the live check saw no console window"
+    ;;
+esac
 
 if [ "$NOTES" = "--check" ]; then
   echo; echo "All checks passed. --check: nothing was published."

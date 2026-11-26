@@ -18,13 +18,16 @@ Never raises: the rider must live on whatever git says.
 """
 import os
 import subprocess
+import sys
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../tools"))
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 GIT_TIMEOUT_S = 60
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
 
 def _git(repo, *args, timeout=GIT_TIMEOUT_S):
-    r = subprocess.run(["git", "-C", repo] + list(args), capture_output=True, text=True, timeout=timeout,
+    r = hidden.run(["git", "-C", repo] + list(args), capture_output=True, text=True, timeout=timeout,
                        creationflags=NO_WINDOW, encoding="utf-8", errors="replace")
     return r.returncode, (r.stdout or "") + (r.stderr or "")
 

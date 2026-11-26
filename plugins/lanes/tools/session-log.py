@@ -36,6 +36,8 @@ import os
 import re
 import subprocess
 import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 KEY = "session_logs"
 DEFAULT_LAST = 10                      # how many logs `list` prints when not told
@@ -67,7 +69,7 @@ def read_conf():
 
 def git(args, cwd):
     try:
-        r = subprocess.run(["git"] + args, cwd=cwd, capture_output=True, text=True, timeout=GIT_TIMEOUT_S,
+        r = hidden.run(["git"] + args, cwd=cwd, capture_output=True, text=True, timeout=GIT_TIMEOUT_S,
                            encoding="utf-8", errors="replace")
         return r.returncode == 0, ((r.stdout or "") + (r.stderr or "")).strip()
     except (OSError, subprocess.SubprocessError) as e:

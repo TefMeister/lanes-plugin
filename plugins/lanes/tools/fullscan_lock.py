@@ -27,6 +27,8 @@ import subprocess
 import sys
 import tempfile
 from datetime import datetime, timezone
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 LOCK_REL = "handover/fullscan.lock"
 STALE_H = 12
@@ -60,7 +62,7 @@ def conf():
 
 def git(repo, *args, env=None, timeout=60):
     try:
-        r = subprocess.run(["git", "-C", repo] + list(args), capture_output=True, text=True, timeout=timeout,
+        r = hidden.run(["git", "-C", repo] + list(args), capture_output=True, text=True, timeout=timeout,
                            env=env, creationflags=NO_WINDOW, encoding="utf-8", errors="replace")
     except (OSError, subprocess.SubprocessError) as e:
         return False, str(e)

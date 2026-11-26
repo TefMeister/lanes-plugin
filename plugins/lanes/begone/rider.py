@@ -42,6 +42,8 @@ import shutil
 import subprocess
 import sys
 import time
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../tools"))
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -61,7 +63,8 @@ MOVE_TRIES = 3                  # a recording the game still holds is tried this
 MOVE_WAIT_S = 2                 # ... this far apart, then left for the next pass (2026-11-04: it killed the rider twice)
 UNKNOWN_GAME = "unknown-game"   # the folder name when no game can be told: never "?" (not allowed in a Windows name)
 STARTUP_CMD = os.path.join(os.path.expandvars("%APPDATA%"), r"Microsoft\Windows\Start Menu\Programs\Startup",
-                           "BeG0nE-rider.cmd")
+                           "BeG0nE-rider.cmd")     # before 0.125.1: a .cmd opened a cmd window at every logon
+STARTUP_LNK = os.path.join(os.path.dirname(STARTUP_CMD), "BeG0nE rider.lnk")   # 0.125.1: a shortcut, no window
 OLD_STARTUP_CMD = os.path.join(os.path.dirname(STARTUP_CMD), "BeG0nE-jitter-rider.cmd")
 STEAMVR_EXES = ("vrserver.exe", "vrcompositor.exe", "vrmonitor.exe")
 VR_DLLS = ("openxr_loader.dll", "openvr_api.dll")
@@ -169,7 +172,7 @@ def file_one(t, path, game=None):
     cmd = [sys.executable, os.path.join(t["dir"], t["filer"]), "file", path, "--home", bc.tool_home(t)]
     if game:
         cmd += ["--game", game]
-    r = subprocess.run(cmd, capture_output=True, text=True, timeout=FILE_TIMEOUT_S,
+    r = hidden.run(cmd, capture_output=True, text=True, timeout=FILE_TIMEOUT_S,
                        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     if r.returncode != 0:
         raise RuntimeError((r.stderr or r.stdout).strip().splitlines()[-1] if (r.stderr or r.stdout).strip() else "filer failed")
@@ -199,7 +202,7 @@ def exe_of(pid):
 
 
 def rec(*args):
-    r = subprocess.run([sys.executable, REC_TOOL, *args], capture_output=True, text=True, timeout=REC_TIMEOUT_S,
+    r = hidden.run([sys.executable, REC_TOOL, *args], capture_output=True, text=True, timeout=REC_TIMEOUT_S,
                        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     out = (r.stdout or r.stderr or "").strip().splitlines()
     return r.returncode == 0, (out[-1] if out else "")
@@ -248,7 +251,7 @@ def feature_on(name, every_s=60):
     if now - at < every_s:
         return val
     try:
-        r = subprocess.run([sys.executable, FEATURES, "is-on", name], capture_output=True, timeout=REC_TIMEOUT_S,
+        r = hidden.run([sys.executable, FEATURES, "is-on", name], capture_output=True, timeout=REC_TIMEOUT_S,
                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         val = r.returncode == 0
     except Exception:
@@ -382,6 +385,7 @@ def take_the_one_rider_lock(name=None):
 
 
 def run():
+    hidden.ensure_console()             # 0.125.1: started with no console, it starts again under a hidden one
     os.makedirs(bc.LOCAL, exist_ok=True)
     if not take_the_one_rider_lock():
         say(f"rider (pid {os.getpid()}) not started: another rider already runs on this PC (pid in {PID_FILE}); "
@@ -513,10 +517,10 @@ def start():
         stop()
         time.sleep(1.0)                 # Windows lets go of the dead rider's mutex
     os.makedirs(bc.LOCAL, exist_ok=True)
-    pyw = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
-    exe = pyw if os.path.exists(pyw) else sys.executable
-    subprocess.Popen([exe, os.path.abspath(__file__), "run"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                     creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) | DETACHED_PROCESS)
+    move_startup_entry()
+    # 0.125.1: python.exe under a hidden console (never pythonw / DETACHED): everything the rider starts shares it,
+    # so no filer, ffmpeg cut or git push can open a window of its own
+    hidden.background([os.path.abspath(__file__), "run"])
     for _ in range(10):
         time.sleep(0.5)
         pid, cmd = running()
@@ -534,7 +538,7 @@ def stop():
     if not pids:
         print("not running"); return
     for pid in sorted(pids):            # every copy, not only the one the pid file names (0.116.x)
-        subprocess.run(["taskkill", "/PID", str(pid), "/F"], capture_output=True)
+        hidden.run(["taskkill", "/PID", str(pid), "/F"], capture_output=True)
     if len(pids) > 1:
         print(f"stopped {len(pids)} riders (pids {', '.join(map(str, sorted(pids)))}); one per PC is the rule")
     try:
@@ -559,26 +563,31 @@ def status():
         print("collecting:", ", ".join(st.get("collecting") or []) or "nothing")
     except (OSError, ValueError):
         print("no state yet")
-    print("starts with Windows:", "yes" if os.path.exists(STARTUP_CMD) else "no")
+    print("starts with Windows:", "yes" if os.path.exists(STARTUP_LNK) or os.path.exists(STARTUP_CMD) else "no")
+
+
+def move_startup_entry(force=False):
+    """0.125.1: the Startup entry is a shortcut that starts the rider with no window; an old .cmd is replaced"""
+    old = [p for p in (STARTUP_CMD, OLD_STARTUP_CMD) if os.path.exists(p)]
+    if not (force or old):
+        return os.path.exists(STARTUP_LNK)
+    ok = hidden.startup_shortcut(STARTUP_LNK, os.path.abspath(__file__), ["run"], "BeG0nE rider")
+    if ok:
+        for p in old:
+            try:
+                os.remove(p)
+            except OSError:
+                pass
+    return ok
 
 
 def install():
-    pyw = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
-    if not os.path.exists(pyw):
-        pyw = sys.executable
-    os.makedirs(os.path.dirname(STARTUP_CMD), exist_ok=True)
-    with open(STARTUP_CMD, "w", encoding="utf-8") as f:
-        f.write(f'@echo off\r\nstart "" "{pyw}" "{os.path.abspath(__file__)}" run\r\n')
-    try:
-        os.remove(OLD_STARTUP_CMD)
-    except OSError:
-        pass
-    print("starts with Windows: yes")
+    print("starts with Windows:", "yes" if move_startup_entry(force=True) else "NO (the shortcut could not be made)")
     start()
 
 
 def uninstall():
-    for p in (STARTUP_CMD, OLD_STARTUP_CMD):
+    for p in (STARTUP_LNK, STARTUP_CMD, OLD_STARTUP_CMD):
         try:
             os.remove(p)
         except OSError:

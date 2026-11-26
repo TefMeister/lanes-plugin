@@ -41,6 +41,8 @@ import urllib.request
 
 import gu_texts
 import lanes_common
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 STATE_DIR = os.environ.get("LANES_STATE_DIR") or os.path.join(os.path.expanduser("~"), ".claude", "lanes")
@@ -127,7 +129,7 @@ def today():
 
 def run_json(script, *args):
     try:
-        r = subprocess.run([sys.executable, os.path.join(HERE, script), *args], capture_output=True, text=True,
+        r = hidden.run([sys.executable, os.path.join(HERE, script), *args], capture_output=True, text=True,
                            timeout=NET_TIMEOUT_S * 3)
         text = r.stdout.strip()
         return json.loads(text[text.index("{"):])
@@ -136,7 +138,7 @@ def run_json(script, *args):
 
 
 def git(repo, *args):
-    r = subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True, timeout=GIT_TIMEOUT_S)
+    r = hidden.run(["git", "-C", repo, *args], capture_output=True, text=True, timeout=GIT_TIMEOUT_S)
     return r.returncode, r.stdout.strip()
 
 
@@ -333,7 +335,7 @@ def gh_login():
     if fake is not None:
         return fake
     try:
-        r = subprocess.run(["gh", "api", "user", "--jq", ".login"], capture_output=True, text=True, timeout=20)
+        r = hidden.run(["gh", "api", "user", "--jq", ".login"], capture_output=True, text=True, timeout=20)
         return r.stdout.strip() if r.returncode == 0 else ""
     except (OSError, subprocess.TimeoutExpired):
         return ""

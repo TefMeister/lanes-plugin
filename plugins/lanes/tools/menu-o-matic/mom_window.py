@@ -8,6 +8,10 @@ silently ignores it).
 import ctypes
 import ctypes.wintypes as w
 import time
+import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 u, g = ctypes.windll.user32, ctypes.windll.gdi32
 
@@ -215,7 +219,7 @@ def running(exe):
     """Process ids of every running program with this file name ("FalloutNV.exe"); tasklist, no extra packages."""
     import subprocess
     name = exe.replace("/", "\\").rsplit("\\", 1)[-1]
-    r = subprocess.run(["tasklist", "/fi", f"IMAGENAME eq {name}", "/fo", "csv", "/nh"], capture_output=True, text=True)
+    r = hidden.run(["tasklist", "/fi", f"IMAGENAME eq {name}", "/fo", "csv", "/nh"], capture_output=True, text=True)
     pids = []
     for line in r.stdout.splitlines():
         cells = [c.strip('"') for c in line.split('","')]

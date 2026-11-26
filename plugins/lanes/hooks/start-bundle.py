@@ -14,6 +14,8 @@ import os
 import subprocess
 import sys
 import time
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../tools"))
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 # (script, its own arguments) in the order their text should appear
@@ -98,7 +100,7 @@ def main():
         if time.time() - began > budget_s:
             break
         try:
-            r = subprocess.run(cmd, input=data, capture_output=True, timeout=part_s,
+            r = hidden.run(cmd, input=data, capture_output=True, timeout=part_s,
                                creationflags=flags)
             t = text_of(r.stdout.decode("utf-8", errors="replace"))
         except Exception:  # noqa: BLE001 - one part never stops the others
@@ -121,7 +123,7 @@ def slow_from_cache():
     except ValueError:
         wait_s = SLOW_WAIT_S
     try:
-        r = subprocess.run([sys.executable, tool, "show", "slow-start", "--wait-s=%g" % wait_s,
+        r = hidden.run([sys.executable, tool, "show", "slow-start", "--wait-s=%g" % wait_s,
                             "--max-age-h=%d" % SLOW_MAX_AGE_H, "--", sys.executable, os.path.abspath(__file__),
                             "slow-run"],
                            capture_output=True, timeout=wait_s + 20, stdin=subprocess.DEVNULL,

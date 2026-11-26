@@ -32,6 +32,8 @@ import re
 import subprocess
 import sys
 import time
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # hidden.py sits beside this file
+import hidden  # noqa: E402  the one way Lanes starts a program: never a black window (0.125.1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -48,7 +50,7 @@ BOARD_LINE = re.compile(r"^\s*(OPEN\b|PAUSED\b|⏸|LIVE:|STATUS:|WATCHING\b)", r
 
 def git(repo, *args, timeout=GIT_TIMEOUT_S):
     try:
-        r = subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True, encoding="utf-8",
+        r = hidden.run(["git", "-C", repo, *args], capture_output=True, text=True, encoding="utf-8",
                            errors="replace", timeout=timeout)
         return r.returncode, r.stdout
     except (subprocess.TimeoutExpired, OSError):
