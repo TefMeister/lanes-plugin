@@ -48,7 +48,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 STATE_DIR = os.environ.get("LANES_STATE_DIR") or os.path.join(os.path.expanduser("~"), ".claude", "lanes")
 STATE_FILE = os.path.join(STATE_DIR, "gu.json")
 GIST_CHARS = 220             # how much of a release's notes the install question shows
-NUDGE_DAYS = 7               # the habit: once a week
+NUDGE_DAYS = 7               # the old habit; since 0.125.2 it follows lanes.conf `fullscan_every =` (interval.py)
 NET_TIMEOUT_S = 15
 GIT_TIMEOUT_S = 30
 SKIP_NAMES = {"__pycache__", ".git", ".pytest_cache"}
@@ -513,13 +513,18 @@ def nudge():
     try:
         configured = any(conf_values(k) for k in ("twin", "watch", "ours", "routes", "texts"))
         last = load_state().get("last_run")
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import interval
+        every = interval.fullscan_every()   # the tool check is part of the full scan, so it comes round as often
         if last:
-            days = (today() - datetime.date.fromisoformat(last)).days
-            if days >= NUDGE_DAYS:
-                print(f"LANES /gu: the weekly tool check last ran {days} days ago on this PC. Mention it in one line "
-                      f"(the person types /lanes:gu, or /gu, when it suits); do not run it unasked.")
+            ran = datetime.date.fromisoformat(last)
+            if interval.late_by(ran, every, today()) is not None:
+                days = (today() - ran).days
+                print(f"LANES /gu: the tool check ({interval.words(every)}) last ran {days} days ago on this PC. "
+                      f"Mention it in one line (the person types /lanes:gu, or /gu, when it suits); do not run it "
+                      f"unasked.")
         elif configured:
-            print("LANES /gu: the weekly tool check has never run on this PC. Mention it in one line "
+            print("LANES /gu: the tool check has never run on this PC. Mention it in one line "
                   "(the person types /lanes:gu, or /gu, when it suits); do not run it unasked.")
     except Exception:
         pass

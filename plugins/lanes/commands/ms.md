@@ -86,6 +86,9 @@ TELL ME: <the one or two things you need back: a number, yes/no, a screenshot, h
   next block starts with "start it again". Never assume it was closed.
 - **Each time the person has closed the app**, shelve the run's logs before the next start writes over them
   (0.88.0): `python "${CLAUDE_PLUGIN_ROOT}/tools/gd.py" shelve <project>`. `docs/PROTOCOL.md` §36.
+- **When the session's last run is closed, read that game's new logs with Gold Digger** (0.125.2), the same as
+  `/lm`: follow `/lanes:gd <project>` (digest, the new facts into the notes, `gd.py sifted`); the full scan reads only
+  what is left.
 - **Every swap is a new numbered build** (0.26.0), the same as `/lm`: after the change and before the
   next block, `builds.py snap <project> "<title>" --note "<what and why>"`; when they report what they
   saw, `builds.py result <project> <N> "<their words>"`. Tell them the number in the next block, so

@@ -35,6 +35,9 @@ kernel32 = ctypes.windll.kernel32
 user32.DefWindowProcW.restype = ctypes.c_ssize_t
 user32.DefWindowProcW.argtypes = [W.HWND, W.UINT, W.WPARAM, W.LPARAM]
 user32.CreateWindowExW.restype = W.HWND
+user32.CreateWindowExW.argtypes = [W.DWORD, W.LPCWSTR, W.LPCWSTR, W.DWORD, ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                                   ctypes.c_int, W.HWND, W.HMENU, W.HINSTANCE, W.LPVOID]  # 64-bit handles (0.125.2)
+kernel32.GetModuleHandleW.restype = W.HMODULE
 seen = []                       # (class, title)
 lock = threading.Lock()
 

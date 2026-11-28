@@ -45,8 +45,11 @@ class WC(ctypes.Structure):
     _fields_ = [("style", w.UINT), ("lpfnWndProc", WNDPROC), ("cbClsExtra", ctypes.c_int), ("cbWndExtra", ctypes.c_int),
                 ("hInstance", w.HINSTANCE), ("hIcon", w.HICON), ("hCursor", w.HANDLE), ("hbrBackground", w.HBRUSH),
                 ("lpszMenuName", w.LPCWSTR), ("lpszClassName", w.LPCWSTR)]
+k.GetModuleHandleW.restype = w.HMODULE                  # 64-bit handles: without these two the call
 wc = WC(0, proc, 0, 0, k.GetModuleHandleW(None), None, None, None, None, "BackstageTestGame")
 u.RegisterClassW(ctypes.byref(wc))
+u.CreateWindowExW.argtypes = [w.DWORD, w.LPCWSTR, w.LPCWSTR, w.DWORD, ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                              ctypes.c_int, w.HWND, w.HMENU, w.HINSTANCE, w.LPVOID]   # failed "int too long" (0.125.2)
 u.CreateWindowExW.restype = w.HWND
 h = u.CreateWindowExW(0x08000000, "BackstageTestGame", "Backstage test game", 0x00CF0000, 200, 200, 320, 200,
                       None, None, wc.hInstance, None)   # WS_EX_NOACTIVATE, WS_OVERLAPPEDWINDOW

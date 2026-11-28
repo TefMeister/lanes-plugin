@@ -62,7 +62,7 @@ HOME = os.path.expanduser("~")
 STATE_DIR = os.environ.get("LANES_STATE_DIR") or os.path.join(HOME, ".claude", "lanes")
 STATE_FILE = os.path.join(STATE_DIR, "gd.json")
 HERE = os.path.dirname(os.path.abspath(__file__))
-NUDGE_DAYS = 7                     # the habit: a full scan once a week
+NUDGE_DAYS = 7                     # the old habit; since 0.125.2 the interval is lanes.conf `fullscan_every =` (interval.py)
 SETTLE_S = 120                     # a file changed more recently than this may still be written by the game
 SCAN_BYTES = 8 * 1024 * 1024       # contents are looked at (for "also" shelves) only in text files up to this size
 ALSO_HITS = 5                      # a shelf's words must turn up this many times in a file to be named as "also"
@@ -705,11 +705,16 @@ def nudge():
     try:
         last = load_state().get("last_fullscan")
         if last:
-            days = (datetime.date.today() - datetime.date.fromisoformat(last)).days
-            if days >= NUDGE_DAYS:
-                print(f"LANES /fullscan: the full scan last ran {days} days ago on this PC (it includes the weekly tool "
-                      f"check). Mention it in one line (the person types /lanes:fullscan, or /fullscan, when it "
-                      f"suits); do not run it unasked.")
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+            import interval
+            every = interval.fullscan_every()
+            today = datetime.date.today()
+            ran = datetime.date.fromisoformat(last)
+            if interval.late_by(ran, every, today) is not None:
+                days = (today - ran).days
+                print(f"LANES /fullscan: the full scan last ran {days} days ago on this PC (it is run "
+                      f"{interval.words(every)}; it includes the tool check). Mention it in one line (the person types "
+                      f"/lanes:fullscan, or /fullscan, when it suits); do not run it unasked.")
         else:
             waiting = sum(len([r for r in index(g) if r["id"] not in sifted_ids(g)]) for g in all_games())
             if waiting:

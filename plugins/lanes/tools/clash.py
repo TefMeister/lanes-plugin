@@ -213,6 +213,7 @@ ROWS = {
     "tool:window-scan.py": part("release"),
     "tool:hidden.py": free("a library every tool starts programs through; it holds nothing and changes no file"),
     "tool:boxwatch.py": free("only watches which windows show and writes its own log"),
+    "tool:interval.py": free("date sums for how often a regular job comes round; it reads lanes.conf and changes no file"),
     "tool:update-check.py": part("update"), "tool:auto_update.py": part("update"), "tool:handon.py": free("opens a window of its own and closes only its own"), "tool:uninstall.py": part("uninstall"), "tool:theme.py": part("theme"),
     "tool:gd.py": part("gd"), "tool:gu.py": part("gu"), "tool:gu_guard.py": part("gu"), "tool:gu_texts.py": part("gu"),
     "tool:netcheck.py": part("fullscan"),

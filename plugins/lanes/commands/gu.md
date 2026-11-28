@@ -9,7 +9,8 @@ Asked for by the maintainer, 2026-10-14. PROTOCOL §23.
 
 **Role: Keeper** (one-PC roles, 0.120.0, PROTOCOL §50): the first reply of this window says so in one line, beside the version line: `🧰 Keeper — uploads, the front page, the index and the regular check-ups`.
 
-**The habit: once a week.** A session-start line says when it has been 7 days or more on this PC. Never run it
+**The habit: with the full scan**, as often as `fullscan_every =` in lanes.conf says (7 days when not set; `month`
+since 0.125.2 for the maintainer). A session-start line says when it is due on this PC. Never run it
 unasked; mention it in one line and carry on.
 
 ## 0. Rules

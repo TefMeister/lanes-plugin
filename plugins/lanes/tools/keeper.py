@@ -57,11 +57,16 @@ import hidden  # noqa: E402  the one way Lanes starts a program: never a black w
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import doorman as D  # noqa: E402
+import interval  # noqa: E402  every N days, or once a month (0.125.2)
 import parcel as P  # noqa: E402
 
 STATE_FILE = os.path.join(D.STATE_DIR, "keeper-state.json")
 LOCAL_SESSION_NAME = "Keeper"
-DEFAULT_JOBS = [("fullscan", 7, "/lanes:fullscan", "the weekly check-up of everything on GitHub and on this PC")]
+def default_jobs():
+    """The regular jobs a new jobs list starts with; the full scan's interval is lanes.conf `fullscan_every =`."""
+    e = interval.fullscan_every()
+    return [("fullscan", str(e), "/lanes:fullscan",
+             "the %s check-up of everything on GitHub and on this PC" % interval.habit(e))]
 GIT_TIMEOUT_S = 120
 ROUND_SHOWS_DAYS = 14
 
@@ -151,15 +156,16 @@ def read_jobs():
     if not os.path.isfile(path):
         with open(path, "w", encoding="utf-8", newline="\n") as f:
             f.write("# job\tevery (days)\twhat to type\twhat it is\n")
-            for row in DEFAULT_JOBS:
-                f.write("%s\t%d\t%s\t%s\n" % row)
+            for row in default_jobs():
+                f.write("%s\t%s\t%s\t%s\n" % row)
         keep([path], "Keeper: the regular jobs list")
     out = []
     with open(path, encoding="utf-8") as f:
         for line in f:
             parts = line.rstrip("\n").split("\t")
-            if len(parts) >= 4 and not line.startswith("#") and parts[1].strip().isdigit():
-                out.append({"name": parts[0].strip(), "every": int(parts[1]), "type": parts[2].strip(),
+            every = parts[1].strip().lower() if len(parts) >= 4 else ""
+            if len(parts) >= 4 and not line.startswith("#") and (every.isdigit() or every in ("month", "monthly")):
+                out.append({"name": parts[0].strip(), "every": interval.parse(every), "type": parts[2].strip(),
                             "what": parts[3].strip()})
     return out
 
@@ -205,8 +211,8 @@ def due_jobs(today=None):
     for j in read_jobs():
         last = done.get(j["name"], "")
         start = datetime.strptime(last, "%Y-%m-%d").date() if last else first_seen(j["name"], today)
-        late = (today - start).days - j["every"]
-        if late >= 0:
+        late = interval.late_by(start, j["every"], today)
+        if late is not None:
             out.append(dict(j, last=last, late=late))
     return out
 
@@ -244,15 +250,15 @@ def cmd_done(name):
 
 def cmd_jobs(args):
     refresh()
-    if args[:1] == ["add"] and len(args) >= 5 and args[2].isdigit():
+    if args[:1] == ["add"] and len(args) >= 5 and (args[2].isdigit() or args[2].lower() in ("month", "monthly")):
         read_jobs()
         with open(jobs_file(), "a", encoding="utf-8", newline="\n") as f:
             f.write("%s\t%s\t%s\t%s\n" % (args[1], args[2], args[3], args[4]))
         keep([jobs_file()], "Keeper: regular job %s added" % args[1])
     done = last_done()
     for j in read_jobs():
-        print("  %-14s every %2d days   last done %-10s   type: %-18s %s" % (
-            j["name"], j["every"], done.get(j["name"], "never"), j["type"], j["what"]))
+        print("  %-14s %-15s last done %-10s   type: %-18s %s" % (
+            j["name"], interval.words(j["every"]), done.get(j["name"], "never"), j["type"], j["what"]))
     return 0
 
 

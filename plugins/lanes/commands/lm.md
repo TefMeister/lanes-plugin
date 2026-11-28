@@ -357,6 +357,11 @@ or registry key before changing it.
   `python "${CLAUDE_PLUGIN_ROOT}/tools/gd.py" shelve <project>`. It copies them onto the Gold Digger shelves and
   changes nothing else. A log it did not pick up gets added to its list once: `gd.py sources <project> add <glob>`.
   `docs/PROTOCOL.md` §36.
+- **Then read that game's new logs with Gold Digger, while they are fresh** (0.125.2; Tefa, 2026-11-28, when the
+  full scan went monthly: a month of logs is too much to read in one go). Follow `/lanes:gd <project>`: the
+  digest of each shelf with something waiting, the few new facts into the project's `engine-research/inbox/` or
+  its `KNOWN.md`, then `gd.py sifted`. Nothing new is one line in the write-up. The full scan reads only what is
+  left.
 
 ## 5b. ⚡ Drive menus FAST (0.49.0, asked for by a user watching a live session)
 

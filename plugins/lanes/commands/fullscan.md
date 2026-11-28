@@ -9,7 +9,9 @@ the name chosen the same day. PROTOCOL §36.
 
 **Role: Keeper** (one-PC roles, 0.120.0, PROTOCOL §50): the first reply of this window says so in one line, beside the version line: `🧰 Keeper — uploads, the front page, the index and the regular check-ups`.
 
-**The habit: once a week**, on either PC, but never two runs at once anywhere (step 0b). A session-start line says when
+**The habit: as often as `fullscan_every =` in lanes.conf says** (`month` = from the 1st of each month in which it
+has not run; a number = that many days; 7 when it is not set; 0.125.2, Tefa: "we'll do this once a month now"), on
+either PC, but never two runs at once anywhere (step 0b). A session-start line says when
 it has been 7 days on this PC. Never run it unasked. It costs a lot (research is the biggest part), and it needs no game and no person: a good one to start
 before leaving the PC.
 

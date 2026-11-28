@@ -180,6 +180,8 @@ role = DEV
 #                                            that it never names, and a page left unchanged for weeks
 #   skills_skip = <name>                     a connector or plugin that stays off that page (a private one)
 #   lanes_skip = <repo>                      one of our repos that is not a tool Lanes should offer
+#   fullscan_every = month                   how often the full scan (and its tool check) comes round: month = from
+#                                            the 1st of each month it has not run, or a number of days (default 7)
 #   gu_ask = no                              update without asking first (default: one question for everything)
 #   build_check = <name> | <folder or -> | <command, or @msvc / @blender / @pip>
 #                                            something we build: a build-critical update is kept only if it still
